@@ -1,0 +1,22 @@
+# CONTEXT.md
+
+The design philosophy behind these skills. (Read this before adding one.)
+
+## What a skill is here
+
+A skill is a small, self-contained instruction set an agent loads on demand. One directory, one `SKILL.md`, optional `references/` and `scripts/`. It should be readable in a minute and forkable without understanding the rest of the library.
+
+## Principles
+
+- **Small and composable over frameworks.** No skill should try to own your whole workflow. Sharp tools, then get out of the way.
+- **Model- and agent-agnostic.** Skills target the `SKILL.md` standard; they work across Claude Code, Codex, and others. Avoid hard dependencies on one harness where a portable approach exists.
+- **Progressive disclosure.** SKILL.md stays tight; depth lives in `references/`. Helper `scripts/` do deterministic work the model shouldn't reason through.
+- **Curate, don't generate.** Hand-written, specific instructions beat auto-generated bulk — auto-generated context measurably degrades agents. Every line should earn its place (removability test).
+- **Examples must be generic.** This is a public repo. Examples teach the pattern without leaking a real project, path, or metric.
+
+## Categories
+
+- `engineering` — code-facing skills (review, repo hygiene, recovery).
+- `productivity` — thinking/process skills (decisions, memos, memory, self-audit).
+- `in-progress` — being finalized; not shipped in the plugin manifest.
+- `personal` / `misc` / `deprecated` — kept out of the shipped set.

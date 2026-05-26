@@ -1,0 +1,12 @@
+{
+  "name": "ngmeyer-skills",
+  "skills": [
+    "./skills/engineering/adversarial-review",
+    "./skills/engineering/claude-md",
+    "./skills/engineering/session-recover",
+    "./skills/productivity/council-review",
+    "./skills/productivity/session-close",
+    "./skills/productivity/six-pager",
+    "./skills/productivity/weekly-setup-improvements"
+  ]
+}

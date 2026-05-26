@@ -1,0 +1,143 @@
+---
+name: skillforge
+description: Forge new Claude Code skills the right way — proper frontmatter, progressive disclosure via references/, helper scripts for deterministic work, mandatory Gotchas, and the iterate-then-extract meta-process. Use when the user wants to create, write, build, scaffold, or improve a skill.
+license: MIT
+---
+
+# Skillforge — write Claude Code skills the right way
+
+For full Anthropic-authoritative guidance (frontmatter fields, 500-line budget, dynamic context injection, testing framework, anti-patterns, the 9 skill types, the 5 workflow patterns), load: [references/anthropic-skill-best-practices.md](references/anthropic-skill-best-practices.md).
+
+## Meta-process: iterate first, extract second
+
+Anthropic's recommended creation flow: *iterate on a single challenging task until Claude succeeds, then extract the winning approach into a skill.* Don't write skills for hypothetical future needs. Solve the real problem in conversation, find the prompt + context shape that works, freeze it.
+
+## Process
+
+1. **Gather requirements** - ask user about:
+   - What task/domain does the skill cover?
+   - What specific use cases should it handle? (Surface a real recent example.)
+   - Does it need executable scripts or just instructions?
+   - Any reference materials to include?
+   - Any side effects (deploy, commit, send-message)? → set `disable-model-invocation: true`
+   - Tools that would otherwise prompt? → list in `allowed-tools:`
+
+2. **Draft the skill** - create:
+   - SKILL.md with concise instructions (target ≤100 lines locally; Anthropic's public bar is 500)
+   - `references/` files for detail that doesn't need to load on every invoke
+   - `scripts/` for deterministic helpers (sorting, validation, format conversion)
+
+3. **Review with user** - present draft and ask:
+   - Does this cover your use cases?
+   - Anything missing or unclear?
+   - Should any section be more/less detailed?
+
+## Skill Structure
+
+```
+skill-name/
+├── SKILL.md           # Main instructions (required)
+├── REFERENCE.md       # Detailed docs (if needed)
+├── EXAMPLES.md        # Usage examples (if needed)
+└── scripts/           # Utility scripts (if needed)
+    └── helper.js
+```
+
+## SKILL.md Template
+
+```md
+---
+name: skill-name
+description: Brief description of capability. Use when [specific triggers].
+---
+
+# Skill Name
+
+## Quick start
+
+[Minimal working example]
+
+## Workflows
+
+[Step-by-step processes with checklists for complex tasks]
+
+## Advanced features
+
+[Link to separate files: See [REFERENCE.md](REFERENCE.md)]
+```
+
+## Description Requirements
+
+The description is **the only thing your agent sees** when deciding which skill to load. It's surfaced in the system prompt alongside all other installed skills. Your agent reads these descriptions and picks the relevant skill based on the user's request.
+
+**Goal**: Give your agent just enough info to know:
+
+1. What capability this skill provides
+2. When/why to trigger it (specific keywords, contexts, file types)
+
+**Format**:
+
+- Max 1,536 chars (combined `description` + `when_to_use`)
+- Write in third person
+- First sentence: what it does
+- Second sentence: "Use when [specific triggers]"
+- **Anti-pattern:** narrative summary ("This skill does A, B, and C") fails the routing test. Write decision rules.
+
+**Good example**:
+
+```
+Extract text and tables from PDF files, fill forms, merge documents. Use when working with PDF files or when user mentions PDFs, forms, or document extraction.
+```
+
+**Bad example**:
+
+```
+Helps with documents.
+```
+
+The bad example gives your agent no way to distinguish this from other document skills.
+
+## When to Add Scripts
+
+Add utility scripts when:
+
+- Operation is deterministic (validation, formatting)
+- Same code would be generated repeatedly
+- Errors need explicit handling
+
+Scripts save tokens and improve reliability vs generated code.
+
+## When to Split Files
+
+Split into separate files when:
+
+- SKILL.md exceeds 100 lines
+- Content has distinct domains (finance vs sales schemas)
+- Advanced features are rarely needed
+
+## Gotchas section (mandatory for production skills)
+
+Anthropic: *"the highest-signal content in any skill — the diff between 60% reliability and 95% reliability."* Build it from real failures, not anticipation. One-line failure mode + one-line workaround. Update on every recurring miss. A production skill without a Gotchas section is leaving the reliability win on the table.
+
+## Testing the skill
+
+Three stages, per Anthropic:
+
+1. **Triggering** — does it fire when it should? Does it *not* fire when it shouldn't? (Test prompts both inside and outside the trigger condition.)
+2. **Functional** — given a known input, does it produce the expected output? Edge cases handled?
+3. **Performance** — same task with vs. without the skill. If with-skill doesn't beat without, the skill isn't earning its slot.
+
+## Review Checklist
+
+After drafting, verify:
+
+- [ ] Description includes triggers ("Use when...") and is ≤1,536 chars
+- [ ] SKILL.md under 100 lines (local target; Anthropic's public bar is 500)
+- [ ] Frontmatter declares `allowed-tools` if the skill needs specific ones
+- [ ] `disable-model-invocation: true` set if the skill has side effects
+- [ ] Gotchas section present (or marked as TODO with first failure)
+- [ ] No time-sensitive info
+- [ ] Consistent terminology
+- [ ] Concrete examples included
+- [ ] References one level deep
+- [ ] No `claude` or `anthropic` in skill name; no `README.md` in folder
