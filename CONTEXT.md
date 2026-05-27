@@ -14,6 +14,15 @@ A skill is a small, self-contained instruction set an agent loads on demand. One
 - **Curate, don't generate.** Hand-written, specific instructions beat auto-generated bulk — auto-generated context measurably degrades agents. Every line should earn its place (removability test).
 - **Examples must be generic.** This is a public repo. Examples teach the pattern without leaking a real project, path, or metric.
 
+## Naming
+
+No personal/product prefix (no `nm-*`). The brand lives in the repo and README, not in every command — the way Matt Pocock's library does it, not the way `ce-*` does. Command names stay short and typed-often-friendly.
+
+Conventions:
+- **Verb-led for actions** (`deep-research`, `repo-handoff`, `fill-gaps`, `skills-cleanup`), **noun for capabilities/artifacts** (`six-pager`, `council-review`).
+- **Family stems** group related skills (`review`, `repo-*`, `session-*`) so the set reads as a coherent library.
+- **No `claude`/`anthropic` in names** (Anthropic skill rule). Descriptive over clever; a newcomer should guess what it does from the name.
+
 ## Categories
 
 - `engineering` — code-facing skills (review, repo hygiene, recovery).
