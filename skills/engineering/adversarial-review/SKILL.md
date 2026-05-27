@@ -249,7 +249,8 @@ Print the full report inline. Offer to save to `<cwd>/adversarial-review-<artifa
 Optimized via `skillforge optimize` (outcome research: red-teaming practice 2026).
 - **Escalation probe (Phase 3)** — adds multi-step/sequence attacks; static single-turn review is documented to miss interaction-dependent, escalation-driven failures.
 - **Validation gate (Phase 4)** — every CRITICAL must carry a confirmed reproduction (`[reproduced]`); unreproducible findings are demoted/dropped. Mirrors automated red-teaming's edge: validated findings with reproductions beat raw volume (learning-based RT reports ~3.9× discovery at 89% validation accuracy vs manual).
-- Outcome target: more *real* defects caught (escalation paths) with fewer false positives (validation). Sources: [Algorithmic Red-Teaming review (arXiv 2026)](https://arxiv.org/pdf/2602.21267); [Learning-based automated RT](https://arxiv.org/pdf/2512.20677); red-teaming practitioner guides 2026.
+- Outcome target: deeper multi-step failure analysis + fewer false positives (validation gate). Sources: [Algorithmic Red-Teaming review (arXiv 2026)](https://arxiv.org/pdf/2602.21267); [Learning-based automated RT](https://arxiv.org/pdf/2512.20677); red-teaming practitioner guides 2026.
+- **Verification (independent A/B, 2026-05-27):** V1 (single-pass) vs V2 (+escalation probe) on a planted retry/idempotency bug. *Both* arms caught the bug — so the escalation probe's catch-rate advantage is **unproven** on this case (the bug was catchable single-pass). V2's demonstrated win was reproduction quality: a concrete 7-step compound-failure trace vs V1's one-line mention. Claim is scoped to that; a genuinely sequence-only bug would be needed to test catch-rate.
 
 ## Cost Budget
 

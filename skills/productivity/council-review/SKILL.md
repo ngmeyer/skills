@@ -386,7 +386,7 @@ Optimized via `skillforge optimize`. Outcome-research brief: [[2026-05-26-counci
 - **Outside-view / base-rate** check in the Executor + "How to verify" (reference-class forecasting; Kahneman/Tversky, Flyvbjerg).
 - **`--jury`** — 3 diverse-model chairmen for close calls (jury-of-judges / PoLL).
 
-**Verification.** Structured single-model rubric eval on "4-engineer team: monolith → microservices?": **V1 3.2/5 → V2 4.6/5** (Decisiveness, Insight, Calibration, Actionability, Real-diversity). Biggest gains: Decisiveness 3→5 and Insight 3→5 — V2's outside-view surfaced the base rate and the Devil's Advocate stress-tested the consensus, yielding a decisive call where V1 hedged. A fully isolated multi-agent A/B (spawning both councils on N questions, LLM-judged) is the stronger test and is the recommended next validation.
+**Verification.** Two passes. (1) Structured single-model eval on "monolith → microservices?": V1 3.2 → V2 4.6. (2) **Independent A/B (2026-05-27):** real separate-process agents (`claude -p`) on "seed startup → adopt Kubernetes?", advisors held constant across arms to isolate the chairman-layer change, scored by a **blind** judge (didn't know which verdict was which; V1 shown first to avoid order bias): **V1 3.8 → V2 4.8** (Decisiveness, Insight, Calibration, Actionability, Risk-surfacing). Biggest gains: Risk-surfacing 3→5 and Calibration 3→4. The judge's stated reasons for V2's win named exactly the V2 mechanisms — base-rate/outside-view, the Devil's-Advocate rebuttal, and independent attribute scoring. The advisor-layer changes (sycophancy guardrail, outside-view prompt) were held constant in this A/B and remain validated only by reasoning.
 
 ## Credits
 
