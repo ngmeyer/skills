@@ -1,7 +1,7 @@
 ---
 name: council-review
 description: "Run any question, plan, PR, or code through a Diverse Multi-Agent Debate (DMAD) council of 5 AI advisors with distinct reasoning methods. Advisors collaborate, peer-review each other anonymously, and a chairman synthesizes a verdict. Empirically outperforms adversarial debate (M3MADBench 2026, DMAD ICLR 2025). Use when: 'council this', 'run the council', 'council review', 'pressure-test this', 'stress-test this', 'war room this', or when facing a genuine decision with stakes and tradeoffs."
-argument-hint: "[question, file path, PR number, or GitHub URL] [--quick] [--adaptive] [--confidence] [--measure-diversity] [--adversarial (deprecated)]"
+argument-hint: "[question, file path, PR number, or GitHub URL] [--quick] [--adaptive] [--confidence] [--measure-diversity] [--jury]"
 ---
 
 # Council Review
@@ -17,7 +17,7 @@ This skill implements the **Diverse Multi-Agent Debate (DMAD)** pattern. It is c
 - **Anonymous peer review prevents provider bias.** Universal across the literature — reviewers defer to role names if visible, so peer-review responses must be shuffled.
 - **Confidence calibration breaks the martingale ceiling.** Vanilla MAD often underperforms simple majority vote; confidence-modulated updates ("Demystifying MAD" 2026) systematically drift the council toward correct answers.
 - **Adaptive stopping cuts cost.** KS-statistic convergence detection (S2 MAD via llmcouncil) reports up to 94.5% cost reduction on convergent questions.
-- **A true devil's advocate is the only reliable disagreement-inducer (V2).** Across techniques for breaking consensus in multi-agent LLM teams, *only* a dedicated devil's advocate attacking the emerging answer produces genuine disagreement — soft role-framing and "please dissent" instructions test statistically indistinguishable from baseline. An LLM devil's advocate that challenges the recommendation measurably raises group decision accuracy (OpenReview 2026; IUI 2024). V2 adds this as a mandatory pass against the *consensus* (distinct from the deprecated adversarial mode).
+- **A true devil's advocate is the only reliable disagreement-inducer (V2).** Across techniques for breaking consensus in multi-agent LLM teams, *only* a dedicated devil's advocate attacking the emerging answer produces genuine disagreement — soft role-framing and "please dissent" instructions test statistically indistinguishable from baseline. An LLM devil's advocate that challenges the recommendation measurably raises group decision accuracy (OpenReview 2026; IUI 2024). V2 adds this as a mandatory pass against the *consensus* — one devil's advocate vs the converged answer, not a standing advocates/skeptics split.
 - **Sycophancy collapses councils into premature consensus (V2).** LLMs defer — to each other and to the answer implied by the framing — which can drop a council below single-agent accuracy (Peacemaker-or-Troublemaker 2026; CONSENSAGENT). V2 adds a sycophancy guardrail to advisor + peer prompts and a structured independent-assessment step (Kahneman's Mediating Assessments Protocol, 2019) so the chairman judges key attributes separately *before* the holistic call.
 
 For stress-testing a known artifact (PR, draft, spec), use the separate `/adversarial-review` skill instead — single-critic adversarial probing is the right tool there.
@@ -39,7 +39,6 @@ The council is for questions where **being wrong is expensive**.
 | `--confidence` | Confidence-modulated synthesis. Each advisor rates own confidence (1–10) and rates each peer's confidence. Chairman synthesis is confidence-weighted, not majority-vote. Surfaces low-confidence consensus as a yellow flag. |
 | `--measure-diversity` | After advisors respond, score reasoning-footprint overlap across the responses. Report when the council agreed despite different reasoning methods — that's a signal the consensus may be theatrical. |
 | `--jury` | **(V2)** Replace the single chairman with a 3-judge jury, ideally across different model families. Each judge synthesizes independently; a brief reconciliation step merges them. For close calls and high-stakes verdicts where single-judge reliability isn't enough (jury-of-judges / PoLL). |
-| `--adversarial` | **DEPRECATED.** 2 advocates FOR + 2 skeptics AGAINST + 1 neutral. Retained for backward compatibility but contradicts M3MADBench evidence. Prefer `/adversarial-review` for single-critic stress tests. **Note:** V2's mandatory Devil's Advocate (Step 3.7) is the evidence-based replacement for wanting "an adversarial voice" inside a collaborative council. |
 
 Flags compose: `/council-review --adaptive --confidence "Should we adopt GraphQL?"` runs convergence-stopped, confidence-weighted deliberation.
 
@@ -70,7 +69,7 @@ The five reasoning methods are not interchangeable angles — each is a differen
 - If `--adaptive` is present: enable KS-statistic adaptive stopping (Step 3.5)
 - If `--confidence` is present: enable confidence-modulated synthesis (Steps 2 and 4)
 - If `--measure-diversity` is present: enable diversity verification (Step 2.5)
-- If `--adversarial` is present: use Adversarial Mode (deprecated, see below)
+- If `--jury` is present: use a 3-judge jury at synthesis (Step 4)
 - Remove flags from the input before classifying
 
 **Scope validation:** Before convening the council, assess whether the input actually warrants it. If the question is purely factual, has one obvious right answer, or has no meaningful tradeoff, say so directly: "This doesn't need a council — [direct answer]. Use `/council-review` for decisions with genuine stakes and tradeoffs." Do not spawn agents for trivial questions.
@@ -246,7 +245,7 @@ This is the single highest-leverage V2 addition. The evidence is unambiguous: so
    Steelman the opposite of the consensus. 200 words max. End with: the ONE thing that, if the council can't rebut it, should change the verdict.
    ```
 
-3. Feed the Devil's Advocate output to the chairman alongside everything else. This is NOT the deprecated `--adversarial` mode (2-vs-2 from the start); it's one sharp attack on the *converged* answer, which is the configuration the research singles out.
+3. Feed the Devil's Advocate output to the chairman alongside everything else. This is not a 2-vs-2 advocates/skeptics structure from the start; it's one sharp attack on the *converged* answer, which is the configuration the research singles out.
 
 `--quick` mode: still run the Devil's Advocate (it's the cheapest high-value addition — 1 call). It is the one step `--quick` must not skip.
 
@@ -328,22 +327,6 @@ When `--quick` is passed, run a streamlined council:
 
 Use for routine decisions, quick gut-checks, or when time matters more than exhaustive coverage.
 
-## Adversarial Mode (`--adversarial`) — DEPRECATED
-
-> **Deprecation note:** Empirical evidence (M3MADBench 2026) shows adversarial multi-agent debate underperforms collaborative DMAD on open questions, plans, and decisions. This mode is retained for backward compatibility, but for new use cases, prefer:
-> - **Default council (collaborative DMAD)** — for open decisions, plans, and "what should we do?" questions.
-> - **`/adversarial-review` skill** — for stress-testing a *known artifact* (a written PR, draft, or spec) with single-critic adversarial probing. Distinct workflow.
-
-When `--adversarial` is passed, restructure the advisor roles:
-
-1. **2 Advocates** — Argue FOR the proposal regardless of personal opinion. Find every reason this is a good idea. Steel-man it.
-2. **2 Skeptics** — Argue AGAINST the proposal regardless of personal opinion. Find every reason this will fail. Red-team it.
-3. **1 Neutral Analyst** — No agenda. Evaluate the quality of arguments on both sides. Note which side has stronger evidence.
-
-Peer review and chairman synthesis proceed as normal. The chairman explicitly notes which side made stronger arguments and why.
-
----
-
 ## Cost Budget
 
 | Mode | Agent Calls | Best For |
@@ -354,7 +337,6 @@ Peer review and chairman synthesis proceed as normal. The chairman explicitly no
 | Confidence (`--confidence`) | **12** (same as full, slightly longer prompts) | Decisions where calibrated certainty matters |
 | Measure-diversity (`--measure-diversity`) | **12** (adds a synchronous overlap-scoring step, no extra agent calls) | Verifying consensus is real, not theatrical |
 | Jury (`--jury`) | **+2** (3 chairmen instead of 1, ideally diverse models) | Close calls / high-stakes verdict reliability |
-| Adversarial (`--adversarial`) — deprecated | **11** | Backward compatibility |
 
 Flags compose: `--adaptive --confidence --measure-diversity` together = up to 26 calls + diversity scoring + confidence weighting.
 
@@ -368,13 +350,16 @@ Fast models for volume, good model for synthesis. The chairman's reasoning quali
 - **Don't council trivial questions.** The pre-flight check should catch these. If one right answer exists, just answer it.
 - **Context is critical.** Generic input = generic output. The auto-context step reads project files so advisors aren't flying blind.
 - **Same-model limitation.** This skill uses persona/method diversity (different reasoning methods on the same model), not model diversity (Karpathy's original used different LLMs). For the highest-stakes decisions, consider getting a second opinion from a different model family — or use `--measure-diversity` to verify the council didn't converge prematurely.
-- **Collaborative beats adversarial for open questions.** M3MADBench 2026: adversarial debate underperforms collaborative debate across all modalities. Reach for `--adversarial` only for backward compatibility; reach for `/adversarial-review` for stress-testing a known artifact.
+- **Collaborative beats adversarial for open questions.** M3MADBench 2026: adversarial debate underperforms collaborative debate across all modalities. For stress-testing a *known artifact* (PR, draft, spec), reach for the separate `/adversarial-review` skill — different operation, different input.
 - **Confidence calibration is only as good as the model's calibration.** Low-confidence dissent should still be taken seriously when the dissenter's reasoning is concrete and the majority's is vague.
 - **(V2) The Contrarian is NOT the Devil's Advocate.** The Contrarian inverts at the *start* (soft framing — tests baseline-equivalent at inducing real disagreement). The Step 3.7 Devil's Advocate attacks the *converged* answer — that's the configuration the evidence singles out. Never drop Step 3.7 to save a call; it's the highest-leverage step in the skill.
 - **(V2) Mediating Assessments come BEFORE the recommendation.** If the chairman writes the verdict first and back-fills the attribute scores, it has recreated the coherence bias the protocol exists to prevent. Score the attributes independently, then synthesize.
 - **(V2) `--jury` only helps if the judges differ.** Three runs of the same model is mostly theater. Use different model families, or at minimum independent contexts; treat 3-of-3 agreement as the real signal and any split as a genuine close call.
 
 ## Changelog
+
+### V2.1 (2026-05-27)
+Removed the deprecated `--adversarial` mode entirely (flag, mode section, cost row, parse step). It contradicted the M3MADBench evidence, was superseded by V2's mandatory Devil's-Advocate-vs-consensus step, and caused real "isn't this the same as `/adversarial-review`?" confusion. The two skills stay cleanly separated: **council-review** = open decisions (with a built-in devil's advocate); **`/adversarial-review`** = stress-test a finished artifact. The "collaborative beats adversarial" evidence and the cross-link to `/adversarial-review` are kept.
 
 ### V2 (2026-05-26)
 
