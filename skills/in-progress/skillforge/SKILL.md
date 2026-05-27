@@ -1,12 +1,23 @@
 ---
 name: skillforge
-description: Forge new Claude Code skills the right way — proper frontmatter, progressive disclosure via references/, helper scripts for deterministic work, mandatory Gotchas, and the iterate-then-extract meta-process. Use when the user wants to create, write, build, scaffold, or improve a skill.
+description: Forge new Claude Code skills or optimize existing ones to V2. Two modes — `forge` scaffolds a new skill (frontmatter, progressive disclosure, helper scripts, mandatory Gotchas, iterate-then-extract); `optimize` makes an existing skill measurably better at its OUTCOME, not just its packaging (quality audit + domain outcome-research + changelog + V1-vs-V2 verification). Use when the user wants to create, write, build, scaffold, improve, upgrade, or optimize a skill.
 license: MIT
 ---
 
-# Skillforge — write Claude Code skills the right way
+# Skillforge — write and optimize Claude Code skills the right way
 
 For full Anthropic-authoritative guidance (frontmatter fields, 500-line budget, dynamic context injection, testing framework, anti-patterns, the 9 skill types, the 5 workflow patterns), load: [references/anthropic-skill-best-practices.md](references/anthropic-skill-best-practices.md).
+
+## Two modes
+
+| Mode | Use for | Output |
+|---|---|---|
+| **forge** (default) | A new skill that doesn't exist yet | A new skill dir, drafted per the process below |
+| **optimize** | An existing skill that works but should be better | A **V2** of that skill — measurably better at its *outcome* |
+
+**`forge`** follows the process + checklist in the rest of this file.
+
+**`optimize <skill>`** runs a metric-driven loop: define the outcome and how to measure it → quality audit → research the domain for techniques that improve *the outcome* → synthesize V2 with a changelog → verify V2 beats V1 on the metric, keeping only changes that move it. The discipline is "optimize," not "tidy": a structural cleanup that doesn't improve the outcome is not a V2. Full playbook: [references/optimize-mode.md](references/optimize-mode.md).
 
 ## Meta-process: iterate first, extract second
 

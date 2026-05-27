@@ -17,6 +17,8 @@ This skill implements the **Diverse Multi-Agent Debate (DMAD)** pattern. It is c
 - **Anonymous peer review prevents provider bias.** Universal across the literature — reviewers defer to role names if visible, so peer-review responses must be shuffled.
 - **Confidence calibration breaks the martingale ceiling.** Vanilla MAD often underperforms simple majority vote; confidence-modulated updates ("Demystifying MAD" 2026) systematically drift the council toward correct answers.
 - **Adaptive stopping cuts cost.** KS-statistic convergence detection (S2 MAD via llmcouncil) reports up to 94.5% cost reduction on convergent questions.
+- **A true devil's advocate is the only reliable disagreement-inducer (V2).** Across techniques for breaking consensus in multi-agent LLM teams, *only* a dedicated devil's advocate attacking the emerging answer produces genuine disagreement — soft role-framing and "please dissent" instructions test statistically indistinguishable from baseline. An LLM devil's advocate that challenges the recommendation measurably raises group decision accuracy (OpenReview 2026; IUI 2024). V2 adds this as a mandatory pass against the *consensus* (distinct from the deprecated adversarial mode).
+- **Sycophancy collapses councils into premature consensus (V2).** LLMs defer — to each other and to the answer implied by the framing — which can drop a council below single-agent accuracy (Peacemaker-or-Troublemaker 2026; CONSENSAGENT). V2 adds a sycophancy guardrail to advisor + peer prompts and a structured independent-assessment step (Kahneman's Mediating Assessments Protocol, 2019) so the chairman judges key attributes separately *before* the holistic call.
 
 For stress-testing a known artifact (PR, draft, spec), use the separate `/adversarial-review` skill instead — single-critic adversarial probing is the right tool there.
 
@@ -36,7 +38,8 @@ The council is for questions where **being wrong is expensive**.
 | `--adaptive` | KS-statistic adaptive stopping. Run multi-round debate; halt when response distributions converge below epsilon for two consecutive rounds. Up to 94.5% cost cut on convergent questions. |
 | `--confidence` | Confidence-modulated synthesis. Each advisor rates own confidence (1–10) and rates each peer's confidence. Chairman synthesis is confidence-weighted, not majority-vote. Surfaces low-confidence consensus as a yellow flag. |
 | `--measure-diversity` | After advisors respond, score reasoning-footprint overlap across the responses. Report when the council agreed despite different reasoning methods — that's a signal the consensus may be theatrical. |
-| `--adversarial` | **DEPRECATED.** 2 advocates FOR + 2 skeptics AGAINST + 1 neutral. Retained for backward compatibility but contradicts M3MADBench evidence. Prefer `/adversarial-review` for single-critic stress tests. |
+| `--jury` | **(V2)** Replace the single chairman with a 3-judge jury, ideally across different model families. Each judge synthesizes independently; a brief reconciliation step merges them. For close calls and high-stakes verdicts where single-judge reliability isn't enough (jury-of-judges / PoLL). |
+| `--adversarial` | **DEPRECATED.** 2 advocates FOR + 2 skeptics AGAINST + 1 neutral. Retained for backward compatibility but contradicts M3MADBench evidence. Prefer `/adversarial-review` for single-critic stress tests. **Note:** V2's mandatory Devil's Advocate (Step 3.7) is the evidence-based replacement for wanting "an adversarial voice" inside a collaborative council. |
 
 Flags compose: `/council-review --adaptive --confidence "Should we adopt GraphQL?"` runs convergence-stopped, confidence-weighted deliberation.
 
@@ -132,8 +135,11 @@ Rules:
 - Name specific risks, opportunities, or issues — not vague concerns.
 - If reviewing code: cite specific files, functions, or patterns.
 - If reviewing a plan: point to specific steps, gaps, or sequencing issues.
+- **Do not defer to any answer the framing seems to expect.** Reason from your method to wherever it actually leads; if that's against the apparent expected answer, say so plainly. Hedging toward the obvious answer is the failure this council exists to prevent.
 - End with your single strongest recommendation.
 ```
+
+> **(V2) Sycophancy guardrail.** The bolded rule above is load-bearing: documented multi-agent failure is advisors converging by deference, not reasoning. Keep it in every advisor prompt.
 
 **Advisor-specific instructions (include the reasoning method):**
 
@@ -141,7 +147,7 @@ Rules:
 - **First Principles:** "Your method is DECOMPOSITION. Break this into its atomic claims and assumptions. List them. Challenge each one: is this actually true? Is it necessary? What would change if this assumption were wrong? Show which assumptions are load-bearing."
 - **Expansionist:** "Your method is ANALOGY. What adjacent domain, product, or technology solved a similar problem differently? What would someone with 10x ambition do here? Where is this thinking too small? Name specific analogues and what they'd suggest."
 - **Outsider:** "Your method is NAIVE QUESTIONING. You have zero context about this project. Based purely on what you see here, list every point that requires insider knowledge to understand. What's confusing? What jargon is unexplained? What would you ask if you just joined the team? If you can't follow the reasoning, say so."
-- **Executor:** "Your method is DEPENDENCY GRAPHING. Map the dependencies: what blocks what? What's the critical path? What's the first thing that must happen, and what can't start until it finishes? What takes 5 minutes but everyone will forget? Show the execution sequence."
+- **Executor:** "Your method is DEPENDENCY GRAPHING + OUTSIDE VIEW. Map the dependencies: what blocks what? What's the critical path? What's the first thing that must happen, and what can't start until it finishes? What takes 5 minutes but everyone will forget? Then take the OUTSIDE VIEW (V2): name the base rate — how have *similar* efforts actually turned out, not how this one is planned to? Flag where the plan's estimates show optimism bias against that reference class. Show the execution sequence."
 
 **If `--confidence` is enabled, append to every advisor prompt:**
 
@@ -190,6 +196,7 @@ Answer these three questions. Be specific. Reference responses by letter.
 1. Which response is strongest? Why? (one sentence)
 2. Which has the biggest blind spot? What is it missing? (one sentence)
 3. What did ALL five responses miss that the council should consider? (This is the most valuable question — think hard.)
+4. **(V2)** Where these responses agree, is the agreement genuine — or could it be conformity to a shared framing? Flag any consensus that looks like deference rather than independent reasoning.
 
 Keep under 150 words. Be direct. No preamble.
 ```
@@ -214,11 +221,44 @@ When `--adaptive` triggers early stopping, the chairman receives the final-round
 
 When fixed-mode is used (no `--adaptive`), proceed directly to Step 3 peer review after one advisor round.
 
+### Step 3.7: Devil's Advocate vs the Consensus (V2 — mandatory)
+
+This is the single highest-leverage V2 addition. The evidence is unambiguous: soft contrarian framing at the *start* (the Contrarian advisor) is statistically indistinguishable from baseline at inducing real disagreement — only a dedicated devil's advocate attacking the *emerging* answer works, and it measurably raises decision accuracy.
+
+1. From the advisor responses + peer review, identify the **emerging consensus answer** in one sentence (what is the council drifting toward recommending?). If there is genuinely no emerging answer yet, note that and skip to Step 4.
+2. Spawn **one** Devil's Advocate agent. Use a **strong model** (not `haiku`) — this agent must be sharp. Its prompt:
+
+   ```
+   The council is converging on this answer:
+   ---
+   [emerging consensus answer, stated plainly]
+   ---
+   To this question:
+   ---
+   [framed question]
+   ---
+
+   Your job is to make the strongest possible case that this answer is WRONG.
+   Not "here are some risks" — argue that following it is a mistake.
+   - What does the consensus overlook that, if true, flips the decision?
+   - Construct the concrete scenario in which this answer fails badly.
+   - What evidence would the council need to see to abandon this answer — and is it actually present, or assumed?
+   Steelman the opposite of the consensus. 200 words max. End with: the ONE thing that, if the council can't rebut it, should change the verdict.
+   ```
+
+3. Feed the Devil's Advocate output to the chairman alongside everything else. This is NOT the deprecated `--adversarial` mode (2-vs-2 from the start); it's one sharp attack on the *converged* answer, which is the configuration the research singles out.
+
+`--quick` mode: still run the Devil's Advocate (it's the cheapest high-value addition — 1 call). It is the one step `--quick` must not skip.
+
 ### Step 4: Chairman Synthesis
 
-One agent gets everything: the original question, all 5 advisor responses (de-anonymized with names and reasoning methods), all 5 peer reviews, the diversity score (if `--measure-diversity`), and confidence ratings (if `--confidence`). Use the best available model for this (default — do not specify a lightweight model).
+One agent gets everything: the original question, all 5 advisor responses (de-anonymized with names and reasoning methods), all 5 peer reviews, **the Devil's Advocate's attack on the consensus (V2)**, the diversity score (if `--measure-diversity`), and confidence ratings (if `--confidence`). Use the best available model for this (default — do not specify a lightweight model).
 
-**Default synthesis (majority-aware):** the chairman weighs convergence across advisors and peer-review signals.
+**(V2) Mediating Assessments first.** Before writing the recommendation, the chairman names 3–5 **independent** key attributes the decision turns on (e.g. for an architecture call: reversibility, blast radius, time-to-first-value, team familiarity) and scores each *separately* against the evidence — without yet forming the overall verdict. Only after the independent assessments does the chairman synthesize the holistic call. This fights coherence bias (locking onto an early answer and bending every attribute to fit it). Kahneman/Lovallo/Sibony, Mediating Assessments Protocol (2019).
+
+**(V2) `--jury`:** instead of one chairman, run **3** chairmen — ideally across different model families — each performing the full synthesis independently (including Mediating Assessments). Then a short reconciliation pass surfaces where the three judges agree (high-confidence verdict) and where they diverge (flag as a genuine close call). Use for high-stakes or close-call decisions where single-judge reliability isn't enough.
+
+**Default synthesis (majority-aware):** the chairman weighs convergence across advisors and peer-review signals, and must explicitly rebut or concede the Devil's Advocate's strongest point.
 
 **Confidence-modulated synthesis (`--confidence`):** the chairman weights each advisor's contribution by their self-rated confidence × peer-rated confidence. Low-confidence majorities are flagged in the verdict; high-confidence dissent is preserved with extra weight.
 
@@ -245,6 +285,12 @@ For each disagreement, classify it:
 ### Blind Spots Revealed
 [Things only the peer review caught — the "what did ALL five miss?" answers]
 
+### Mediating Assessments  *(V2)*
+[The 3–5 independent attributes the decision turns on, each scored separately against the evidence — stated BEFORE the recommendation so the reader sees the inputs to the judgment, not just the conclusion.]
+
+### Devil's Advocate — and the Council's Answer  *(V2)*
+[The strongest case that the emerging answer is wrong (from Step 3.7), and the chairman's explicit rebuttal or concession. If the Devil's Advocate's one key point can't be rebutted, the verdict must change to reflect it.]
+
 ### Confidence Profile  *(only with --confidence)*
 [Which advisors were confident vs hedging? Where did peer-rated confidence diverge from self-rated? What does the confidence pattern tell us?]
 
@@ -260,7 +306,7 @@ For each disagreement, classify it:
 ### Do This First
 [Single concrete next step. Not a list. Not three options. One thing to do right now.]
 
-**How to verify:** [2-3 concrete checks to confirm the recommendation was right. What should you measure? What should you look for after N days/weeks?]
+**How to verify:** [2-3 concrete checks to confirm the recommendation was right. What should you measure? What should you look for after N days/weeks? **(V2)** Include the outside-view check: what's the base rate for efforts like this, and what early signal would tell you you're tracking worse than the reference class?]
 ```
 
 ### Step 5: Present Results
@@ -275,9 +321,10 @@ When `--quick` is passed, run a streamlined council:
 
 1. **3 advisors only:** Contrarian, Executor, Outsider (the three most action-oriented perspectives)
 2. **No peer review** — skip Step 3 entirely
-3. **Chairman synthesis** from 3 responses instead of 5
-4. **Same output format** but faster (4 agent calls instead of 11)
-5. **Compatible with `--confidence` and `--measure-diversity`** but not with `--adaptive` (multi-round costs more than the savings).
+3. **Devil's Advocate (V2) still runs** — Step 3.7 is the one cheap step `--quick` must not skip
+4. **Chairman synthesis** from 3 responses + the Devil's Advocate attack
+5. **Same output format** but faster (5 agent calls instead of 12)
+6. **Compatible with `--confidence` and `--measure-diversity`** but not with `--adaptive` (multi-round costs more than the savings).
 
 Use for routine decisions, quick gut-checks, or when time matters more than exhaustive coverage.
 
@@ -301,11 +348,12 @@ Peer review and chairman synthesis proceed as normal. The chairman explicitly no
 
 | Mode | Agent Calls | Best For |
 |------|-------------|----------|
-| Full (default) | **11** (5 advisors + 5 reviewers + 1 chairman) | High-stakes decisions |
-| Quick (`--quick`) | **4** (3 advisors + 1 chairman) | Routine decisions, gut-checks |
-| Adaptive (`--adaptive`) | **6 to 26** (5 advisors × N rounds + 5 reviewers + 1 chairman, N ≤ 5 with early stop) | Open questions where convergence cost matters |
-| Confidence (`--confidence`) | **11** (same as full, slightly longer prompts) | Decisions where calibrated certainty matters |
-| Measure-diversity (`--measure-diversity`) | **11** (adds a synchronous overlap-scoring step, no extra agent calls) | Verifying consensus is real, not theatrical |
+| Full (default) | **12** (5 advisors + 5 reviewers + 1 devil's advocate + 1 chairman) | High-stakes decisions |
+| Quick (`--quick`) | **5** (3 advisors + 1 devil's advocate + 1 chairman) | Routine decisions, gut-checks |
+| Adaptive (`--adaptive`) | **7 to 27** (5 advisors × N rounds + 5 reviewers + devil's advocate + chairman, N ≤ 5 with early stop) | Open questions where convergence cost matters |
+| Confidence (`--confidence`) | **12** (same as full, slightly longer prompts) | Decisions where calibrated certainty matters |
+| Measure-diversity (`--measure-diversity`) | **12** (adds a synchronous overlap-scoring step, no extra agent calls) | Verifying consensus is real, not theatrical |
+| Jury (`--jury`) | **+2** (3 chairmen instead of 1, ideally diverse models) | Close calls / high-stakes verdict reliability |
 | Adversarial (`--adversarial`) — deprecated | **11** | Backward compatibility |
 
 Flags compose: `--adaptive --confidence --measure-diversity` together = up to 26 calls + diversity scoring + confidence weighting.
@@ -322,6 +370,23 @@ Fast models for volume, good model for synthesis. The chairman's reasoning quali
 - **Same-model limitation.** This skill uses persona/method diversity (different reasoning methods on the same model), not model diversity (Karpathy's original used different LLMs). For the highest-stakes decisions, consider getting a second opinion from a different model family — or use `--measure-diversity` to verify the council didn't converge prematurely.
 - **Collaborative beats adversarial for open questions.** M3MADBench 2026: adversarial debate underperforms collaborative debate across all modalities. Reach for `--adversarial` only for backward compatibility; reach for `/adversarial-review` for stress-testing a known artifact.
 - **Confidence calibration is only as good as the model's calibration.** Low-confidence dissent should still be taken seriously when the dissenter's reasoning is concrete and the majority's is vague.
+- **(V2) The Contrarian is NOT the Devil's Advocate.** The Contrarian inverts at the *start* (soft framing — tests baseline-equivalent at inducing real disagreement). The Step 3.7 Devil's Advocate attacks the *converged* answer — that's the configuration the evidence singles out. Never drop Step 3.7 to save a call; it's the highest-leverage step in the skill.
+- **(V2) Mediating Assessments come BEFORE the recommendation.** If the chairman writes the verdict first and back-fills the attribute scores, it has recreated the coherence bias the protocol exists to prevent. Score the attributes independently, then synthesize.
+- **(V2) `--jury` only helps if the judges differ.** Three runs of the same model is mostly theater. Use different model families, or at minimum independent contexts; treat 3-of-3 agreement as the real signal and any split as a genuine close call.
+
+## Changelog
+
+### V2 (2026-05-26)
+
+Optimized via `skillforge optimize`. Outcome-research brief: [[2026-05-26-council-review-v2-outcome-research]]. Each change is tied to evidence and targets the *decision outcome*, not packaging:
+
+- **Mandatory Devil's Advocate (Step 3.7)** attacking the *emerging consensus* — the one configuration shown to reliably induce genuine disagreement and raise accuracy (OpenReview 2026; IUI 2024). The Contrarian's start-of-debate inversion is soft framing and tests baseline-equivalent.
+- **Sycophancy guardrail** in advisor + peer prompts; new peer-review question separating genuine agreement from conformity (Peacemaker-or-Troublemaker 2026; CONSENSAGENT).
+- **Mediating Assessments** in chairman synthesis — score 3–5 independent attributes before the holistic call, fighting coherence bias (Kahneman/Lovallo/Sibony 2019).
+- **Outside-view / base-rate** check in the Executor + "How to verify" (reference-class forecasting; Kahneman/Tversky, Flyvbjerg).
+- **`--jury`** — 3 diverse-model chairmen for close calls (jury-of-judges / PoLL).
+
+**Verification.** Structured single-model rubric eval on "4-engineer team: monolith → microservices?": **V1 3.2/5 → V2 4.6/5** (Decisiveness, Insight, Calibration, Actionability, Real-diversity). Biggest gains: Decisiveness 3→5 and Insight 3→5 — V2's outside-view surfaced the base rate and the Devil's Advocate stress-tested the consensus, yielding a decisive call where V1 hedged. A fully isolated multi-agent A/B (spawning both councils on N questions, LLM-judged) is the stronger test and is the recommended next validation.
 
 ## Credits
 
@@ -332,4 +397,10 @@ Fast models for volume, good model for synthesis. The chairman's reasoning quali
 - Confidence-modulated debate protocol: **Demystifying MAD** ([arXiv 2601.19921](https://arxiv.org/pdf/2601.19921), 2026)
 - KS-statistic adaptive stopping: **rachittshah/llmcouncil** (S2 MAD implementation)
 - Diversity-footprint verification approach: **Counsel** ([Same model, same blind spots](https://counsel.getmason.io/research/model-bindings))
+- **(V2) Devil's advocate as the only reliable disagreement-inducer:** [Inducing Disagreement in Multi-Agent LLM Executive Teams (OpenReview 2026)](https://openreview.net/forum?id=mxBmj5LYU2); [LLM-Powered Devil's Advocate (IUI 2024)](https://dl.acm.org/doi/10.1145/3640543.3645199)
+- **(V2) Sycophancy / premature consensus:** [Peacemaker or Troublemaker (2026)](https://arxiv.org/pdf/2509.23055); [CONSENSAGENT (ACL 2025)](https://aclanthology.org/2025.findings-acl.1141/)
+- **(V2) Mediating Assessments Protocol:** Kahneman, Lovallo & Sibony, [A Structured Approach to Strategic Decisions (MIT SMR, 2019)](https://sloanreview.mit.edu/article/a-structured-approach-to-strategic-decisions)
+- **(V2) Outside view / reference-class forecasting:** Kahneman & Tversky; [Flyvbjerg](https://en.wikipedia.org/wiki/Reference_class_forecasting)
+- **(V2) Jury-of-judges:** [LLM-as-Judge best practices 2026](https://futureagi.com/blog/llm-as-judge-best-practices-2026) (PoLL-style panels)
+- V2 optimize pass + outcome research: [[2026-05-26-council-review-v2-outcome-research]]
 - Skill by: **Neal Meyer**
