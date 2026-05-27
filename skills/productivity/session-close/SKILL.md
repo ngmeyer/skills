@@ -107,12 +107,12 @@ Local memory is the *wrong* home for knowledge a clone-only agent or collaborato
 
 | Item | Belongs in | Action |
 |---|---|---|
-| Decision + rationale a teammate/remote agent needs | repo ADR (`docs/decisions/`) | flag for the `ai-native-repo` skill; don't bury rationale in local memory |
+| Decision + rationale a teammate/remote agent needs | repo ADR (`docs/decisions/`) | flag for the `repo-handoff` skill; don't bury rationale in local memory |
 | Convention / architecture rule | `CLAUDE.md` / `AGENTS.md` | suggest the edit there |
 | Current state / next steps | `PROJECT_STATUS.md` if the repo uses one, else memory Status | route accordingly |
 | Secret-location, personal/tooling scratch, cross-project note | **local memory only** | keep (never commit) |
 
-This isn't extra work — it's putting each fact where the *next* reader will actually look. If the repo isn't yet set up for this (no ADRs / PROJECT_STATUS), note it and recommend running `ai-native-repo`; until then, memory is the fallback. Memory then holds only what genuinely has no repo home.
+This isn't extra work — it's putting each fact where the *next* reader will actually look. If the repo isn't yet set up for this (no ADRs / PROJECT_STATUS), note it and recommend running `repo-handoff`; until then, memory is the fallback. Memory then holds only what genuinely has no repo home.
 
 ### Phase 4: RECONCILE -- Section-aware merging
 
@@ -254,7 +254,7 @@ Sections not matching any pattern are treated as PRESERVE (safe default).
 
 ### V2 (2026-05-27)
 Optimized via `skillforge optimize` (outcome research: AI agent memory / context engineering 2026).
-- **Phase 3.5 ROUTE by layer** — route durable items to their right home (conventions→CLAUDE.md/AGENTS.md, decisions→repo ADRs, status→PROJECT_STATUS) instead of defaulting everything into local memory; memory keeps only the residue. Pairs with `ai-native-repo`. The three-layer split is the 2026 engineering consensus.
+- **Phase 3.5 ROUTE by layer** — route durable items to their right home (conventions→CLAUDE.md/AGENTS.md, decisions→repo ADRs, status→PROJECT_STATUS) instead of defaulting everything into local memory; memory keeps only the residue. Pairs with `repo-handoff`. The three-layer split is the 2026 engineering consensus.
 - Reinforces the existing "not a dump" / size-check rules with the documented reason: context rot (quality degrades as memory bloats), and selective memory is ~10–20× cheaper than fat context.
 - Outcome target: resume-critical knowledge ends up where *any* agent or teammate will find it, not siloed in one machine's local memory. Sources: [State of AI Agent Memory 2026 (mem0)](https://mem0.ai/blog/state-of-ai-agent-memory-2026); [Agent Memory vs Context Engineering (Augment)](https://www.augmentcode.com/guides/agent-memory-vs-context-engineering); see also [[2026-05-24-ai-native-repos-best-practices]].
 
