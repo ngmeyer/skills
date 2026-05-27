@@ -38,8 +38,9 @@ Or add the whole set as a Claude Code plugin marketplace:
 | [`six-pager`](./skills/productivity/six-pager/SKILL.md) | Amazon-style narrative decision memos and PR/FAQ launch docs, under Strunk prose rules. |
 | [`session-close`](./skills/productivity/session-close/SKILL.md) | Reconcile a work session's outcomes into persistent project memory — section-aware, not a dump. |
 | [`weekly-setup-improvements`](./skills/productivity/weekly-setup-improvements/SKILL.md) | Audit a week of work in a folder and produce a forward-looking self-improvement report. |
+| [`skillforge`](./skills/productivity/skillforge/SKILL.md) | Forge new skills, or `optimize` an existing one to a measurably-better V2 (quality audit + outcome research + verification). |
 
-> Skills under `skills/in-progress/` are not yet shipped (not listed in the plugin manifest) and may change or move.
+> New or experimental skills live under `skills/in-progress/` (not listed in the plugin manifest) until they're validated, then move into a category.
 
 ## Conventions
 

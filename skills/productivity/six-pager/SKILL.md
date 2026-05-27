@@ -82,6 +82,8 @@ Generate the six canonical sections. Each section has a specific purpose and a s
 6. **Strategic Priorities (~2 pages)** — The recommended action and rationale. Specific milestones, owners, timelines.
 7. **Appendix (unlimited)** — Visuals, supporting data, alternative analyses considered and rejected (with reasons).
 
+**(V2) Premortem (required in Strategic Priorities or the Appendix).** Assume it is 12 months later and this decision *failed*. Write the 3 most likely causes, working backward from the failure. This is forward-looking risk-finding that "Lessons Learned" (backward-looking) structurally misses — Kahneman's single highest-value decision technique, and it pairs with the verification: each premortem cause should map to a thing you'll monitor. Not generic "risks" — concrete failure scenarios.
+
 **Hard constraint:** sections 1-6 combined must fit in 6 pages of 11pt body text. The skill renders a page count and warns if over.
 
 #### Mode: `prfaq` (Press Release + FAQs)
@@ -220,6 +222,13 @@ A six-pager passes if **every** check is true. Otherwise iterate.
 - **Do not skip the audit.** Phase 4 is not optional. The whole point is prose discipline plus structure.
 - **Do not auto-save.** Phase 6 confirms with the user where to write.
 - **Do not invoke this for prose articles.** Use `/article-draft` (your article voice) or `/human-writing` (style audit) instead.
+
+## Changelog
+
+### V2 (2026-05-27)
+Optimized via `skillforge optimize` (outcome research: decision-memo efficacy + decision science). six-pager was already strong; this is a focused, non-duplicative add:
+- **Required premortem** in memo mode — forward-looking "assume it failed, why?" failure analysis, each cause tied to a verification signal. Closes the gap that "Lessons Learned" (backward-looking) leaves open. Kahneman's highest-value decision technique; same decision-science line that informed council-review V2.
+- Outcome target: memos that surface the killer risk *before* the decision, not after. Sources: Kahneman (premortem); Amazon narrative practice (silent read, customer-back); see also [[2026-05-26-council-review-v2-outcome-research]].
 
 ## References
 

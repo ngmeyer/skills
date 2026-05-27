@@ -156,6 +156,19 @@ You are the harshest reviewer this artifact will ever see. Beyond the categories
 Be specific. No abstract concerns.
 ```
 
+#### Escalation probe (V2 — always run unless `--quick`)
+
+Single-pass review misses the failure modes that only appear over a *sequence* of interactions — the documented blind spot of static, single-turn evaluation. Probe the artifact dynamically:
+
+```
+Single inputs may look safe; sequences break. Find the multi-step failure:
+- What's the 2-4 step interaction that compounds into a failure no single step triggers? (state accretion, retry storms, partial-failure left mid-way, auth downgraded across a flow)
+- What does a user/attacker do AFTER the first thing works — and where does step N break what step 1 established?
+- Where does the artifact assume a clean single attempt but production delivers retries, reorders, or interleaving?
+
+Give the concrete step sequence and the state at each step up to the break.
+```
+
 ### Phase 4: TRIAGE — Categorize and rank
 
 Group every finding into one of three severity tiers:
@@ -167,6 +180,8 @@ Group every finding into one of three severity tiers:
 | **NIT** | Style, polish, minor inconsistency | Optional |
 
 Within each tier, rank by likelihood × blast radius. Drop findings that are pure speculation or "you could imagine a scenario where..." — keep only findings backed by a concrete example.
+
+**(V2) Validation gate — confirm before you escalate.** For every CRITICAL (and ideally each IMPORTANT), state the *exact* reproduction and mentally re-run it against the artifact: does the trigger actually reach the failure given the code/spec as written, or does an existing guard already stop it? Demote or drop any finding that doesn't survive this re-test. Automated red-teaming's edge is *validated* findings with reproductions, not raw volume — an unreproducible CRITICAL costs more trust than it's worth. Mark each surviving finding `[reproduced]`.
 
 ### Phase 5: PRESENT — Surface findings with reproduction
 
@@ -228,11 +243,19 @@ Print the full report inline. Offer to save to `<cwd>/adversarial-review-<artifa
 - **Do not propose entire rewrites in fix sketches.** One-sentence fix or "this needs a deeper redesign — see Notes." Save the rewrite for the author.
 - **Do not omit "What I Could Not Break".** Without it, the user can't tell where the artifact is genuinely solid vs where you didn't look.
 
+## Changelog
+
+### V2 (2026-05-27)
+Optimized via `skillforge optimize` (outcome research: red-teaming practice 2026).
+- **Escalation probe (Phase 3)** — adds multi-step/sequence attacks; static single-turn review is documented to miss interaction-dependent, escalation-driven failures.
+- **Validation gate (Phase 4)** — every CRITICAL must carry a confirmed reproduction (`[reproduced]`); unreproducible findings are demoted/dropped. Mirrors automated red-teaming's edge: validated findings with reproductions beat raw volume (learning-based RT reports ~3.9× discovery at 89% validation accuracy vs manual).
+- Outcome target: more *real* defects caught (escalation paths) with fewer false positives (validation). Sources: [Algorithmic Red-Teaming review (arXiv 2026)](https://arxiv.org/pdf/2602.21267); [Learning-based automated RT](https://arxiv.org/pdf/2512.20677); red-teaming practitioner guides 2026.
+
 ## Cost Budget
 
 | Mode | Agent Calls | Best For |
 |------|-------------|----------|
-| Default (all vectors) | 5–6 (one per vector + universal probe + triage) | Pre-merge PR review, spec sign-off |
+| Default (all vectors) | 6–7 (per-vector + universal + escalation probe + triage) | Pre-merge PR review, spec sign-off |
 | Single dimension (`--security` etc.) | 2 (focused probe + triage) | Targeted audit |
 | Quick (`--quick`) | 1 | Cheap drive-by check |
 

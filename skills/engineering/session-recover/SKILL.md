@@ -133,7 +133,9 @@ ls "$LOSER" 2>/dev/null         # should report "No such file or directory"
 ls ~/.claude/archive/$(basename "$LOSER")/  # archived jsonls + dirs
 ```
 
-Report the final state to the user as a 3-row table.
+**(V2) Reconciliation gate — prove nothing was lost.** Before declaring success, reconcile the counts: capture `winner_before` and `loser_count` in Phase 3 *before* moving, then assert `winner_after == winner_before + loser_count − dedup_count`, where `dedup_count` is the number of same-name files you hand-merged. If the arithmetic doesn't close, **STOP** and show the discrepancy — a missing file means a silent loss, which is the one outcome this skill must never produce. Only report success once the count reconciles (or the user accepts a documented dedup).
+
+Report the final state to the user as a 3-row table, including the reconciliation line (`winner_before + loser − dedup = winner_after`).
 
 ### Phase 7 — SUGGEST /compact
 
@@ -179,6 +181,13 @@ Skip Phases 4 (transcript archive — leave legacy transcripts alone unless aske
 6. **Cross-project name collisions:** if two project names share a token (e.g. `api` and `api-gateway`), the inventory script will return both. Always show the user the full candidate list and confirm before moving anything.
 
 7. **Don't try to be clever about "which transcript is more recent."** That's a merge-content question, not a merge-state question. The skill's job is to unify the memory namespace; the active session's transcript stays where it is.
+
+## Changelog
+
+### V2 (2026-05-27)
+Optimized via `skillforge optimize`. **Honest note:** external outcome research was thin — this is a procedural skill for one specific Claude Code mechanism, with no meaningful state-of-the-art to mine. The genuine outcome to protect is *zero memory loss on merge*, so the V2 change is a safety hardening, not a research import:
+- **Reconciliation gate (Phase 6)** — assert `winner_after == winner_before + loser − dedup`; STOP on any mismatch. Turns "looks done" into "provably lost nothing." Pairs with the existing archive-never-delete rule (the merge is already reversible).
+- No outcome-research-driven additions were forced (the agent-memory three-layer model is already reflected in the legacy-orphan variant's repo/local/secret routing).
 
 ## See also
 

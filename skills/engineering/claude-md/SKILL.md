@@ -41,6 +41,10 @@ A second invariant cuts across both modes: **CLAUDE.md is tracked in git and vis
 
 If both modes would apply (e.g., `/claude-md improve` in a folder with no CLAUDE.md), the skill asks for clarification.
 
+### Also applies to `AGENTS.md` (V2)
+
+`AGENTS.md` is the cross-agent standard (Linux Foundation / Agentic AI Foundation; read by Codex, Cursor, Gemini, Copilot, and 30+ tools). Everything here — the rubric, the secret scan, drift detection, the budget — applies to `AGENTS.md` identically. When both exist, audit both and flag duplication: the right pattern is **one source of truth** (`AGENTS.md`) with `CLAUDE.md` as a thin alias/`@import`, not two drifting files. Treat a repo's nearest-scoped `AGENTS.md` (monorepos nest them) the same way.
+
 ---
 
 ## Improve Mode
@@ -190,6 +194,7 @@ Wording sourced from the Karpathy-derived rule compilations (Fraser, May 2026; "
 - Duplicate rules across tiers
 - `@-imports` of full README / huge docs (they enter the context window at launch)
 - Anything Claude learns on its own via auto memory
+- **(V2) Auto-generated bulk.** Never `/init`-and-forget or paste an LLM-generated context file. Controlled study: a *curated* context file gives ~+4pp task quality at ~20% token overhead, but an *auto-generated* one **reduces** task success ~0.5–2% while raising cost 20–23%. Curate ruthlessly; more context is not better. (arXiv 2026, AGENTS.md efficiency study.)
 
 ---
 
@@ -332,6 +337,14 @@ A run passes if **every** check is true. Otherwise rewrite the offending recomme
 - **Do not flag perfectly fine lines.** A line that fails the removability test must actually fail it — not "could maybe be tighter."
 - **Do not add a rule on first occurrence of a mistake.** Log it in MEMORY.md or a scratch list. Promote to CLAUDE.md only after the second occurrence. Improves signal-to-noise; cuts noise rules that bloat the file without preventing real mistakes. (Source: Redreamality, April 2026.)
 - **Do not hardcode user paths.** Use `$TARGET`, `$HOME`, `$1`. Never `/Users/<name>/...`.
+
+## Changelog
+
+### V2 (2026-05-27)
+Optimized via `skillforge optimize` (outcome research: [[2026-05-24-ai-native-repos-best-practices]]).
+- **AGENTS.md support** — audit/improve the cross-agent standard, not just CLAUDE.md; flag CLAUDE.md/AGENTS.md duplication and recommend one-source-of-truth.
+- **"Never auto-generate" anti-pattern** with the controlled-study evidence (curated +4pp vs auto-generated −0.5–2% / +20–23% cost). Strengthens the existing trim-not-add doctrine.
+- Outcome target: the skill now improves the file that actually changes agent behavior across harnesses, and actively prevents the bloat that degrades it. Sources: [AGENTS.md efficiency study (arXiv 2026)](https://arxiv.org/html/2601.20404v2); [agents.md standard](https://agents.md/); Augment Code AGENTS.md guide.
 
 ## Sibling Skills
 

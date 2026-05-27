@@ -91,6 +91,7 @@ Look for and read whichever of these exist (gracefully skip missing files):
 - `AGENTS.md` (agent context)
 - `about-me.md`, `voice-and-style.md`, `working-rules.md` (Karpathy-style context anchors)
 - Any `*.md` in a `memory/`, `context/`, or `docs/` subdirectory near the root
+- **(V2) The most recent prior `weekly-setup-improvements-*.md`** (the archived last report). Read its action items — they feed the new Section 0 closure check.
 
 These are the targets for Section 1 (Context File Updates).
 
@@ -103,6 +104,8 @@ Walk the signals from Phase 2 with these specific lenses, in this order. For eac
 3. **Drift.** For each context file read in Phase 3, find one claim it makes (a path, a tool, a constraint) and check whether the past week's work contradicts it. List every contradiction with a one-line fix.
 4. **Bloat.** Files older than the audit window that no longer match a current naming convention; `*-draft-N.md` siblings; archive candidates.
 5. **Wins.** What pattern in the week clearly worked? Name the file or commit that proves it. Don't generalize before naming the proof.
+6. **(V2) Carry-forward.** From the prior report (Phase 3), check each action item: done, partially done, or dropped? Evidence = a commit, a new file, a changed line. Compute a one-line **closure rate** ("3 of 5 done"). A repeatedly-dropped action is itself a finding — either it's not actually worth doing (cut it) or there's a blocker to name.
+7. **(V2) Root cause before fix.** For each recurring pain pattern, run a quick **Five Whys** before proposing a fix, so Section 3 addresses the cause, not the symptom. (Retrospective evidence: actions targeting symptoms get re-raised every cycle.)
 
 If `compound-engineering:ce-sessions` is installed, optionally use it to surface conversational themes (e.g., "user paused three times this week to ask 'how do I X'"). Skip if not available -- the skill must work without it.
 
@@ -129,6 +132,10 @@ Based on review of <one-line scope>: files modified, git activity, and patterns 
 
 ---
 
+## 0. Last Week's Actions  *(V2 — skip if no prior report)*
+
+Closure rate: <N of M done>. One line per prior action: ✅ done (evidence) / ◐ partial / ✗ dropped (why). A dropped action that recurs gets escalated or explicitly killed here — don't silently re-suggest it.
+
 ## 1. Context File Updates
 
 For each context file, give one of:
@@ -147,7 +154,9 @@ Cap at 3. Quality over quantity. For each:
 
 Each gap is one bullet group:
 - **Did manually:** what
-- **Should be:** what (a tool, a script, a skill, a hook)
+- **Root cause:** *(V2)* the Five-Whys result — why this keeps happening, not just that it did
+- **Should be:** what (a tool, a script, a skill, a hook) — addressing the cause
+- **Owner / next action:** *(V2)* the single concrete next step that closes it (a solo practitioner's "owner" is a named next action carried into next week's Section 0)
 - **Cost of waiting:** why this matters
 
 ## 4. Files to Clean Up
@@ -189,6 +198,15 @@ A report passes if **every** check is true. Otherwise rewrite the offending sect
 - **Do not skip "What's Working."** Negative bias is the enemy; the user needs to know what to keep as much as what to change.
 - **Do not modify any other files.** This skill writes one file (and renames the prior one if present).
 - **Do not hardcode user paths.** Use `$WORKING_FOLDER`, `$HOME`, `$1`. Never `/Users/<name>/...`.
+
+## Changelog
+
+### V2 (2026-05-27)
+Optimized via `skillforge optimize` (outcome research: retrospective/continuous-improvement practice 2026).
+- **Section 0 — Last Week's Actions** + a closure-rate check (read the prior report, mark each action done/partial/dropped with evidence). Closes the loop — the #1 reason retros get ignored is actions with no follow-up.
+- **Owners / next actions** on every Section 3 gap, carried into next week's Section 0.
+- **Root-cause (Five Whys)** before proposing a fix, so gaps target causes not symptoms.
+- Outcome target: a report that actually drives change week-over-week, not a fresh wish-list each time. Sources: TeamRetro retro anti-patterns 2026; continuous-improvement (Five Whys / Force Field) practice.
 
 ## Routine / Schedule
 

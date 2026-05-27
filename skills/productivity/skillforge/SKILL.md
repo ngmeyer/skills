@@ -152,3 +152,9 @@ After drafting, verify:
 - [ ] Concrete examples included
 - [ ] References one level deep
 - [ ] No `claude` or `anthropic` in skill name; no `README.md` in folder
+
+## Changelog
+
+### V2 (2026-05-27)
+- Added **`optimize` mode** (forge new vs optimize existing-to-V2). Optimize runs a metric-driven loop — define outcome + metric, quality audit, domain outcome-research, synthesize V2 + changelog, verify V2 beats V1 — so a "V2" must measurably improve the *outcome*, not just the packaging. Playbook: `references/optimize-mode.md`.
+- Dogfooded across 7 skills (council-review pilot + a 6-skill batch), which is what promoted skillforge out of `in-progress/`.
