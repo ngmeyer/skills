@@ -37,8 +37,7 @@ Same rule, three scales: line, sentence, instruction. This skill enforces all th
 |---|---|---|
 | **`/six-pager memo`** | Decisions, strategy, status, "should we?" with stakes | Narrative memo, 6 sections, hard 6-page cap |
 | **`/six-pager prfaq`** | Product / feature / launch ideas where customer outcome is the question | Press release + 2 FAQs, work backwards from launch |
-| `/article-draft` | Long-form article in your voice | Long-form essay, narrative, sensory |
-| `/human-writing` | Voice / anti-AI-tells / banned-words for any prose | Style audit, not format generation |
+| a long-form writing/voice skill | Prose essays, narrative, sensory writing | Long-form drafting, not decision-doc structure |
 | `/council-review` | Open question with multiple valid answers | Multi-agent deliberation, not document generation |
 | `/adversarial-review` | Stress-test a finished artifact (including a six-pager!) | Single-critic attack mode |
 
@@ -221,14 +220,14 @@ A six-pager passes if **every** check is true. Otherwise iterate.
 - **Do not confuse Goals with Tenets.** Goals are outcomes (measurable). Tenets are principles (commitments). Both are needed; conflating them muddles thinking.
 - **Do not skip the audit.** Phase 4 is not optional. The whole point is prose discipline plus structure.
 - **Do not auto-save.** Phase 6 confirms with the user where to write.
-- **Do not invoke this for prose articles.** Use `/article-draft` (your article voice) or `/human-writing` (style audit) instead.
+- **Do not invoke this for prose articles.** Use a dedicated long-form writing/voice skill instead — this skill is for decision docs, not essays.
 
 ## Changelog
 
 ### V2 (2026-05-27)
 Optimized via `skillforge optimize` (outcome research: decision-memo efficacy + decision science). six-pager was already strong; this is a focused, non-duplicative add:
 - **Required premortem** in memo mode — forward-looking "assume it failed, why?" failure analysis, each cause tied to a verification signal. Closes the gap that "Lessons Learned" (backward-looking) leaves open. Kahneman's highest-value decision technique; same decision-science line that informed council-review V2.
-- Outcome target: memos that surface the killer risk *before* the decision, not after. Sources: Kahneman (premortem); Amazon narrative practice (silent read, customer-back); see also [[2026-05-26-council-review-v2-outcome-research]].
+- Outcome target: memos that surface the killer risk *before* the decision, not after. Sources: Kahneman (premortem); Amazon narrative practice (silent read, customer-back); grounded in the same decision-science line (premortem, mediating assessments).
 
 ## References
 

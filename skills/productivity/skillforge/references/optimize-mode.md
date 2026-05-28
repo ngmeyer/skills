@@ -1,6 +1,6 @@
 # Optimize mode — take an existing skill to V2
 
-Make a working skill **measurably better at the outcome it exists to produce** — not just better packaged. A tidy refactor that doesn't move the outcome is not a V2. This is the ce-optimize discipline (define a metric, experiment, keep what wins) applied to a skill's *output*.
+Make a working skill **measurably better at the outcome it exists to produce** — not just better packaged. A tidy refactor that doesn't move the outcome is not a V2. This is metric-driven optimization — define a measurable "better", experiment, keep only what wins — applied to a skill's *output*.
 
 ## When to use
 The skill already exists and fires correctly, but you suspect its *output* could be stronger — better decisions, fewer misses, sharper writing, more reliable results. Not for fixing a broken trigger (that's a quality fix) or creating something new (that's `forge`).
@@ -9,7 +9,7 @@ The skill already exists and fires correctly, but you suspect its *output* could
 
 ### 1. Define the outcome + how to measure it
 State, in one sentence, what *great* output from this skill looks like — the real-world result, not "well-structured." Then pick a measurement you can actually run:
-- **LLM-as-judge rubric** (3–5 weighted dimensions scored 1–5) — default for subjective outputs (memos, reviews, research). Same hard-vs-judge decision `ce-optimize` makes: use judge when a human would have to *read* the output to say it's better.
+- **LLM-as-judge rubric** (3–5 weighted dimensions scored 1–5) — default for subjective outputs (memos, reviews, research). The hard-vs-judge call: use a judge when a human would have to *read* the output to say it's better.
 - **Hard metric** (a number with a clear direction) — for outputs with objective targets.
 
 No metric → no optimize. "Seems better" is not a result. Write the rubric down before changing anything.
@@ -26,7 +26,7 @@ A change that fails any gate is discarded regardless of score.
 Run the `forge` Review Checklist against the current skill: description-as-router, line budget, progressive disclosure, **Gotchas built from real failures**, anti-patterns, 3-stage testing. Note fixes — but remember these improve *reliability/packaging*, not the *outcome ceiling*. Don't stop here; that's the trap this mode exists to escape.
 
 ### 4. Outcome research (the part that raises the ceiling)
-Research the skill's **domain** for state-of-the-art techniques and evidence that would improve the outcome metric from step 1. Use `librarian-deep-research` (searches the vault + Exa/Tavily/web in parallel and saves the brief back to the vault, so each skill's research compounds).
+Research the skill's **domain** for state-of-the-art techniques and evidence that would improve the outcome metric from step 1. Do a multi-source web search (and, if you happen to run a vault-integrated research skill, let it compound there — optional, not required).
 
 - Frame the query around the *outcome*, not the skill: for a review skill, "what techniques catch the most real defects"; for a memo skill, "what makes decision memos change decisions"; for a debate skill, "latest multi-agent deliberation methods that beat single-pass."
 - Extract only **concrete, evidence-backed changes**: a new procedure step, a heuristic, a better default, a failure mode to guard. Each candidate change should name the source and the outcome dimension it targets.
@@ -45,17 +45,17 @@ Score **both** V1 and V2 against a **benchmark — a small held-out set of real 
 - If V2 doesn't beat V1 overall, it isn't a V2 — iterate (back to step 4) or revert. Shipping a "V2" that didn't measurably improve is the failure this mode prevents.
 - Record the V1→V2 delta in the changelog (e.g. "judge 3.8 → 4.8 across 20 tasks; biggest gain: risk-surfacing").
 
-## Going heavy — when to delegate (don't rebuild the loop)
-The steps above are the lightweight, single-skill path: one V2, hand-run, fast. When you want serious optimization — many hypotheses, parallel experiments, a real benchmark run for hours — **don't rebuild that machinery here.** Hand off:
-- **`ce-optimize`** (installed CE skill) — point its spec at the skill file as `scope.mutable`, your benchmark as the metric, your gates as `degenerate_gates`. It runs parallel worktree experiments, keeps only gated winners, persists every result to disk, and converges on a plateau. This optimize mode *is* ce-optimize's discipline scoped to one skill; for the full loop, drive ce-optimize directly.
-- **`evo`** (open source, evo-hq.com) — purpose-built to optimize a whole Skills *directory* against a benchmark, with parallel exploration, tree search (keep + merge specialists), and a built-in no-cheating auditor. Spike it when you want all of `~/.claude/skills/` tuned, not one skill.
+## Going heavy — optional external escalation
+The steps above are self-contained: one V2, hand-run, fast, no other tooling required. When you want serious optimization — many hypotheses, parallel experiments, a benchmark run for hours — and you happen to have a dedicated optimization tool installed, escalate to it rather than hand-running. Two that fit (both **external to this skill** — install separately):
+- **`ce-optimize`** (the Compound Engineering plugin) — point its spec at the skill file as `scope.mutable`, your benchmark as the metric, your gates as `degenerate_gates`; it runs parallel worktree experiments, keeps only gated winners, and converges.
+- **`evo`** (open source, evo-hq.com) — optimizes a whole skills *directory* against a benchmark with parallel exploration, tree search, and a no-cheating auditor.
 
-What stays unique to skillforge and is worth doing by hand: the **outcome-research** hypothesis source (step 4) and the **skill-quality audit** (step 3) — neither ce-optimize nor evo does those; they optimize against a metric but won't go read the domain's state of the art for you.
+If you don't have either, the loop above is complete on its own. What this skill uniquely adds (and a generic optimizer won't): the **outcome-research** hypothesis source (step 4) and the **skill-quality audit** (step 3).
 
 ## Output
 - The V2 skill (same dir; old version recoverable via git).
 - A `## Changelog` entry with the evidence trail and the measured delta.
-- The research brief saved in the vault (via librarian-deep-research), linked from the changelog.
+- The research brief saved alongside the skill (or in your knowledge base), linked from the changelog.
 
 ## Gotchas
 - **Tidying ≠ optimizing.** If your V2 diff is all formatting and frontmatter, you skipped step 4 (outcome research).
@@ -66,4 +66,4 @@ What stays unique to skillforge and is worth doing by hand: the **outcome-resear
 - **One skill at a time** for the hand-run path. For many skills or a long run, that's the signal to delegate to ce-optimize/evo, not to grind manually.
 
 ## Lineage
-This mode = the metric-driven optimization discipline of **`ce-optimize`** (CE plugin) and **`evo`** ([alokbishoyi97, evo-hq.com](https://x.com/alokbishoyi97/status/2059610305408462898) — parallel exploration, tree search, gates, no-cheating auditor), scoped to a single skill and fronted with an outcome-research hypothesis source. See vault: [[alok-bishoyi-evo-autoresearch-skills]].
+This mode adapts the metric-driven optimization discipline of the Compound Engineering `ce-optimize` skill and **`evo`** ([alokbishoyi97](https://x.com/alokbishoyi97/status/2059610305408462898), evo-hq.com — parallel exploration, tree search, gates, no-cheating auditor), scoped to a single skill and fronted with an outcome-research hypothesis source.

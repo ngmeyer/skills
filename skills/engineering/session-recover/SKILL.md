@@ -148,7 +148,7 @@ Phases 3–4 above assume the loser is a **live mirror** of the *same* current w
 In that case, replace Phase 3's `mv`-everything with a **per-file assessment**:
 
 1. **Read every orphaned memory file.** Classify each (verify claims against the *current* repo/code — files move, features ship, facts drift):
-   - **KEEPER → repo**: a decision, gotcha, or product idea a remote agent/collaborator needs that ISN'T already in the repo (`docs/`, `CLAUDE.md`) or canonical memory. → write it into the repo (ADR under `docs/decisions/`, a `docs/` knowledge doc, or an ideas backlog). Pairs with the `repo-handoff` skill.
+   - **KEEPER → repo**: a decision, gotcha, or product idea a remote agent/collaborator needs that ISN'T already in the repo (`docs/`, `CLAUDE.md`) or canonical memory. → write it into the repo (ADR under `docs/decisions/`, a `docs/` knowledge doc, or an ideas backlog).
    - **KEEPER → local**: still-valid behavior guidance ("don't do X, it's already handled"). → copy into the canonical memory dir + index it.
    - **SECRET-LOCATION**: anything naming where a token/credential lives, or env→environment maps. → fold into the canonical secrets-inventory memory. **Never commit, even to a private repo.**
    - **STALE**: superseded status, finished backlogs, old audits. → archive.
@@ -193,4 +193,4 @@ Optimized via `skillforge optimize`. **Honest note:** external outcome research 
 
 - `references/merge-example.md` — sanitized end-to-end walkthrough of a dual-cwd merge.
 - `scripts/inventory.sh` — the Phase 1 helper.
-- `repo-handoff` skill — the legacy-orphan variant recovers keepers *into the repo* (ADRs, docs, ideas backlog). Run that skill for the repo-side migration; this one handles the namespace cleanup + tombstone.
+- The legacy-orphan variant recovers keepers *into the repo* (ADRs, docs, ideas backlog) for the repo-side migration; this skill handles the namespace cleanup + tombstone.

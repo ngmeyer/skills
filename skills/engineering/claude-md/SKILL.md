@@ -341,7 +341,7 @@ A run passes if **every** check is true. Otherwise rewrite the offending recomme
 ## Changelog
 
 ### V2 (2026-05-27)
-Optimized via `skillforge optimize` (outcome research: [[2026-05-24-ai-native-repos-best-practices]]).
+Optimized via `skillforge optimize` (outcome research on AI-native repo / AGENTS.md best practices).
 - **AGENTS.md support** — audit/improve the cross-agent standard, not just CLAUDE.md; flag CLAUDE.md/AGENTS.md duplication and recommend one-source-of-truth.
 - **"Never auto-generate" anti-pattern** with the controlled-study evidence (curated +4pp vs auto-generated −0.5–2% / +20–23% cost). Strengthens the existing trim-not-add doctrine.
 - Outcome target: the skill now improves the file that actually changes agent behavior across harnesses, and actively prevents the bloat that degrades it. Sources: [AGENTS.md efficiency study (arXiv 2026)](https://arxiv.org/html/2601.20404v2); [agents.md standard](https://agents.md/); Augment Code AGENTS.md guide.

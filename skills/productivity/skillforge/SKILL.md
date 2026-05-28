@@ -17,7 +17,7 @@ For full Anthropic-authoritative guidance (frontmatter fields, 500-line budget, 
 
 **`forge`** follows the process + checklist in the rest of this file.
 
-**`optimize <skill>`** runs a metric-driven loop: define the outcome + metric → **set gates (incl. a no-cheating audit)** → quality audit → research the domain for outcome-improving techniques → synthesize V2 with a changelog → verify V2 beats V1 **on a held-out benchmark, not a single example**, discarding any candidate that fails a gate. "Optimize," not "tidy": a cleanup that doesn't move the outcome is not a V2, and a score that jumped by gaming the rubric is a regression. For a heavy run (many hypotheses, parallel experiments, hours), **delegate to `ce-optimize` or `evo`** rather than hand-running. Full playbook: [references/optimize-mode.md](references/optimize-mode.md).
+**`optimize <skill>`** runs a metric-driven loop: define the outcome + metric → **set gates (incl. a no-cheating audit)** → quality audit → research the domain for outcome-improving techniques → synthesize V2 with a changelog → verify V2 beats V1 **on a held-out benchmark, not a single example**, discarding any candidate that fails a gate. "Optimize," not "tidy": a cleanup that doesn't move the outcome is not a V2, and a score that jumped by gaming the rubric is a regression. The loop is self-contained; for a heavy run (many hypotheses, parallel experiments, hours) you can *optionally* escalate to an external optimizer if you have one (`ce-optimize` plugin, or `evo`). Full playbook: [references/optimize-mode.md](references/optimize-mode.md).
 
 ## Meta-process: iterate first, extract second
 
@@ -159,7 +159,7 @@ After drafting, verify:
 Evolved `optimize` mode by merging the metric-driven rigor of **`ce-optimize`** (CE plugin) and **`evo`** ([alokbishoyi97](https://x.com/alokbishoyi97/status/2059610305408462898), evo-hq.com):
 - Added a **gates** step (degenerate gates + **no-cheating audit** + held-out check) — discard any candidate that fails a gate even if it scored best. Closes the "gamed metric" hole the prior loop had.
 - Verify now uses a **held-out benchmark (~10–20 tasks), not a one-off** — fixes the N=1 weakness in the council-review A/B.
-- Added **"when to delegate"**: for heavy runs (many hypotheses / parallel experiments / hours), hand off to `ce-optimize` or `evo` instead of hand-running; skillforge keeps the unique outcome-research + skill-quality-audit front end. Vault: [[alok-bishoyi-evo-autoresearch-skills]].
+- Added **optional external escalation**: for heavy runs (many hypotheses / parallel experiments / hours), optionally hand off to an external optimizer (`ce-optimize` plugin or `evo`, evo-hq.com) if installed; skillforge stays self-contained and keeps the unique outcome-research + skill-quality-audit front end.
 
 ### V2 (2026-05-27)
 - Added **`optimize` mode** (forge new vs optimize existing-to-V2). Optimize runs a metric-driven loop — define outcome + metric, quality audit, domain outcome-research, synthesize V2 + changelog, verify V2 beats V1 — so a "V2" must measurably improve the *outcome*, not just the packaging. Playbook: `references/optimize-mode.md`.

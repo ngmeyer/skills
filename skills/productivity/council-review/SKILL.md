@@ -363,7 +363,7 @@ Removed the deprecated `--adversarial` mode entirely (flag, mode section, cost r
 
 ### V2 (2026-05-26)
 
-Optimized via `skillforge optimize`. Outcome-research brief: [[2026-05-26-council-review-v2-outcome-research]]. Each change is tied to evidence and targets the *decision outcome*, not packaging:
+Optimized via `skillforge optimize`. Outcome-research brief: the V2 outcome-research brief. Each change is tied to evidence and targets the *decision outcome*, not packaging:
 
 - **Mandatory Devil's Advocate (Step 3.7)** attacking the *emerging consensus* — the one configuration shown to reliably induce genuine disagreement and raise accuracy (OpenReview 2026; IUI 2024). The Contrarian's start-of-debate inversion is soft framing and tests baseline-equivalent.
 - **Sycophancy guardrail** in advisor + peer prompts; new peer-review question separating genuine agreement from conformity (Peacemaker-or-Troublemaker 2026; CONSENSAGENT).
@@ -387,5 +387,5 @@ Optimized via `skillforge optimize`. Outcome-research brief: [[2026-05-26-counci
 - **(V2) Mediating Assessments Protocol:** Kahneman, Lovallo & Sibony, [A Structured Approach to Strategic Decisions (MIT SMR, 2019)](https://sloanreview.mit.edu/article/a-structured-approach-to-strategic-decisions)
 - **(V2) Outside view / reference-class forecasting:** Kahneman & Tversky; [Flyvbjerg](https://en.wikipedia.org/wiki/Reference_class_forecasting)
 - **(V2) Jury-of-judges:** [LLM-as-Judge best practices 2026](https://futureagi.com/blog/llm-as-judge-best-practices-2026) (PoLL-style panels)
-- V2 optimize pass + outcome research: [[2026-05-26-council-review-v2-outcome-research]]
+- V2 optimize pass + outcome research: the V2 outcome-research brief
 - Skill by: **Neal Meyer**
