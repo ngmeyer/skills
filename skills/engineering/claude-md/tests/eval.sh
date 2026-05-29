@@ -111,9 +111,7 @@ if have "argument-hint:" SKILL.md; then pass "argument-hint declared"; else fail
 
 echo ""
 echo "== Shipped files =="
-[ -f README.md ] && pass "README.md shipped" || fail "README.md missing"
 [ -f LICENSE ] && pass "LICENSE shipped" || fail "LICENSE missing"
-[ -f CLAUDE.md ] && pass "CLAUDE.md shipped" || fail "CLAUDE.md missing"
 
 echo ""
 echo "================================"

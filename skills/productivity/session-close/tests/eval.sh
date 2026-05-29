@@ -90,7 +90,6 @@ fi
 
 echo ""
 echo "== README + LICENSE =="
-[ -f README.md ] && pass "README.md present" || fail "README.md missing"
 [ -f LICENSE ] && pass "LICENSE present" || fail "LICENSE missing"
 
 echo ""

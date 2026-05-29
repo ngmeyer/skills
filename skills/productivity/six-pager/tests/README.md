@@ -10,7 +10,7 @@
 - All 3 PRFAQ sub-documents (Press Release, External FAQ, Internal FAQ)
 - 6 prose-audit checks (Passive voice, Vague language, Needless words, Qualifiers, Parallel construction, Removability)
 - All 3 traditions cited by name (Bezos, Strunk, Anthropic) plus canonical sources (Working Backwards, Elements of Style, removability test)
-- 4 sibling skills referenced (`/article-draft`, `/human-writing`, `/council-review`, `/adversarial-review`)
+- Shipped sibling skills referenced (`/council-review`, `/adversarial-review`)
 - Anti-fake-numbers invariant present
 - Hard 6-page cap stated; "constraint IS the value" framing present
 - Tenets-no-qualifiers rule present; hedge-detection invariant present

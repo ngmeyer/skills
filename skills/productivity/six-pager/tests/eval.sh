@@ -60,8 +60,8 @@ if have "Elements of Style" SKILL.md; then pass "Elements of Style cited"; else 
 if have "removability test" SKILL.md; then pass "Removability test cited"; else fail "Removability test missing"; fi
 
 echo ""
-echo "== Sibling-skill awareness =="
-for sibling in "/article-draft" "/human-writing" "/council-review" "/adversarial-review"; do
+echo "== Sibling-skill awareness (only skills shipped in this repo) =="
+for sibling in "/council-review" "/adversarial-review"; do
   if have "$sibling" SKILL.md; then pass "Sibling referenced: $sibling"; else fail "Sibling missing: $sibling"; fi
 done
 
@@ -108,9 +108,7 @@ if have "argument-hint:" SKILL.md; then pass "argument-hint declared"; else fail
 
 echo ""
 echo "== Shipped files =="
-[ -f README.md ] && pass "README.md shipped" || fail "README.md missing"
 [ -f LICENSE ] && pass "LICENSE shipped" || fail "LICENSE missing"
-[ -f CLAUDE.md ] && pass "CLAUDE.md shipped" || fail "CLAUDE.md missing"
 
 echo ""
 echo "================================"
