@@ -23,9 +23,9 @@ argument-hint: "[optional argument]"
 
 ## Procedure
 
-1. <Step — what the user wanted automated>
-2. <Step>
-3. <Step>
+1. <One concrete step lifted from the surfaced repetition — use the verb the user actually performed this week. e.g., "Delete any `<basename>-draft-N.md` siblings older than the corresponding `<basename>-final.md`.">
+2. <Second step, also concrete; only include if the repetition pattern obviously needs more than one>
+3. <Third step, optional>
 
 ## Output
 
@@ -33,7 +33,7 @@ argument-hint: "[optional argument]"
 
 ## Gotchas
 
-- TODO: fill in as failure modes emerge.
+- TODO: fill in as failure modes emerge from real runs.
 
 ## Testing
 
@@ -46,6 +46,7 @@ argument-hint: "[optional argument]"
 ## Rules for the writer
 
 - **Trigger phrases must come from the surfaced repetition.** Not made up. If the weekly audit found three commits with "fix typo in linkedin draft," then `description` should literally include phrases like "linkedin draft", "fix typo", "post-edit pass."
+- **Procedure must lift the verb the user actually performed.** A `<Step>` placeholder is filler — the activation-energy gap is only closed if the first step is concrete enough to run. The verb and the noun both come from the surfaced repetition. (TODO is allowed on Gotchas and Testing — those legitimately need first-run data the draft can't have. TODO is *not* allowed on Procedure.)
 - **One stub per Section 2 idea.** Max 3 idents = max 3 drafts (the V2 cap holds).
 - **Don't bloat the stub.** If it's longer than ~40 lines, it's pretending to be a finished skill. Stop.
 - **`_drafts/` is iteration space, not the shipping shelf.** A draft only graduates when it actually fires successfully in a real session — then it moves to the canonical skills directory.

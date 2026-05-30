@@ -19,6 +19,8 @@ argument-hint: "[improve|audit] [project name | 'all' | path to CLAUDE.md] — d
 
 # /claude-md -- Audit and Improve CLAUDE.md Files
 
+> **Naming exception (documented):** skillforge's checklist forbids `claude` or `anthropic` in a skill name. This skill is a deliberate exception: it operates on the literal `CLAUDE.md` artifact, so the precision of the name is the value. Treat this as the only such exception in the library.
+
 Two modes, one skill. **Audit** finds problems across many CLAUDE.md files (hygiene). **Improve** rewrites one file against best-practice rubric (structure). Both ground in the same core principle.
 
 ## Core Principle
@@ -327,7 +329,7 @@ A run passes if **every** check is true. Otherwise rewrite the offending recomme
 - Summaries contain exact counts, not estimates
 - P0 LEAK findings always present before any other audit content (audit mode)
 
-## What NOT to Do (both modes)
+## Gotchas (both modes)
 
 - **Do not auto-apply.** Always present for approval. Surgical Edits only — never whole-file Write.
 - **Do not invent project context.** Read `package.json` / `pyproject.toml` / `Cargo.toml` / `Gemfile` / `README.md` to ground suggestions in actual project data.

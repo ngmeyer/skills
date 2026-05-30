@@ -208,7 +208,7 @@ Check for and offer to delete:
 
 **Always ask before deleting.** Present the cleanup list and wait for confirmation.
 
-## What NOT to Do
+## Gotchas
 
 - **No session dumps.** Never create `project_session_*.md` files -- this is the anti-pattern the skill exists to prevent
 - **No session framing.** Never write "In the April 11 session, we..." -- write state, not history

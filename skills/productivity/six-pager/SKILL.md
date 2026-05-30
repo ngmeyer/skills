@@ -211,7 +211,7 @@ A six-pager passes if **every** check is true. Otherwise iterate.
 - Strunk audit: zero critical findings (passive voice, vague Goals, hedged Tenets); important findings acceptable with rationale
 - The "what would cause us to kill this?" question (PRFAQ Internal FAQ) has a real, specific answer — not "if performance suffers"
 
-## What NOT to Do
+## Gotchas
 
 - **Do not exceed 6 pages.** The constraint IS the value. If it doesn't fit, the thinking isn't done.
 - **Do not pad State of Business with backstory.** Current data only. History belongs in Lessons Learned.

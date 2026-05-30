@@ -223,6 +223,9 @@ A report passes if **every** check is true. Otherwise rewrite the offending sect
 
 ## Changelog
 
+### V3.1 (2026-05-30) — tightened draft template
+- Procedure section in `references/skill-draft-template.md` now requires a concrete verb lifted from the surfaced repetition. `<Step>` placeholders are filler — the activation-energy gap only closes if step 1 is runnable. TODO remains allowed on Gotchas and Testing (those legitimately need first-run data), but is now banned on Procedure. Closes the honest residual from V3's A/B (judge capped Draft-fidelity at 4/5 because materialized stubs had placeholder procedures).
+
 ### V3 (2026-05-29) — auto-draft scaffolds, zombie kills, dominant root cause
 Optimized via `skillforge optimize`. Outcome target: more of the report's recommendations *actually ship* in the following week, not just get re-listed.
 - **Phase 5b MATERIALIZE DRAFTS** + a `_drafts/<skill-name>/SKILL.md` per Section 2 idea, using [references/skill-draft-template.md](references/skill-draft-template.md). Closes the activation-energy gap V2 left open: a draft is iterate-able; a description is not. (Source: Ole Lehmann thread + Atomic Habits chapter on environment design.)

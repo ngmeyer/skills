@@ -234,7 +234,7 @@ Output structure:
 
 Print the full report inline. Offer to save to `<cwd>/adversarial-review-<artifact-slug>-<date>.md` if the artifact was a file or PR.
 
-## What NOT to Do
+## Gotchas
 
 - **Do not be balanced.** This is the adversarial role. The artifact's defenders already exist; this skill exists to find what they missed.
 - **Do not pad findings.** If a dimension produced nothing, say so. Five fluffy findings beat ten real ones less than zero.
