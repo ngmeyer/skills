@@ -38,19 +38,22 @@ Fold the winning candidate changes + the quality fixes into the skill. Then:
 - Keep the line budget; push new detail into `references/` rather than bloating SKILL.md (more context isn't better — auto-bloat degrades agents).
 - Preserve the skill's voice and triggers; optimize the procedure, don't rewrite the identity.
 
-### 6. Verify — measure V2 vs V1 on a benchmark
-Score **both** V1 and V2 against a **benchmark — a small held-out set of real tasks, not a single example.** One or two cases is an anecdote; the loop will overfit to it. Aim for ~10–20 representative tasks covering the shapes the skill actually faces (evo's SealQA run used 20). Score blind where possible (a judge that doesn't know which output is V1 vs V2).
+### 6. Verify — measure V2 vs V1 on a benchmark, with a train/val split
+Score **both** V1 and V2 against a **benchmark — a small held-out set of real tasks, not a single example.** Aim for ~10–20 representative tasks covering the shapes the skill actually faces (evo's SealQA run used 20). Score blind where possible (a judge that doesn't know which output is V1 vs V2).
+
+**Split it.** Divide the benchmark in two: a **tuning subset** (the cases your changes may have implicitly overfit to as you iterated) and a **validation subset** (never seen by the change process — the real win condition). Score V2 on validation. If validation regresses while tuning improves, the change overfit; drop it. This is SkillOpt's discipline applied to a hand-run loop, and it catches the most common false-win: a "better" skill that learned the test rather than the task.
 - **Apply the gates first** (step 2): discard any V2 that fails a gate or the no-cheating audit, even if it scored higher.
 - Keep only changes that move the metric on the held-out tasks. If a research-inspired change scores worse, drop it and note why in the changelog.
 - If V2 doesn't beat V1 overall, it isn't a V2 — iterate (back to step 4) or revert. Shipping a "V2" that didn't measurably improve is the failure this mode prevents.
 - Record the V1→V2 delta in the changelog (e.g. "judge 3.8 → 4.8 across 20 tasks; biggest gain: risk-surfacing").
 
 ## Going heavy — optional external escalation
-The steps above are self-contained: one V2, hand-run, fast, no other tooling required. When you want serious optimization — many hypotheses, parallel experiments, a benchmark run for hours — and you happen to have a dedicated optimization tool installed, escalate to it rather than hand-running. Two that fit (both **external to this skill** — install separately):
-- **`ce-optimize`** (the Compound Engineering plugin) — point its spec at the skill file as `scope.mutable`, your benchmark as the metric, your gates as `degenerate_gates`; it runs parallel worktree experiments, keeps only gated winners, and converges.
-- **`evo`** (open source, evo-hq.com) — optimizes a whole skills *directory* against a benchmark with parallel exploration, tree search, and a no-cheating auditor.
+The steps above are self-contained: one V2, hand-run, fast, no other tooling required. Honestly, the hand-run is "one epoch, batch of one." When you want serious optimization — many hypotheses, parallel experiments, a benchmark run for hours, a paper-grade verification — and you have a dedicated optimization tool installed, escalate to it. Three that fit, all **external to this skill** (install separately):
+- **`ce-optimize`** (the Compound Engineering plugin) — point its spec at the skill file as `scope.mutable`, your benchmark as the metric, your gates as `degenerate_gates`; it runs parallel worktree experiments inside Claude Code, keeps only gated winners, and converges. Best for in-session workflow integration.
+- **`evo`** (open source, evo-hq.com) — optimizes a whole skills *directory* against a benchmark with parallel exploration, tree search (keep + merge specialists), and a no-cheating auditor. Best for an elegant architecture across a skill set.
+- **SkillOpt** (Microsoft, MIT, [arxiv 2605.23904](https://arxiv.org/abs/2605.23904)) — trains markdown skills NN-style: **epochs, mini-batches, learning rate, validation gates**, with `best_skill.md` as the running champion. Ships with standardized benchmarks (SearchQA, ALFWorld, DocVQA, SpreadsheetBench, OfficeQA) and a published paper. Best for benchmark-driven rigor.
 
-If you don't have either, the loop above is complete on its own. What this skill uniquely adds (and a generic optimizer won't): the **outcome-research** hypothesis source (step 4) and the **skill-quality audit** (step 3).
+If you don't have any of them, the loop above is complete on its own. What this skill uniquely adds (and a generic optimizer won't): the **outcome-research** hypothesis source (step 4) and the **skill-quality audit** (step 3).
 
 ## Output
 - The V2 skill (same dir; old version recoverable via git).
@@ -66,4 +69,7 @@ If you don't have either, the loop above is complete on its own. What this skill
 - **One skill at a time** for the hand-run path. For many skills or a long run, that's the signal to delegate to ce-optimize/evo, not to grind manually.
 
 ## Lineage
-This mode adapts the metric-driven optimization discipline of the Compound Engineering `ce-optimize` skill and **`evo`** ([alokbishoyi97](https://x.com/alokbishoyi97/status/2059610305408462898), evo-hq.com — parallel exploration, tree search, gates, no-cheating auditor), scoped to a single skill and fronted with an outcome-research hypothesis source.
+This mode adapts the metric-driven optimization discipline of three converging lines of work — scoped to a single skill and fronted with an outcome-research hypothesis source the others don't do:
+- **Compound Engineering `ce-optimize`** — spec + gates + parallel worktree experiments + persistence.
+- **`evo`** ([alokbishoyi97](https://x.com/alokbishoyi97/status/2059610305408462898), evo-hq.com) — parallel exploration, tree search, gates, no-cheating auditor.
+- **Microsoft SkillOpt** ([arxiv 2605.23904](https://arxiv.org/abs/2605.23904)) — NN-style training (epochs / batches / validation gates) on standardized benchmarks; the source of the train/val-split discipline in step 6.

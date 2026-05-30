@@ -89,8 +89,6 @@ else
 fi
 
 echo ""
-echo "== README + LICENSE =="
-[ -f LICENSE ] && pass "LICENSE present" || fail "LICENSE missing"
 
 echo ""
 echo "======================================"

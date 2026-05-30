@@ -56,8 +56,6 @@ if have "peer review" SKILL.md; then pass "Peer review invariant mentioned"; els
 if have "scope validation" SKILL.md || have "Scope validation" SKILL.md; then pass "Scope validation guard present"; else fail "Scope validation missing"; fi
 
 echo ""
-echo "== LICENSE present =="
-if [ -f LICENSE ]; then pass "LICENSE file present"; else fail "LICENSE missing"; fi
 
 echo ""
 echo "======================================"

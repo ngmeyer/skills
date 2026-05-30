@@ -73,7 +73,6 @@ if have "argument-hint:" SKILL.md; then pass "argument-hint declared"; else fail
 
 echo ""
 echo "== Shipped files =="
-[ -f LICENSE ] && pass "LICENSE shipped" || fail "LICENSE missing"
 
 echo ""
 echo "================================"

@@ -17,7 +17,7 @@ For full Anthropic-authoritative guidance (frontmatter fields, 500-line budget, 
 
 **`forge`** follows the process + checklist in the rest of this file.
 
-**`optimize <skill>`** runs a metric-driven loop: define the outcome + metric → **set gates (incl. a no-cheating audit)** → quality audit → research the domain for outcome-improving techniques → synthesize V2 with a changelog → verify V2 beats V1 **on a held-out benchmark, not a single example**, discarding any candidate that fails a gate. "Optimize," not "tidy": a cleanup that doesn't move the outcome is not a V2, and a score that jumped by gaming the rubric is a regression. The loop is self-contained; for a heavy run (many hypotheses, parallel experiments, hours) you can *optionally* escalate to an external optimizer if you have one (`ce-optimize` plugin, or `evo`). Full playbook: [references/optimize-mode.md](references/optimize-mode.md).
+**`optimize <skill>`** runs a metric-driven loop: define the outcome + metric → **set gates (incl. a no-cheating audit)** → quality audit → research the domain for outcome-improving techniques → synthesize V2 with a changelog → verify V2 beats V1 **on a held-out benchmark, not a single example**, discarding any candidate that fails a gate. "Optimize," not "tidy": a cleanup that doesn't move the outcome is not a V2, and a score that jumped by gaming the rubric is a regression. The loop is self-contained; for a heavy run (many hypotheses, parallel experiments, hours) you can *optionally* escalate to an external optimizer if you have one (`ce-optimize` plugin, `evo`, or Microsoft's `SkillOpt`). Full playbook: [references/optimize-mode.md](references/optimize-mode.md).
 
 ## Meta-process: iterate first, extract second
 
@@ -154,6 +154,11 @@ After drafting, verify:
 - [ ] No `claude` or `anthropic` in skill name; no `README.md` in folder
 
 ## Changelog
+
+### V2.2 (2026-05-29) — added SkillOpt + train/val split
+- Added **Microsoft SkillOpt** ([MIT, arxiv 2605.23904](https://arxiv.org/abs/2605.23904)) as a third optional external escalation alongside `ce-optimize` and `evo`. SkillOpt trains markdown skills NN-style (epochs / mini-batches / validation gates) against standardized benchmarks (SearchQA, ALFWorld, DocVQA, SpreadsheetBench, OfficeQA). Best fit for benchmark-driven rigor; ce-optimize for in-session workflow; evo for parallel/tree-search architecture.
+- **Sharpened the verify step (#6) with a train/validation split** — divide the held-out benchmark into a tuning subset (which iterating may overfit to) and a validation subset (never seen by the change process). If validation regresses while tuning improves, the change overfit; drop it. Borrowed from SkillOpt's discipline.
+- Reframed the hand-run loop honestly: "one epoch, batch of one" — small, fast, useful for one-skill V2s; escalate when you want real training.
 
 ### V2.1 (2026-05-28) — merged ce-optimize discipline
 Evolved `optimize` mode by merging the metric-driven rigor of **`ce-optimize`** (CE plugin) and **`evo`** ([alokbishoyi97](https://x.com/alokbishoyi97/status/2059610305408462898), evo-hq.com):
