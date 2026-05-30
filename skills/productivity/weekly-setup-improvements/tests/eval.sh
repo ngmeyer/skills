@@ -22,8 +22,8 @@ fail() { echo "FAIL  $1"; FAIL=$((FAIL+1)); }
 have() { grep -qF -- "$1" "$2"; }
 have_re() { grep -qE -- "$1" "$2"; }
 
-echo "== 6-Phase architecture =="
-for phase in "Phase 1: SCOPE" "Phase 2: SURVEY" "Phase 3: READ" "Phase 4: ANALYZE" "Phase 5: WRITE" "Phase 6: PRESENT"; do
+echo "== 6-Phase architecture (+ V3 Phase 5b) =="
+for phase in "Phase 1: SCOPE" "Phase 2: SURVEY" "Phase 3: READ" "Phase 4: ANALYZE" "Phase 5: WRITE" "Phase 5b: MATERIALIZE DRAFTS" "Phase 6: PRESENT"; do
   if have "$phase" SKILL.md; then pass "Phase present: $phase"; else fail "Phase missing: $phase"; fi
 done
 
@@ -79,10 +79,18 @@ if have "vault-audit" SKILL.md; then pass "Mentions /vault-audit sibling"; else 
 if have "claude-md-audit" SKILL.md; then pass "Mentions /claude-md-audit sibling"; else fail "Missing /claude-md-audit reference"; fi
 
 echo ""
-echo "== What NOT to Do =="
-if have "What NOT to Do" SKILL.md; then pass "What NOT to Do section present"; else fail "What NOT to Do section missing"; fi
+echo "== Gotchas =="
+if have "## Gotchas" SKILL.md; then pass "Gotchas section present"; else fail "Gotchas section missing"; fi
 if have "Do not write a session log" SKILL.md; then pass "Anti-diary rule present"; else fail "Anti-diary rule missing"; fi
-if have "more than 3 new skills" SKILL.md; then pass "3-skill cap restated in DON'Ts"; else fail "3-skill cap missing from DON'Ts"; fi
+if have "more than 3 new skills" SKILL.md; then pass "3-skill cap restated in Gotchas"; else fail "3-skill cap missing from Gotchas"; fi
+
+echo ""
+echo "== V3 additions =="
+if have "Dominant root cause" SKILL.md; then pass "Dominant root cause invariant present"; else fail "Dominant root cause missing"; fi
+if have "_drafts/" SKILL.md; then pass "_drafts/ directory referenced"; else fail "_drafts/ directory missing"; fi
+if have "zombie" SKILL.md || have "killed" SKILL.md; then pass "Zombie/kill action rule present"; else fail "Zombie/kill rule missing"; fi
+if have "skill-draft-template.md" SKILL.md; then pass "skill-draft-template reference linked"; else fail "skill-draft-template reference missing"; fi
+if [ -f references/skill-draft-template.md ]; then pass "references/skill-draft-template.md shipped"; else fail "references/skill-draft-template.md missing"; fi
 
 echo ""
 echo "== Frontmatter =="
