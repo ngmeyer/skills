@@ -1,5 +1,13 @@
 {
   "name": "ngmeyer-skills",
+  "description": "Eight composable Claude Code skills for engineering and productivity: red-teaming, multi-advisor decisions, CLAUDE.md hygiene, six-pager memos, session memory, weekly self-improvement audits, and a skill-forge for writing/optimizing your own.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Neal Meyer"
+  },
+  "homepage": "https://github.com/ngmeyer/skills",
+  "repository": "https://github.com/ngmeyer/skills.git",
+  "license": "MIT",
   "skills": [
     "./skills/engineering/adversarial-review",
     "./skills/engineering/claude-md",

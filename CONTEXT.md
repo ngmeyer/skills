@@ -27,5 +27,5 @@ Conventions:
 
 - `engineering` — code-facing skills (review, repo hygiene, recovery).
 - `productivity` — thinking/process skills (decisions, memos, memory, self-audit).
-- `in-progress` — being finalized; not shipped in the plugin manifest.
-- `personal` / `misc` / `deprecated` — kept out of the shipped set.
+
+New categories get added when they earn at least two skills. The shipping set is whatever's listed in `.claude-plugin/plugin.json`.
