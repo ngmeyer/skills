@@ -1,8 +1,6 @@
 # Skills For Thinking, Not Just Coding
 
-<!-- skills.sh badge resolves once the repo is public. Re-enable on the public flip:
 [![skills.sh](https://skills.sh/b/ngmeyer/skills)](https://skills.sh/ngmeyer/skills)
--->
 
 Eight agent skills I use every day — for deciding, remembering, and improving, not just generating code. Small, composable, model-agnostic. Built for Claude Code, Codex, Cursor, and any agent that reads a `SKILL.md`.
 
