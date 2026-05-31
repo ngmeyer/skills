@@ -10,7 +10,7 @@ This repo is a published library of agent skills (`ngmeyer/skills`). It is distr
 - `skills/<category>/<name>/tests/eval.sh` — structural eval asserting the SKILL.md's design contract; runs in CI on every commit.
 - `.claude-plugin/plugin.json` — lists the shipped skills + marketplace metadata (description, version, author).
 
-Only ship-ready skills appear in `plugin.json`. The repo currently ships 8 skills; new candidates incubate in a separate workspace until validated.
+Only ship-ready skills appear in `plugin.json`. The repo currently ships 9 skills; new candidates incubate in a separate workspace until validated.
 
 ## Adding or editing a skill
 

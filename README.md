@@ -2,7 +2,7 @@
 
 [![skills.sh](https://skills.sh/b/ngmeyer/skills)](https://skills.sh/ngmeyer/skills)
 
-Eight agent skills I use every day — for deciding, remembering, and improving, not just generating code. Small, composable, model-agnostic. Built for Claude Code, Codex, Cursor, and any agent that reads a `SKILL.md`.
+Nine agent skills I use every day — for deciding, researching, remembering, and improving, not just generating code. Small, composable, model-agnostic. Built for Claude Code, Codex, Cursor, and any agent that reads a `SKILL.md`.
 
 Most of an agent's failures aren't coding failures. The agent agrees when it should push back. The big decision gets made in a chat window. The setup quietly rots. The session ends and the context is gone. These skills are built for exactly those moments.
 
@@ -123,6 +123,18 @@ These pair: decide with `/council-review`, then stress-test the artifact with `/
 
 - [`/skillforge`](./skills/productivity/skillforge/SKILL.md) — two modes: `forge` scaffolds a new skill the right way (frontmatter, progressive disclosure, helper scripts, mandatory Gotchas); `optimize` makes an existing skill measurably better at its *outcome*, not just its packaging — a quality audit, domain outcome-research, and a held-out train/validation A/B that catches overfitting. Every skill in this repo was built and tuned with it.
 
+### #6: The Agent Answers From Memory When It Should Look It Up
+
+> "It is a capital mistake to theorize before one has data."
+>
+> Arthur Conan Doyle, *A Scandal in Bohemia*
+
+**The Problem**: Ask a question and the agent answers from training memory — confidently, sometimes wrong or a year stale. Even when it does search, the brief can cite the wrong claim, treat three outlets echoing one press release as independent confirmation, or quietly bury the fact that the sources disagree.
+
+**The Fix** is research with discipline — grounded, calibrated, verified:
+
+- [`/deep-research`](./skills/productivity/deep-research/SKILL.md) — searches Exa, Tavily, and the web in parallel, then synthesizes a brief where every load-bearing claim carries a verbatim quote span, confidence stacks only on *independent* sources (syndicated echoes collapse to one), contradictions are surfaced rather than averaged, and the top claims are re-verified with the draft hidden before delivery. Works with zero API keys.
+
 ### Summary
 
 The fundamentals of good thinking don't change because an agent is doing the typing. You still have to disagree before you commit, write to find out what you actually think, and maintain what you build. These skills are my best effort at making an agent do that by default. Enjoy.
@@ -142,6 +154,7 @@ Code-facing skills.
 Thinking and process skills, not code-specific.
 
 - **[council-review](./skills/productivity/council-review/SKILL.md)** — Run a decision through a 5-advisor multi-agent debate (DMAD) with anonymous peer review and a chairman synthesis. Built to beat sycophancy.
+- **[deep-research](./skills/productivity/deep-research/SKILL.md)** — Multi-source research into a cited, confidence-scored brief: quote-grounded claims, independence-aware confidence, surfaced contradictions, chain-of-verification. Zero API keys (WebSearch fallback).
 - **[six-pager](./skills/productivity/six-pager/SKILL.md)** — Amazon-style narrative decision memo or PR/FAQ, under Strunk prose rules, with a required premortem.
 - **[session-close](./skills/productivity/session-close/SKILL.md)** — Reconcile a work session into persistent project memory with section-aware merges — not a session dump.
 - **[weekly-setup-improvements](./skills/productivity/weekly-setup-improvements/SKILL.md)** — Audit a week of work and produce a forward-looking improvement report: closure check, zombie-action kills, auto-drafted skill scaffolds.
