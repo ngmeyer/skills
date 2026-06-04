@@ -34,9 +34,26 @@ Five surface axes (clonable from a sample — they're stylometrically measurable
 
 **Rewrite mode:** separate meaning from style — preserve the content, re-skin the voice — and check for meaning drift (style leaking into, or distorting, the meaning).
 
-## Starter library (named fingerprints)
+## Register voices — start here (pick by what you're writing)
 
-Each entry: the distinctive axes + the one **hard-constraint** tell + 2–4 exemplar lines (add real samples when you use them). These are study anchors, not the only voices — `--like` gives unlimited custom ones.
+You don't need to know an author. Pick the voice by the *job*. The **hard do/don't** is the load-bearing part — it's what keeps each voice in its lane. Note that the measured registers explicitly switch OFF the punch tools (the short-fragment closer, manufactured drama) and keep em-dashes near-zero.
+
+| Voice | Use it for | Diction | Syntax / rhythm | Tone & stance | Hard do / don't |
+|-------|-----------|---------|-----------------|---------------|-----------------|
+| **plain-professional** | updates, docs, straightforward business | neutral, concrete, jargon-light | simple, direct; even | clear, neutral | no flourish, **no zinger closer**; em-dash near-zero |
+| **warm-feedback** | performance reviews, 1:1s, coaching | specific, plain, human | balanced; calm, even | candid **and** kind; balance strength + growth | lead with behavior + its impact; **never end on a punchy line**; no manufactured drama; close on substance |
+| **diplomatic** | sensitive comms, pushback, de-escalation | careful, soft-edged | hedged where it earns it; smooth | measured, respectful | acknowledge before you counter; **no sharp closer**; minimal em-dash |
+| **executive-brief** | leadership updates, BLUF, decisions | tight, decisive | short, front-loaded; brisk | confident, conclusion-first | answer first then support; no wind-up; no drama |
+| **conversational** | newsletters, blogs, explainers | everyday, contractions, first person | varied; relaxed | warm, equal-to-equal (classic style) | talk to one smart friend; punch allowed but *sparing* |
+| **academic** | analysis, evidence-led writing | precise, qualified | complex-but-clear; even | objective, cautious | claims earn their hedges; no hype; no zinger |
+| **punchy-marketing** | landing pages, ads, hooks | concrete, vivid | short + high contrast | bold, benefit-led | one promise; **the earned kick closer belongs HERE**; still no em-dash spray |
+| **storyteller** | personal essays, narrative | sensory, specific | varied; scenic, VAKS-heavy | voiced, reflective | relive don't report; don't narrate the landing |
+
+Each maps to the 6 axes below; `--like <your sample>` clones *your* register instead. For most non-fiction work the default should be **measured**, not punchy.
+
+## Author voices — power-user library (only if you know them)
+
+Study anchors for people who recognize the author. Most users want the register voices above. Each entry: the distinctive axes + the one **hard-constraint** tell + 2–4 exemplar lines (add real samples when you use them). `--like` gives unlimited custom ones.
 
 | Voice | Diction | Syntax | Rhythm | Stance (persona) | Hard-constraint tell |
 |-------|---------|--------|--------|------------------|----------------------|

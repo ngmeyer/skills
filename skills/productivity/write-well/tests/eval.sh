@@ -50,6 +50,14 @@ chk "craft-canon.md reference" "references/craft-canon.md"
 # the load-bearing refusal: do NOT import the grammar superstitions
 grep -qiF "Do NOT import" references/craft-canon.md && pass "refuses the grammar superstitions" || fail "missing the no-superstition guard"
 
+echo "== V2.1: register-first + register voices + tightened defaults =="
+chk "register-first section" "Register & tone"
+chk "punchy closer named as a tell" "own AI tell"
+chk "em-dashes near-zero (not budget)" "near-zero"
+chk "set the register before the punch (gotcha)" "before the punch"
+grep -qiF "warm-feedback" references/voices.md && grep -qiF "plain-professional" references/voices.md && pass "register voices (warm-feedback, plain-professional, ...) present" || fail "register voices missing from voices.md"
+grep -qiF "never end on a punchy" references/voices.md && pass "feedback voice forbids the zinger closer" || fail "feedback voice missing the no-closer rule"
+
 echo "== Self-containment (no personal-project coupling) =="
 LEAK=0
 for term in Threshold OurGospelStudy PithyByte GEARU SignUpSpark Voltron LocalCred VeroWrite; do

@@ -33,15 +33,26 @@ Both modes serve the same core; they just enter from different ends.
 2. **Reliving, not reporting (VAKS).** Most weak writing *reports* ("I met her at a bar, did a trick, won her over"). Good writing *relives* it with sensory detail — **V**isual, **A**uditory, **K**inesthetic, **S**mell. Every scene/section needs ≥2 VAKS ingredients, at least one non-visual. Diagnostic: "am I watching a movie or reading a news summary?" Summary → add VAKS.
 3. **Rhythm — vary sentence length.** The single biggest lever for "music." Short sentences punch. Then a longer one builds and breathes and carries the reader somewhere before it sets them down. Then a fragment. If every sentence is the same length, the prose is a monotone (Provost). **Read it aloud** — your ear catches what your eye skims.
 4. **Specific over abstract.** "I moved schools four times because I kept getting bullied" beats "I had a difficult childhood." Dense, concrete words carry more than vague ones. Name the thing.
-5. **Story-first structure.** Hook → Struggle → Breakthrough → Application. Drop into a moment, relive the difficulty, *show* the turn, link to the point **last**. The AI default inverts this (state the lesson, backfill with anecdotes) — a sermon. Lead with life; arrive at the principle.
+5. **Story-first structure.** Hook → Struggle → Breakthrough → Application. Drop into a moment, relive the difficulty, *show* the turn, link to the point **last**. The AI default inverts this (state the lesson, backfill with anecdotes) — a sermon. Lead with life; arrive at the principle. *(Register-gated — see below. A performance review is not a personal essay.)*
+
+## Register & tone — set this first
+
+The core has a bias toward **punch**: short kicks, high-contrast rhythm, the dramatic short-fragment closer ("She did that."), "don't narrate the landing." That register is right for **marketing, fiction, and personal essays** — and wrong everywhere else. Set the register *before* you reach for those tools; ask or infer it from the task if it isn't given.
+
+| Register | Wants | Avoid |
+|---|---|---|
+| **Punchy / dramatic** — marketing, fiction, personal essay | short kicks, the *earned* closer, contrast, voice turned up | flatness, hedging |
+| **Measured / professional** — performance feedback, business, diplomatic, reference, academic | specific + balanced + kind, even rhythm, substance-led, claims you'd stand behind | the zinger ending, manufactured drama, the fragment closer |
+
+**The punchy short-fragment closer is now its own AI tell.** Don't reach for it by reflex. In measured registers, *close on substance, not a kick* — the last line lands a point, it doesn't perform one. **Performance feedback** specifically: lead with the specific behavior + its impact, balance strength and growth, stay warm and direct, never end on a one-liner.
 
 ## Voices & personas
 
-By default write-well calibrates a voice to the piece and audience. You can also set one explicitly — the LLM *adopts* it; no config needed:
+By default write-well calibrates a voice to the piece, audience, and **register** (above). You can also set one explicitly — the LLM *adopts* it; no config needed:
 
-- `--voice <name>` — adopt a named voice from the library (the *how*: diction, syntax, rhythm, POV, punctuation).
-- `--persona <name|description>` — a voice **plus a stance/worldview** (the implied author — e.g. "skeptical engineer," "gonzo journalist"). A persona writes *as someone*.
-- `--like <sample path or paste>` — **clone** a voice: read the sample's fingerprint and write toward it (not toward generic "natural").
+- `--voice <name>` — adopt a named voice. **Two libraries:** pick a **register voice** by *what you're writing* (`plain-professional`, `warm-feedback`, `diplomatic`, `executive-brief`, `conversational`, `academic`, `punchy-marketing`, `storyteller`) — no author knowledge needed — or an **author voice** if you know it (Hemingway, Didion, …).
+- `--persona <name|description>` — a voice **plus a stance/worldview** (the implied author — e.g. "skeptical engineer"). A persona writes *as someone*.
+- `--like <sample path or paste>` — **clone** a voice: read the sample's fingerprint and write toward it. Use this to match *your* habits — including whether you use em-dashes at all.
 
 Every voice is one **6-axis fingerprint** — diction · syntax (parataxis↔hypotaxis, clause-nesting) · rhythm (sentence-length *variance*) · POV/distance · tone/punctuation · stance (persona only). The first five are clonable from a sample; stance is the rhetorical layer you describe, not sample. Full model + a starter library (Hemingway, McCarthy, DFW, Vonnegut, Morrison, Didion, Thompson, Faulkner) with 2–4 exemplars each: [references/voices.md](references/voices.md).
 
@@ -104,7 +115,8 @@ Hard-ban list (delve, tapestry, testament to, "It's not just X, it's Y", "at its
 - [ ] **Clarity** — subjects name the characters, verbs name the actions? Nominalizations un-buried? Sentences open old → close new?
 - [ ] **Structure** — leads with a moment, lesson last?
 - [ ] **Specific** — concrete over abstract? Named, not vague?
-- [ ] No triple anaphora (X. Y. Z.); em dashes within budget (~4 / 1,000 words); paragraph lengths varied.
+- [ ] **Register fits the task** — punchy only where it belongs; no reflexive zinger / short-fragment closer in feedback, professional, or diplomatic prose.
+- [ ] **Em-dashes near-zero** — now a top AI tell; use commas, periods, or parentheses instead, and reserve the em-dash for a genuine interruption. **Triples** cut unless there are genuinely three things; no triple anaphora (X. Y. Z.); paragraph lengths varied.
 - [ ] Banned words scanned; bold-colon and rule-of-three patterns gone.
 - [ ] **Final pass** run (diagnose → revise).
 - [ ] American English (color, gray, traveled).
@@ -116,6 +128,8 @@ Generic domain notes (apply the core, weight differently): [references/domains.m
 ## Gotchas
 
 - **Over-correcting kills voice.** Applying every rule rigidly produces sterile prose — as obviously AI as the tells. The core is the goal; the rules are guardrails. When in doubt, keep the voice.
+- **Set the register before the punch.** The dramatic levers (short kicks, the fragment closer, manufactured drama) belong to marketing / fiction / personal essay. In performance feedback, professional, or diplomatic writing they read wrong — go measured, specific, and kind, and never end on a zinger. The default is *not* punchy.
+- **Em-dashes are a top AI tell now — default near-zero, not budgeted.** Replace with commas, periods, or parentheses; reserve the em-dash for a genuine interruption. Raise the count only if a `--like` sample shows you actually use them. Same caution for the rule-of-three.
 - **A voice sits *between* generic and caricature.** Both are failures. Generic = no fingerprint; caricature = the fingerprint on every sentence. Aim for a center of gravity with variance.
 - **Rules are defaults, not commandments.** Don't apply the grammar superstitions robotically — that makes write-well the very rule-bot it warns against (Pinker).
 - **Add, don't just subtract.** Edit mode's first step is *add voice*. A draft scrubbed of every tell but still flat has not been fixed.
@@ -123,6 +137,13 @@ Generic domain notes (apply the core, weight differently): [references/domains.m
 - **"Too much" is usually unfamiliar, not wrong.** The risk is rarely going too far; it's not going far enough.
 
 ## Changelog
+
+### V2.1 (2026-06-04) — register-first + register voices (real-use feedback)
+From using V2 on performance feedback, where the punchy default fought the task. Four fixes:
+- **Register & tone, set first.** The punch bias (short kicks, the dramatic closer, "don't narrate the landing") is now explicitly a *register tool* for marketing/fiction/essay — **not the default**. Measured registers (feedback, professional, diplomatic, reference, academic) get even rhythm, balance, and substance-led endings.
+- **Named the punchy short-fragment closer as its own AI tell** — don't reach for it by reflex; close on substance in measured prose.
+- **Em-dashes → near-zero by default** (a top AI tell now), not the old ~4/1,000 budget; triples tightened. Budget rises only if a `--like` sample uses them.
+- **Register voices** (`plain-professional`, `warm-feedback`, `diplomatic`, `executive-brief`, `conversational`, `academic`, `punchy-marketing`, `storyteller`) — pickable by *what you're writing*, since the author-name voices are useless if you don't know the author. Author voices kept as a power-user library.
 
 ### V2 (2026-06-02) — voices & personas + the craft canon
 Two research-backed expansions ([deep-research](deep-research) on the style canon + on voice/persona/stylometry):
