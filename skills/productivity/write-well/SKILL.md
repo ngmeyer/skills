@@ -54,7 +54,7 @@ By default write-well calibrates a voice to the piece, audience, and **register*
 - `--persona <name|description>` — a voice **plus a stance/worldview** (the implied author — e.g. "skeptical engineer"). A persona writes *as someone*.
 - `--like <sample path or paste>` — **clone** a voice: read the sample's fingerprint and write toward it. Use this to match *your* habits — including whether you use em-dashes at all.
 
-Every voice is one **6-axis fingerprint** — diction · syntax (parataxis↔hypotaxis, clause-nesting) · rhythm (sentence-length *variance*) · POV/distance · tone/punctuation · stance (persona only). The first five are clonable from a sample; stance is the rhetorical layer you describe, not sample. Full model + a starter library (Hemingway, McCarthy, DFW, Vonnegut, Morrison, Didion, Thompson, Faulkner) with 2–4 exemplars each: [references/voices.md](references/voices.md).
+Every voice is one **6-axis fingerprint** — diction · syntax (parataxis↔hypotaxis, clause-nesting) · rhythm (sentence-length *variance*) · POV/distance · tone/punctuation · stance (persona only). The first five are clonable from a sample; stance is the rhetorical layer you describe, not sample. Full model + a starter library (Hemingway, McCarthy, DFW, Vonnegut, Morrison, Didion, Thompson, Faulkner, Ogilvy) with 2–4 exemplars each: [references/voices.md](references/voices.md).
 
 **Two failure modes — engineer against both** (a voice tuned away from one drifts into the other):
 - **Regression to generic** (the default gravity — the LLM falls back to bland web-average). Guard: make the voice's *most distinctive* axis a **hard constraint** (e.g. Hemingway → no subordinating conjunctions) and pass 2–4 exemplars.
@@ -69,7 +69,9 @@ The five-part core is the spine; the full positive ruleset — deduped across St
 - **Characters as subjects, actions as verbs; kill nominalizations** (Williams) — the strongest *positive* clarity engine (tells you what to build, not just what to delete).
 - **Cohesion: open with old information, end with the new** (Williams) — what makes paragraphs *flow*, not just sentences shine.
 - **The Paramedic Method** (Lanham) for edit mode — circle prepositions + be-verbs → find the action → make the doer the subject → start fast.
-- **Right-branch; emphatic word last** (Clark/Strunk) — information order *within* the sentence.
+- **Right-branch; emphatic word last; keep related words together** (Clark; Strunk & White R22/R20) — information order *within* the sentence; don't split the subject from its verb.
+- **Express coordinate ideas in similar form** (Strunk & White R19) — like content in like grammatical form; most load-bearing in lists, goals, tenets, and headings, where a broken parallel reads as a stumble.
+- **Make the paragraph the unit; front the point in exposition/argument** (Strunk & White R13) — the register counterpart to the core's story-first rule: narrative *delays* the point, argument *fronts* it. A memo paragraph opens with its claim; an essay paragraph opens with a moment.
 - **Structure from the material, kept invisible; write the lead first** (McPhee) — the nonfiction structure model.
 - **Classic style** (Pinker) — prose as a window: show the reader what you see, as an equal. The default stance for essay/newsletter/blog.
 - **Beat the curse of knowledge** (Pinker) — you're too close to the subject to see what the reader doesn't know; use a test reader.
@@ -81,7 +83,7 @@ The five-part core is the spine; the full positive ruleset — deduped across St
 Write the piece, holding the core (and the chosen voice). Plus:
 - **Open on a moment, not exposition.** Sensation, dialogue, or a question — never a concept the reader doesn't care about yet. The opening earns or loses the reader.
 - **POV-colored vocabulary** (fiction): a painter sees composition, an engineer sees load-bearing walls. Narration should taste like the character.
-- **Dialogue does the work.** Don't narrate exposition — let characters say it, argue it, get it wrong. Each line answers the *actual* previous line.
+- **Dialogue does the work.** Don't narrate exposition — let characters say it, argue it, get it wrong. Each line answers the *actual* previous line. Don't prop up "said" with adverbs or explanatory verbs ("he said consolingly," "she consoled") — let the line disclose the manner (White, *don't explain too much*).
 - **Don't narrate the landing.** Never state the emotional conclusion ("that changed everything"). If you have to name it, the scene didn't earn it.
 
 Craft detail + examples: [references/prose-craft.md](references/prose-craft.md).
@@ -94,6 +96,7 @@ The text exists but it's flat or AI-flavored. Bring it alive:
 2. **Then fix the patterns.** Work the catalog of 29 recurring AI patterns (significance inflation, promotional language, superficial -ing phrases, vague attributions, rule-of-three, copula avoidance, em-dash overuse, inline-header lists, hedging, filler, sycophancy, etc.) with before/after fixes: [references/edit-catalog.md](references/edit-catalog.md).
 3. **Run the Paramedic Method** on bloated sentences (see the craft canon) for a mechanical concision pass.
 4. **Match the target voice** — if `--voice`/`--like` is set, rewrite toward that fingerprint, not toward generic "natural."
+5. **Cool off + check facts** (anything that matters) — sleep on it, reread aloud, get a second reader; verify quotations, names, and numbers. The craft canon's [cooling-off pass](references/craft-canon.md) (Ogilvy).
 
 ## The final pass (both modes)
 
@@ -138,6 +141,22 @@ Generic domain notes (apply the core, weight differently): [references/domains.m
 
 ## Changelog
 
+### V2.3 (2026-06-07) — Strunk & White mined in full (4th edition, the source of record)
+Mined *The Elements of Style*, 4th ed. (the source provided). Strunk was already credited five times (omit-needless-words, active voice, positive form, specific/concrete, emphatic-word-last) — the dedup had hidden him. Three genuinely-new rules added, plus a resolved tension; **all numbering follows the 4th edition, matching six-pager** (an earlier draft used the 1918 numbers — corrected against the 4th-ed text):
+- **Express coordinate ideas in similar form** (Rule 19) — new canon rule; load-bearing in lists, goals, tenets, headings.
+- **Keep related words together** (Rule 20) — new; proximity shows relationship, don't split subject from verb.
+- **Make the paragraph the unit of composition** (Rule 13) — new, *register-gated*: exposition/argument fronts the point; the core's story-first rule still governs narrative. Precision note: the 4th ed *dropped* the explicit "begin with a topic sentence" — that's Strunk's 1918 Rule 9, condensed into Rule 13 — so it's prescribed by name, not cited as a 4th-ed rule.
+- **Voice vs. White's "do not inject opinion"** — stated and resolved: White cuts *gratuitous* opinion in exposition; write-well's voice is earned, relevant stance. Register decides.
+- Folded "avoid a succession of loose sentences" (Rule 18) into the vary-rhythm rule. Left the Elementary Rules of Usage (Rules 1–11: comma/colon/dash/agreement/case) out — correctness, not craft.
+- **Then mined White's Chapter V ("An Approach to Style").** Finding: it adds no new positive rule — it supplies the *restraint half* of voice. Added a **voice-discipline note** (place yourself in the background, don't overwrite/overstate, no breezy manner, prefer standard to offbeat, don't explain too much) tied to the existing caricature failure mode, and sharpened draft mode's dialogue rule (no adverb-propped "said"). White independently corroborates the AI-tell catalog from the stylist's side.
+
+### V2.2 (2026-06-07) — Ogilvy's "How To Write" memo, incorporated three ways
+From Ogilvy's 1982 staff memo (the 10 rules + the Roman & Raphaelson lineage it points to). Sorted by *what kind of rule each is*, not bolted on whole — the memo is mostly a business-register playbook, not new core rules:
+- **Core canon** — Ogilvy added as a cited authority (short words, no jargon already lived in the canon; he corroborates, doesn't duplicate).
+- **Edit-process** — a new *cooling-off pass* in the craft canon: sleep on it then reread aloud and edit, get a colleague to improve it, check your quotations/facts. Surfaced as edit-mode step 5.
+- **Register layer** — rules 2/5/9/10 folded into the business registers (`plain-professional`, `executive-brief`, `punchy-marketing`): write the way you talk, ≤2 pages, **make the desired action unmistakable**, and don't-write-when-you-should-talk as the register's boundary.
+- **Author voice** — added `ogilvy` to the voices library (the ad-man's prose: concrete, benefit-led, zero jargon), distinct from applying his rules.
+
 ### V2.1 (2026-06-04) — register-first + register voices (real-use feedback)
 From using V2 on performance feedback, where the punchy default fought the task. Four fixes:
 - **Register & tone, set first.** The punch bias (short kicks, the dramatic closer, "don't narrate the landing") is now explicitly a *register tool* for marketing/fiction/essay — **not the default**. Measured registers (feedback, professional, diplomatic, reference, academic) get even rhythm, balance, and substance-led endings.
@@ -156,6 +175,7 @@ Merged `human-writing` (drafting craft) + `humanizer` (29-pattern edit catalog) 
 ## References
 - [references/craft-canon.md](references/craft-canon.md) — the deduped positive ruleset from the ten authorities, with sources
 - [references/voices.md](references/voices.md) — the 6-axis fingerprint model + named voice/persona library
+- [references/voice-examples.md](references/voice-examples.md) — one passage rewritten across voices (Hemingway, McCarthy, DFW, Didion, Ogilvy, executive-brief)
 - [references/prose-craft.md](references/prose-craft.md) — fiction prose craft + anti-AI rules
 - [references/edit-catalog.md](references/edit-catalog.md) — the 29 AI-tell patterns, before/after
 - [references/banned-words.md](references/banned-words.md) · [references/domains.md](references/domains.md)

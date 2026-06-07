@@ -58,6 +58,27 @@ chk "set the register before the punch (gotcha)" "before the punch"
 grep -qiF "warm-feedback" references/voices.md && grep -qiF "plain-professional" references/voices.md && pass "register voices (warm-feedback, plain-professional, ...) present" || fail "register voices missing from voices.md"
 grep -qiF "never end on a punchy" references/voices.md && pass "feedback voice forbids the zinger closer" || fail "feedback voice missing the no-closer rule"
 
+echo "== V2.2: Ogilvy incorporated (canon + edit-process + register + author voice) =="
+chk "Ogilvy in SKILL voice library + changelog" "Ogilvy"
+chk "edit-mode cooling-off step" "Cool off + check facts"
+grep -qiF "David Ogilvy" references/voices.md && pass "voices.md has the Ogilvy author voice" || fail "voices.md missing Ogilvy author voice"
+grep -qiF "cooling-off pass" references/craft-canon.md && pass "craft-canon has the cooling-off pass" || fail "craft-canon missing cooling-off pass"
+grep -qiF "Check your quotations" references/craft-canon.md && pass "cooling-off: check your quotations" || fail "cooling-off missing check-quotations"
+grep -qiF "unmistakable" references/voices.md && pass "register folds in Ogilvy's clear-action rule" || fail "register missing the clear-action rule"
+
+echo "== V2.3: Strunk & White mined (4th-ed, source of record) =="
+grep -qiF "coordinate ideas in similar form" references/craft-canon.md && pass "canon: parallel construction (Rule 19)" || fail "canon missing parallel construction"
+grep -qiF "Keep related words together" references/craft-canon.md && pass "canon: keep related words together (Rule 20)" || fail "canon missing keep-related-words"
+grep -qiF "topic sentence" references/craft-canon.md && pass "canon: paragraph rule + topic-sentence precision note" || fail "canon missing topic-sentence treatment"
+grep -qiF "do not inject opinion" references/craft-canon.md && pass "canon: voice-vs-opinion tension resolved" || fail "canon missing the opinion tension"
+grep -qiF "source of record" references/craft-canon.md && pass "canon: 4th-ed is the source of record" || fail "canon missing source-of-record anchor"
+grep -qiF "4th-ed Rule 19" references/craft-canon.md && pass "canon: 4th-ed numbering applied" || fail "canon missing 4th-ed numbering"
+grep -qiF "Voice discipline" references/craft-canon.md && pass "canon: White voice-discipline (restraint half)" || fail "canon missing White voice-discipline note"
+grep -qiF "breezy manner" references/craft-canon.md && pass "canon: White anti-caricature reminders" || fail "canon missing White reminders"
+chk "SKILL surfaces parallel construction (R19)" "coordinate ideas in similar form"
+[ -f references/voice-examples.md ] && pass "voice-examples.md exists" || fail "voice-examples.md missing"
+grep -qiF "voice ogilvy" references/voice-examples.md && pass "voice-examples covers the ogilvy voice" || fail "voice-examples missing ogilvy"
+
 echo "== Self-containment (no personal-project coupling) =="
 LEAK=0
 for term in Threshold OurGospelStudy PithyByte GEARU SignUpSpark Voltron LocalCred VeroWrite; do

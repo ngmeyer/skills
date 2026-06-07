@@ -40,16 +40,18 @@ You don't need to know an author. Pick the voice by the *job*. The **hard do/don
 
 | Voice | Use it for | Diction | Syntax / rhythm | Tone & stance | Hard do / don't |
 |-------|-----------|---------|-----------------|---------------|-----------------|
-| **plain-professional** | updates, docs, straightforward business | neutral, concrete, jargon-light | simple, direct; even | clear, neutral | no flourish, **no zinger closer**; em-dash near-zero |
+| **plain-professional** | updates, docs, straightforward business | neutral, concrete, jargon-light | simple, direct; even | clear, neutral | write the way you talk; say the next step plainly; no flourish, **no zinger closer**; em-dash near-zero |
 | **warm-feedback** | performance reviews, 1:1s, coaching | specific, plain, human | balanced; calm, even | candid **and** kind; balance strength + growth | lead with behavior + its impact; **never end on a punchy line**; no manufactured drama; close on substance |
 | **diplomatic** | sensitive comms, pushback, de-escalation | careful, soft-edged | hedged where it earns it; smooth | measured, respectful | acknowledge before you counter; **no sharp closer**; minimal em-dash |
-| **executive-brief** | leadership updates, BLUF, decisions | tight, decisive | short, front-loaded; brisk | confident, conclusion-first | answer first then support; no wind-up; no drama |
+| **executive-brief** | leadership updates, BLUF, decisions | tight, decisive | short, front-loaded; brisk | confident, conclusion-first | answer first then support; make the one action you want unmistakable; ≤2 pages — if it won't fit, simplify; no wind-up; no drama |
 | **conversational** | newsletters, blogs, explainers | everyday, contractions, first person | varied; relaxed | warm, equal-to-equal (classic style) | talk to one smart friend; punch allowed but *sparing* |
 | **academic** | analysis, evidence-led writing | precise, qualified | complex-but-clear; even | objective, cautious | claims earn their hedges; no hype; no zinger |
-| **punchy-marketing** | landing pages, ads, hooks | concrete, vivid | short + high contrast | bold, benefit-led | one promise; **the earned kick closer belongs HERE**; still no em-dash spray |
+| **punchy-marketing** | landing pages, ads, hooks | concrete, vivid | short + high contrast | bold, benefit-led | one promise + one unmistakable next step; **the earned kick closer belongs HERE**; still no em-dash spray |
 | **storyteller** | personal essays, narrative | sensory, specific | varied; scenic, VAKS-heavy | voiced, reflective | relive don't report; don't narrate the landing |
 
 Each maps to the 6 axes below; `--like <your sample>` clones *your* register instead. For most non-fiction work the default should be **measured**, not punchy.
+
+> **The business/professional registers are Ogilvy's "How To Write" memo (1982), made operational** — write the way you talk, short words/sentences, no jargon, ≤2 pages, and *make the action you want unmistakable*. His last rule is the boundary on the whole register: **if a message really needs action, a direct conversation often beats the memo** — don't write when you should talk. (The cooling-off/accuracy habits from the same memo live in the craft canon's edit-process pass.)
 
 ## Author voices — power-user library (only if you know them)
 
@@ -65,12 +67,13 @@ Study anchors for people who recognize the author. Most users want the register 
 | **Joan Didion** | precise, connotation-rich | elliptical, controlled | cool, measured | restrained, observational, detached dread | emotional restraint; exact nouns |
 | **Hunter S. Thompson** | hyperbolic, profane, slangy | breathless, run-on | manic, escalating | gonzo: writer-as-subject | caricatured first-person; subjectivity = story |
 | **Faulkner** | dense, Latinate | **hypotaxis**: long, subordinated | sprawling, recursive | interior, historical-Gothic | stream-of-consciousness; one-sentence paragraphs |
+| **David Ogilvy** | plain, concrete, benefit-led; zero jargon | short, direct, often imperative | brisk, declarative; even | the ad-man — respects the reader ("the consumer is not a moron; she is your wife"), sells the benefit, never entertains at the sale's expense | every claim names a concrete benefit; no jargon ever; one unmistakable ask. Exemplars: "If it doesn't sell, it isn't creative." / "You cannot bore people into buying your product." |
 
-*Use a library voice as a center of gravity — not a costume. The goal is "recognizably in that voice," not "indistinguishable parody."*
+*Use a library voice as a center of gravity — not a costume. The goal is "recognizably in that voice," not "indistinguishable parody."* Note: the **Ogilvy** voice is the ad-man's *prose* — distinct from applying his 10 rules (those live in the business registers above + the canon's cooling-off pass).
 
 ## Sources
 - Voice anatomy: Roy Peter Clark / Don Fry; craft glossaries on diction/syntax/tone/rhythm/POV.
 - Persona ≠ ethos ≠ author: rhetoric scholarship (the persona as theatrical mask / implied author).
-- Named-voice fingerprints: parataxis/asyndeton (Hemingway), parataxis+polysyndeton (McCarthy), nesting+footnotes (DFW), plain-repetitive (Vonnegut), oral/coined (Morrison), elliptical-restrained (Didion), gonzo (Thompson).
+- Named-voice fingerprints: parataxis/asyndeton (Hemingway), parataxis+polysyndeton (McCarthy), nesting+footnotes (DFW), plain-repetitive (Vonnegut), oral/coined (Morrison), elliptical-restrained (Didion), gonzo (Thompson), benefit-led/no-jargon ad-man (Ogilvy — *Ogilvy on Advertising* + the 1982 "How To Write" memo).
 - Stylometry: function words as topic-independent authorial habit; Burrows' Delta (standardized function-word frequencies; ~5,000-word floor); sentence-length variance, punctuation, vocabulary richness.
 - LLM style-transfer: arXiv 2509.14543 (LLMs regress to generic; few-shot > zero-shot but saturates; informal voices hardest); persona-prompting stereotype-amplification risk; meaning/style separation for style transfer (Reif et al., arXiv 2109.03910).
