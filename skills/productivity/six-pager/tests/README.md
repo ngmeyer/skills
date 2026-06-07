@@ -8,7 +8,7 @@
 - Both modes documented (`memo` and `prfaq`)
 - All 6+1 canonical memo sections (Introduction, Goals, Tenets, State of Business, Lessons Learned, Strategic Priorities, Appendix)
 - All 3 PRFAQ sub-documents (Press Release, External FAQ, Internal FAQ)
-- 6 prose-audit checks (Passive voice, Vague language, Needless words, Qualifiers, Parallel construction, Removability)
+- 8 prose-audit checks (Passive voice, Vague language, Needless words, Qualifiers, Parallel construction, Topic sentence, Overstatement, Removability)
 - All 3 traditions cited by name (Bezos, Strunk, Anthropic) plus canonical sources (Working Backwards, Elements of Style, removability test)
 - Shipped sibling skills referenced (`/council-review`, `/adversarial-review`)
 - Anti-fake-numbers invariant present

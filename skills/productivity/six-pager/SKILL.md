@@ -6,7 +6,8 @@ description: >
   Business, Lessons Learned, Strategic Priorities + unlimited appendix); `prfaq` produces a
   Press Release + External FAQ + Internal FAQ for product launches (work backwards from launch).
   Enforces Strunk's prose rules (active voice, concrete language, omit needless words, no
-  qualifiers, parallel construction) and Anthropic's removability discipline at the line level.
+  qualifiers, parallel construction, topic-sentence paragraphs, no overstatement) and Anthropic's
+  removability discipline at the line level.
   Use when: 'six pager', '6-pager', 'amazon memo', 'narrative memo', 'PRFAQ', 'press release',
   'work backwards', 'decision memo', 'strategy doc', 'launch document', 'silent read doc',
   before any decision big enough to warrant the week-long writing process.
@@ -142,6 +143,8 @@ Run the prose-quality audit on the draft. Each finding cites the rule:
 | **Qualifiers** | E.B. White's "leeches" reminder | Flag every "rather," "very," "little," "pretty," "quite," "somewhat" — propose deletion |
 | **Parallel construction** | Strunk R19 | Flag inconsistent grammatical forms in lists / tenets / goals |
 | **Sentence-length monotony** | Strunk R18 | Flag stretches of 4+ sentences within 5 words of each other; propose variation |
+| **Topic sentence** | Strunk R13 | Flag any paragraph that buries its claim under setup. Lead each paragraph with its point — one paragraph = one step in the argument. The core narrative-memo discipline |
+| **Overstatement** | E.B. White, *do not overstate* | Flag carefree superlatives and unhedged hype ("massive," "revolutionary," "huge," "game-changing"). A single one puts the reader on guard and taints the rest — demand the number or cut |
 | **Tenets with hedges** | Bezos canon | Tenets are commitments. "We try to optimize for X" → "We optimize for X" or cut |
 | **Removability test** | Anthropic | For each paragraph: would removing it cause the reader to make a wrong decision? If not, cut. |
 
@@ -159,6 +162,8 @@ Produce a structured audit report:
 ### Important (fix in next pass)
 - 4 sentences in a row of 18-22 words in State of Business → vary
 - Parallel-form break in Goals: 3 noun-phrase goals + 1 verb-phrase goal
+- State of Business ¶2 buries its claim in the final sentence → lead the paragraph with it
+- Overstatement in Introduction ("a massive, game-changing opportunity") → name the number or cut
 
 ### Nit
 - "in order to" appears 3 times → "to"

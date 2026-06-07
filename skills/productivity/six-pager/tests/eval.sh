@@ -46,7 +46,7 @@ done
 
 echo ""
 echo "== Prose-audit checks (Strunk + Anthropic) =="
-for check in "Passive voice" "Vague language" "Needless words" "Qualifiers" "Parallel construction" "Removability"; do
+for check in "Passive voice" "Vague language" "Needless words" "Qualifiers" "Parallel construction" "Topic sentence" "Overstatement" "Removability"; do
   if have "$check" SKILL.md; then pass "Audit check: $check"; else fail "Audit check missing: $check"; fi
 done
 
