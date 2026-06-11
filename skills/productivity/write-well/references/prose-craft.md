@@ -4,9 +4,9 @@
 
 These rules identify and eliminate patterns that flag **fiction prose** as machine-generated. They're designed to make narrative writing (novel chapters, short stories, fictional anecdotes inside essays) feel authentically human-written. Apply them during drafting and revision.
 
-**For nonfiction surfaces** (articles, blog posts, marketing copy, landing pages, explainers), use [nonfiction-ai-patterns.md](nonfiction-ai-patterns.md) instead. That file imports the 29-pattern humanizer catalog.
+**For nonfiction surfaces** (articles, blog posts, marketing copy, landing pages, explainers), use [edit-catalog.md](edit-catalog.md) instead. That file holds the 29-pattern AI-tell catalog.
 
-**Cross-surface notes:** Rules 1 (tricolon), 2 (em dash), 5 (imperfect symmetry / parallel constructions), and 16 (American English) also apply to nonfiction, with different calibration. Fiction is stricter because narrative voice has tighter rhythm constraints. Don't paste fiction calibration onto nonfiction or vice versa — see nonfiction-ai-patterns.md "Cross-surface notes" for the calibration table.
+**Cross-surface notes:** Rules 1 (tricolon), 2 (em dash), 5 (imperfect symmetry / parallel constructions), and 16 (American English) also apply to nonfiction, with different calibration. Fiction is stricter because narrative voice has tighter rhythm constraints. Don't paste fiction calibration onto nonfiction or vice versa; the edit catalog calibrates each pattern for nonfiction.
 
 ---
 

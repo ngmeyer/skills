@@ -243,6 +243,8 @@ Avoiding AI patterns is only half the job. Sterile, voiceless writing is just as
 
 **Problem:** LLMs use em dashes (—) more than humans, mimicking "punchy" sales writing. In practice, most of these can be rewritten more cleanly with commas, periods, or parentheses.
 
+**Budget (the load-bearing fix):** aim for zero, cap at ~2 per 1,000 words of nonfiction. This is a *generation* rule: don't type the em dash in the first place. Then in the final pass, search the text for every `—` and replace each one that isn't a genuine interruption or hard reversal: a comma (most cases), a period that starts a new sentence, a colon (the second half delivers on the first), or parentheses (a true aside). The only exception is a `--voice`/`--like` whose own fingerprint runs on em dashes (DFW, some essayists); absent that, stay near zero. A near-zero rule that lives only in a review checklist gets ignored, so enforce it by counting.
+
 **Before:**
 > The term is primarily promoted by Dutch institutions—not by the people themselves. You don't say "Netherlands, Europe" as an address—yet this mislabeling continues—even in official documents.
 

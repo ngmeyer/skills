@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Structural eval for write-well (V2).
+# Structural eval for write-well (1.0).
 #
 # Prompt-only skill; runtime output is non-deterministic. This eval locks in the
 # design contract: the five-part core, the Voices & Personas system (3 controls +
@@ -60,13 +60,13 @@ grep -qiF "never end on a punchy" references/voices.md && pass "feedback voice f
 
 echo "== V2.2: Ogilvy incorporated (canon + edit-process + register + author voice) =="
 chk "Ogilvy in SKILL voice library + changelog" "Ogilvy"
-chk "edit-mode cooling-off step" "Cool off + check facts"
+chk "edit-mode cooling-off step" "Cool off and check facts"
 grep -qiF "David Ogilvy" references/voices.md && pass "voices.md has the Ogilvy author voice" || fail "voices.md missing Ogilvy author voice"
 grep -qiF "cooling-off pass" references/craft-canon.md && pass "craft-canon has the cooling-off pass" || fail "craft-canon missing cooling-off pass"
 grep -qiF "Check your quotations" references/craft-canon.md && pass "cooling-off: check your quotations" || fail "cooling-off missing check-quotations"
 grep -qiF "unmistakable" references/voices.md && pass "register folds in Ogilvy's clear-action rule" || fail "register missing the clear-action rule"
 
-echo "== V2.3: Strunk & White mined (4th-ed, source of record) =="
+echo "== V2.3: Strunk & White studied (4th-ed, source of record) =="
 grep -qiF "coordinate ideas in similar form" references/craft-canon.md && pass "canon: parallel construction (Rule 19)" || fail "canon missing parallel construction"
 grep -qiF "Keep related words together" references/craft-canon.md && pass "canon: keep related words together (Rule 20)" || fail "canon missing keep-related-words"
 grep -qiF "topic sentence" references/craft-canon.md && pass "canon: paragraph rule + topic-sentence precision note" || fail "canon missing topic-sentence treatment"
@@ -81,10 +81,39 @@ grep -qiF "voice ogilvy" references/voice-examples.md && pass "voice-examples co
 
 echo "== Self-containment (no personal-project coupling) =="
 LEAK=0
-for term in Threshold OurGospelStudy PithyByte GEARU SignUpSpark Voltron LocalCred VeroWrite; do
+for term in Threshold OurGospelStudy PithyByte GEARU SignUpSpark Voltron LocalCred VeroWrite Neal-specific; do
   if grep -rqiF "$term" SKILL.md references/ 2>/dev/null; then echo "  leak: $term"; LEAK=1; fi
 done
 [ "$LEAK" -eq 0 ] && pass "no personal-project names in skill or references" || fail "personal-project coupling present"
+
+echo "== Em-dash budget (1.0) — the rule, made countable =="
+chk "punctuation budget section present" "Punctuation budget"
+chk "budget stated per 1,000 words" "per 1,000 words"
+chk "framed as a generation rule, not a cleanup" "generation rule"
+chk "final pass counts em-dashes" "Count the em-dashes"
+# DOGFOOD: SKILL.md is the always-loaded in-context exemplar — it must itself meet a low
+# em-dash density, or it teaches the model the spray the rule forbids. Prose rule is <=2/1000;
+# the residual here is markdown structure (headings, checklist labels, ref/changelog separators),
+# so the ceiling is 10/1000 (V2.3 was ~30/1000 — full spray).
+emc=$(grep -o "—" SKILL.md | wc -l | tr -d ' ')
+sw=$(wc -w < SKILL.md | tr -d ' ')
+dens=$(awk -v c="$emc" -v w="$sw" 'BEGIN{printf "%.1f",(w?c*1000.0/w:0)}')
+ok=$(awk -v c="$emc" -v w="$sw" 'BEGIN{print ((w && c*1000.0/w<=10)?1:0)}')
+if [ "$ok" -eq 1 ]; then pass "dogfood: SKILL.md em-dash density ${dens}/1000 words (<=10)"; else fail "dogfood: SKILL.md em-dash density ${dens}/1000 words (>10 — meet your own budget)"; fi
+echo "  (informational) reference-file em-dash density — purge targets if high:"
+for f in references/*.md; do
+  ec=$(grep -o "—" "$f" | wc -l | tr -d ' '); fw=$(wc -w < "$f" | tr -d ' ')
+  awk -v f="$f" -v c="$ec" -v w="$fw" 'BEGIN{printf "    %-34s %.1f /1000\n", f, (w?c*1000.0/w:0)}'
+done
+# purged exemplar files must stay clean (hard checks); cap 5/1000
+for f in references/craft-canon.md references/banned-words.md; do
+  ec=$(grep -o "—" "$f" | wc -l | tr -d ' '); fw=$(wc -w < "$f" | tr -d ' ')
+  d=$(awk -v c="$ec" -v w="$fw" 'BEGIN{printf "%.1f",(w?c*1000.0/w:0)}')
+  okk=$(awk -v c="$ec" -v w="$fw" 'BEGIN{print((w&&c*1000.0/w<=5)?1:0)}')
+  if [ "$okk" -eq 1 ]; then pass "dogfood: $f ${d}/1000 (<=5)"; else fail "dogfood: $f ${d}/1000 (>5)"; fi
+done
+# dead-reference guard: nonfiction-ai-patterns.md does not exist in this skill
+if grep -rqF "nonfiction-ai-patterns" SKILL.md references/; then fail "dead reference to nonfiction-ai-patterns.md present"; else pass "no dead reference to nonfiction-ai-patterns.md"; fi
 
 echo "== Convention =="
 chk "Gotchas heading" "## Gotchas"
