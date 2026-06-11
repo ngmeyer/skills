@@ -112,7 +112,7 @@ Local memory is the *wrong* home for knowledge a clone-only agent or collaborato
 | Current state / next steps | `PROJECT_STATUS.md` if the repo uses one, else memory Status | route accordingly |
 | Secret-location, personal/tooling scratch, cross-project note | **local memory only** | keep (never commit) |
 
-This isn't extra work — it's putting each fact where the *next* reader will actually look. If the repo isn't yet set up for this (no ADRs / PROJECT_STATUS), note it and suggest creating those committed docs; until then, memory is the fallback. Memory then holds only what genuinely has no repo home.
+This isn't extra work — it's putting each fact where the *next* reader will actually look. If the repo isn't yet set up for this (no ADRs / PROJECT_STATUS), note it and suggest creating those committed docs; until then, memory is the fallback. Memory then holds only what genuinely has no repo home. **Phase 7 acts on the `CLAUDE.md`/`AGENTS.md` items this step identifies** — handing them to the `claude-md` audit for surgical promotion.
 
 ### Phase 4: RECONCILE -- Section-aware merging
 
@@ -197,7 +197,21 @@ If any new memory files were created:
 3. Keep alphabetical order within the section
 4. **Line count check:** If MEMORY.md exceeds 180 lines, warn that it's approaching the 200-line context load limit
 
-### Phase 7: CLEANUP -- Offer to remove artifacts
+### Phase 7: CLAUDE.md AUDIT -- Promote cross-agent lessons (optional; needs the `claude-md` skill)
+
+Memory captured this session's *reasoning*. But some of what Phase 3.5 routed isn't memory's job -- it's a **convention or architecture rule every agent and teammate needs**, which belongs in the committed `CLAUDE.md`/`AGENTS.md`: the cross-agent layer a fresh clone or a different agent reads first. Lessons stranded in local memory are invisible to them, and get silently dropped when someone re-runs `/init`.
+
+For each touched project that has (or should have) a `CLAUDE.md` / `AGENTS.md`:
+
+1. **Collect the CLAUDE.md-worthy items** surfaced in Phase 3.5 -- conventions, architecture rules, "always/never" guidance that emerged this session and a *different* agent would need. (If Phase 3.5 surfaced none, skip this phase.)
+2. **Hand off to `claude-md` if it's installed** (it ships alongside this skill in `ngmeyer/skills`): run `/claude-md audit` (drift, leaked secrets, bloat across all CLAUDE.md files) or `/claude-md improve <path>` (measure one file against best practices, propose surgical diffs), seeding it with the items from step 1. `claude-md` already gates every diff on your approval.
+3. **If `claude-md` is absent, degrade gracefully:** print the items -- *"N convention(s) from this session may belong in CLAUDE.md; install `claude-md` or add them by hand"* -- so nothing is lost. Never block on it.
+
+**Never run `/init` to update an existing CLAUDE.md.** `/init` *regenerates* the file wholesale: it invents architecture sections and discards the curated, hard-won lessons that were never written into it. This phase is **surgical promotion** (add the few lines that earned their place, leave the rest byte-for-byte), not regeneration. If a project has no `CLAUDE.md` yet, *suggest* a minimal one -- don't auto-generate a large one.
+
+This is a **soft dependency by design** -- it degrades to a printed list when `claude-md` is absent, so session-close stays self-contained for a cherry-picked install.
+
+### Phase 8: CLEANUP -- Offer to remove artifacts
 
 Check for and offer to delete:
 
@@ -221,6 +235,7 @@ Check for and offer to delete:
 - **No date-stamped items** in capability or stack sections. Dates belong only in the Status section
 - **No section regeneration.** Never rewrite a section you aren't changing. LLM rewrites subtly lose detail, change voice, and introduce drift. Use the Edit tool on specific lines, not Write on the whole file
 - **No vague summaries.** "Worked on auth improvements" fails the specificity gate. Every persisted fact must have a subject, verb, and concrete value
+- **Never `/init` to refresh an existing CLAUDE.md.** It regenerates wholesale and drops the curated lessons that lived only in memory. Promote to CLAUDE.md surgically via the `claude-md` skill (Phase 7), never by regeneration. Memory is for reasoning; CLAUDE.md/AGENTS.md is the cross-agent convention layer -- keep each in its lane
 
 ## Section Naming Conventions
 
@@ -251,6 +266,9 @@ Sections not matching any pattern are treated as PRESERVE (safe default).
 **Uncommitted work detected:** Always include in Status section. Previous sessions have lost track of uncommitted work, causing confusion in the next session.
 
 ## Changelog
+
+### V2.1 (2026-06-11) -- CLAUDE.md audit handoff (Phase 7)
+Added **Phase 7: CLAUDE.md AUDIT**. After reconciling memory, promote the cross-agent conventions Phase 3.5 identified into the committed `CLAUDE.md`/`AGENTS.md` by handing off to the **`claude-md`** skill's surgical, approval-gated `audit`/`improve` -- never `/init`, which regenerates the file and drops curated lessons that lived only in memory. Closes the loop Phase 3.5 opened: it *identified* CLAUDE.md-worthy items but nothing *acted* on them. **Soft dependency** -- degrades to a printed list when `claude-md` isn't installed, so session-close stays self-contained; both skills ship in `ngmeyer/skills`, so the sibling reference is safe. CLEANUP renumbered 7 -> 8.
 
 ### V2 (2026-05-27)
 Optimized via `skillforge optimize` (outcome research: AI agent memory / context engineering 2026).

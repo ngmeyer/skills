@@ -22,8 +22,8 @@ pass() { echo "PASS  $1"; PASS=$((PASS+1)); }
 fail() { echo "FAIL  $1"; FAIL=$((FAIL+1)); }
 have() { grep -qF "$1" "$2"; }
 
-echo "== 7-Phase architecture =="
-for phase in "Phase 1: IDENTIFY" "Phase 2: READ" "Phase 3: EXTRACT" "Phase 4: RECONCILE" "Phase 5: PRESENT" "Phase 6: INDEX" "Phase 7: CLEANUP"; do
+echo "== 8-Phase architecture (incl. CLAUDE.md audit handoff) =="
+for phase in "Phase 1: IDENTIFY" "Phase 2: READ" "Phase 3: EXTRACT" "Phase 4: RECONCILE" "Phase 5: PRESENT" "Phase 6: INDEX" "Phase 7: CLAUDE.md AUDIT" "Phase 8: CLEANUP"; do
   if have "$phase" SKILL.md; then pass "Phase present: $phase"; else fail "Phase missing: $phase"; fi
 done
 
@@ -73,6 +73,13 @@ else
   pass "No macOS-only 'date -v' flag"
 fi
 if grep -qF -- '--since=' SKILL.md; then pass "Portable --since= git flag used"; else fail "Portable --since= not used"; fi
+
+echo ""
+echo "== CLAUDE.md audit handoff (Phase 7, V2.1) =="
+if have "claude-md" SKILL.md; then pass "delegates to the claude-md skill"; else fail "claude-md handoff missing"; fi
+if grep -qiF "soft dependency" SKILL.md; then pass "claude-md is a soft dependency (self-contained without it)"; else fail "soft-dependency framing missing"; fi
+if grep -qF "/init" SKILL.md && grep -qiF "regenerat" SKILL.md; then pass "anti-/init regeneration rule present"; else fail "anti-/init rule missing"; fi
+if have "AGENTS.md" SKILL.md; then pass "cross-agent layer (AGENTS.md) named"; else fail "AGENTS.md not named"; fi
 
 echo ""
 echo "== Event classification =="
