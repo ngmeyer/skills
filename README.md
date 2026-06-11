@@ -2,7 +2,7 @@
 
 [![skills.sh](https://skills.sh/b/ngmeyer/skills)](https://skills.sh/ngmeyer/skills)
 
-Nine agent skills I use every day — for deciding, remembering, and improving, not just generating code. Small, composable, model-agnostic. Built for Claude Code, Codex, Cursor, and any agent that reads a `SKILL.md`.
+Ten agent skills I use every day — for deciding, remembering, and improving, not just generating code. Small, composable, model-agnostic. Built for Claude Code, Codex, Cursor, and any agent that reads a `SKILL.md`.
 
 Most of an agent's failures aren't coding failures. The agent agrees when it should push back. The big decision gets made in a chat window. The setup quietly rots. The session ends and the context is gone. These skills are built for exactly those moments.
 
@@ -23,7 +23,7 @@ npx skills@latest add ngmeyer/skills
 ```text
 /six-pager        /council-review     /adversarial-review
 /claude-md        /session-close      /skillforge
-/rigorous-review
+/rigorous-review  /write-well
 ```
 
 <details>
@@ -148,6 +148,7 @@ Thinking and process skills, not code-specific.
 - **[session-close](./skills/productivity/session-close/SKILL.md)** — Reconcile a work session into persistent project memory with section-aware merges — not a session dump.
 - **[weekly-setup-improvements](./skills/productivity/weekly-setup-improvements/SKILL.md)** — Audit a week of work and produce a forward-looking improvement report: closure check, zombie-action kills, auto-drafted skill scaffolds.
 - **[skillforge](./skills/productivity/skillforge/SKILL.md)** — Forge a new skill, or `optimize` an existing one to a measurably better V2 (quality audit + outcome research + train/validation A/B).
+- **[write-well](./skills/productivity/write-well/SKILL.md)** — Draft or edit prose with a real voice: `draft` from scratch or `edit` flat/AI-flavored text against a pattern catalog, in any `--voice`, `--persona`, or cloned `--like` a sample. Backed by a deduped craft canon (Strunk, Zinsser, Orwell, Ogilvy, White …).
 
 ## Conventions
 
