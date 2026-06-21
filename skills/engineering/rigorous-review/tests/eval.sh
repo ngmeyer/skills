@@ -108,6 +108,13 @@ F=$(grep -n "Fan out four parallel reviewers" SKILL.md | head -1 | cut -d: -f1)
 V=$(grep -n "Independent validator wave" SKILL.md | head -1 | cut -d: -f1)
 if [ -n "$F" ] && [ -n "$V" ] && [ "$F" -lt "$V" ]; then pass "fan-out precedes validation"; else fail "phase ordering (fan-out before validation)"; fi
 
+echo "== Self-containment (no internal-project leaks) =="
+LEAK=0
+for term in signupspark swim-records ourgospelstudy voltron localcred superscore pithybyte gearu verowrite; do
+  if grep -rqiF "$term" SKILL.md references/ 2>/dev/null; then echo "  leak: $term"; LEAK=1; fi
+done
+[ "$LEAK" -eq 0 ] && pass "no internal-project names in skill or references" || fail "internal-project coupling present"
+
 echo "== Convention =="
 chk "Gotchas heading" "## Gotchas"
 chk "Changelog present" "## Changelog"

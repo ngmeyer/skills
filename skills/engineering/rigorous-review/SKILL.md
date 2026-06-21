@@ -204,7 +204,7 @@ If the user passes `apply-safe` (or asks afterward):
 
 ### V1 (2026-06-10)
 First release of `rigorous-review`. Distilled from a working prototype (`internal-hardening-audit`)
-that was forged by running it for real on `signupspark` and `swim-records` (Fable/Opus — good
+that was forged by running it for real on two production web codebases (Fable/Opus — good
 results; it surfaced a committed DB credential the dedicated security pass had missed), then
 hardened with a 3-agent research synthesis across CE reviewer agents, the built-in
 `code-review`/`security-review`, Vercel skills, Anthropic `security-review`, Matt Pocock's
@@ -251,5 +251,5 @@ Empirical precision/recall validation is pending the next real audit run.
 suppression lists, independent validator wave, dedup + promotion, four lanes incl. correctness,
 API-contract check, OWASP/CWE + SSRF/deserialization, Core Web Vitals, real dead-code tooling,
 effort dial, model-tiering, behavior-preservation verifier, prod-read-only, safe-vs-gated).
-Behavioral validation is the next real audit run (re-audit signupspark/swim-records and compare
+Behavioral validation is the next real audit run (re-audit the same codebases and compare
 finding precision/recall against the prototype baseline).
