@@ -6,9 +6,11 @@
 # expected diff of the memory file. That's a moderate-effort fixture to build,
 # deferred to a follow-up pass.
 #
-# This eval locks in the CLAUDE.md design contract: 7 phases, three-gate
-# filter, REPLACE/MERGE-LIST/PRESERVE strategies, portability rules, and the
-# "state reconciliation not session logging" core principle.
+# This eval locks in the design contract: 9 phases, three-gate filter,
+# REPLACE/MERGE-LIST/PRESERVE strategies, portability rules, the "state
+# reconciliation not session logging" core principle, and (V3) the AAR:
+# four questions, DEAD_END capture, the four-check promotion gate, and the
+# PROCESS:/DEAD-END: closure loop.
 #
 # Usage: bash tests/eval.sh
 # Exit 0 on pass, 1 on any assertion failure.
@@ -22,10 +24,16 @@ pass() { echo "PASS  $1"; PASS=$((PASS+1)); }
 fail() { echo "FAIL  $1"; FAIL=$((FAIL+1)); }
 have() { grep -qF "$1" "$2"; }
 
-echo "== 8-Phase architecture (incl. CLAUDE.md audit handoff) =="
-for phase in "Phase 1: IDENTIFY" "Phase 2: READ" "Phase 3: EXTRACT" "Phase 4: RECONCILE" "Phase 5: PRESENT" "Phase 6: INDEX" "Phase 7: CLAUDE.md AUDIT" "Phase 8: CLEANUP"; do
+echo "== 9-Phase architecture (incl. AAR + CLAUDE.md audit handoff) =="
+for phase in "Phase 1: IDENTIFY" "Phase 2: READ" "Phase 3: EXTRACT" "Phase 4: AAR" "Phase 5: RECONCILE" "Phase 6: PRESENT" "Phase 7: INDEX" "Phase 8: CLAUDE.md AUDIT" "Phase 9: CLEANUP"; do
   if have "$phase" SKILL.md; then pass "Phase present: $phase"; else fail "Phase missing: $phase"; fi
 done
+# Renumbering regression: no stale cross-reference to the V2.1 numbering
+if grep -nF "Phase 7" SKILL.md | grep -vE '(INDEX|### V2\.1|Added \*\*Phase 7)' | grep -q .; then
+  fail "Stale 'Phase 7' cross-reference outside INDEX / V2.1 changelog"
+else
+  pass "No stale phase cross-references after renumbering"
+fi
 
 echo ""
 echo "== Three-gate filter (quality mechanism) =="
@@ -83,9 +91,76 @@ if have "AGENTS.md" SKILL.md; then pass "cross-agent layer (AGENTS.md) named"; e
 
 echo ""
 echo "== Event classification =="
-for type in "DECISION" "STATUS_CHANGE" "DISCOVERY"; do
+for type in "DECISION" "STATUS_CHANGE" "DISCOVERY" "DEAD_END"; do
   if have "$type" SKILL.md; then pass "Event type classified: $type"; else fail "Event type missing: $type"; fi
 done
+
+echo ""
+echo "== AAR: four questions (V3) =="
+for q in "What was supposed to happen" "What actually happened" "Why the difference" "Sustain / Improve"; do
+  if grep -qiF "$q" SKILL.md; then pass "AAR question present: $q"; else fail "AAR question missing: $q"; fi
+done
+# The delta is the point: Q3 must demand a mechanism, not a culprit
+if grep -qiF "mechanism" SKILL.md && grep -qiF "never the actor" SKILL.md; then
+  pass "Blameless framing: names mechanism, not actor"
+else
+  fail "Blameless framing missing (mechanism / never the actor)"
+fi
+
+echo ""
+echo "== AAR: bounded output (anti-theater) =="
+if grep -qiE "at most 3|max(imum)? 3|0-3" SKILL.md; then pass "Improve items capped"; else fail "Improve item cap missing"; fi
+if grep -qiF "zero" SKILL.md && grep -qiF "valid" SKILL.md; then pass "Zero-is-valid stated"; else fail "Zero-is-valid outcome missing"; fi
+if grep -qiF "theater" SKILL.md; then pass "AAR-theater anti-pattern named"; else fail "AAR-theater anti-pattern missing"; fi
+
+echo ""
+echo "== AAR: promotion gate (anti-bloat) =="
+# All four checks must be named -- an ungated promotion path bloats CLAUDE.md,
+# which the research shows measurably degrades agent success.
+for check in "Behavior-changing" "Recurrent or costly" "Not already covered" "Stated as a rule"; do
+  if have "$check" SKILL.md; then pass "Gate check present: $check"; else fail "Gate check missing: $check"; fi
+done
+if grep -qiE "merge, don't append|merged into the existing" SKILL.md; then
+  pass "Merge-not-append rule present"
+else
+  fail "Merge-not-append rule missing"
+fi
+
+echo ""
+echo "== AAR: closure loop (cross-session state) =="
+for tag in "PROCESS:" "DEAD-END:"; do
+  if have "$tag" SKILL.md; then pass "Backlog tag defined: $tag"; else fail "Backlog tag missing: $tag"; fi
+done
+if grep -qiF "carry forward" SKILL.md || grep -qiF "carry-forward" SKILL.md; then
+  pass "Phase 2 carry-forward present (AAR has cross-session memory)"
+else
+  fail "Carry-forward missing -- AAR would repeat itself every session"
+fi
+for mech in "Recurred" "Resolved" "Zombie"; do
+  if have "$mech" SKILL.md; then pass "Closure outcome defined: $mech"; else fail "Closure outcome missing: $mech"; fi
+done
+# Nothing may vanish silently
+if grep -qiF "not discarded" SKILL.md || grep -qiF "never just disappears" SKILL.md; then
+  pass "Failed-gate items are retained, not silently dropped"
+else
+  fail "Silent-discard guard missing"
+fi
+
+echo ""
+echo "== AAR: per-project scope (found in V3 validation) =="
+if grep -qiF "one AAR per project" SKILL.md; then
+  pass "AAR runs per project, not per session"
+else
+  fail "Per-project AAR scope missing (multi-repo sessions would blur deltas)"
+fi
+
+echo ""
+echo "== Progressive disclosure =="
+if [ -f references/aar-playbook.md ]; then pass "AAR playbook reference exists"; else fail "references/aar-playbook.md missing"; fi
+if have "references/aar-playbook.md" SKILL.md; then pass "SKILL.md links the playbook"; else fail "Playbook not linked from SKILL.md"; fi
+# Anthropic's public bar is 500 lines
+SKILL_LINES=$(wc -l < SKILL.md)
+if [ "$SKILL_LINES" -le 500 ]; then pass "SKILL.md within 500-line budget ($SKILL_LINES)"; else fail "SKILL.md over budget ($SKILL_LINES lines)"; fi
 
 echo ""
 echo "== Fixture validity =="
