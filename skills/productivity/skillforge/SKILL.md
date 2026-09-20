@@ -118,6 +118,16 @@ Add utility scripts when:
 
 Scripts save tokens and improve reliability vs generated code.
 
+## Designing decision points (System-1 pattern)
+
+Every workflow step lands in one of three bands: **deterministic** (→ `scripts/`), **typed judgment**
+(closed answer space: route, verdict, severity — needs semantics but not open reasoning), or **open
+reasoning**. The middle band is the one skills historically get wrong — pushed down into brittle
+scripts or up into "use your judgment" prose. Give each typed judgment an enumerated answer space, a
+confidence *band* (not a percentage), and an escalation rule (act vs. ask), and let the skill's
+scaffold — not the model — own the workflow order. Full pattern, provenance, and forging checklist:
+[references/system-one-decision-design.md](references/system-one-decision-design.md).
+
 ## When to Split Files
 
 Split into separate files when:
@@ -154,6 +164,14 @@ After drafting, verify:
 - [ ] No `claude` or `anthropic` in skill name; no `README.md` in folder
 
 ## Changelog
+
+### V2.3 (2026-09-20) — System-1 decision design
+- Added **typed decision points** as a first-class forging concern, distilled from TypeSafe's Jev /
+  "System One Models" (typed decisions + calibrated confidence consumed by code, instead of prose).
+  New three-band step model (deterministic script / typed judgment / open reasoning), decision-point
+  shapes (choice, binary probability, ordered score), confidence-band + escalation contracts, and
+  self-consistency voting for load-bearing judgments. The model doesn't transfer; the process does.
+  Full pattern: `references/system-one-decision-design.md`.
 
 ### V2.2 (2026-05-29) — added SkillOpt + train/val split
 - Added **Microsoft SkillOpt** ([MIT, arxiv 2605.23904](https://arxiv.org/abs/2605.23904)) as a third optional external escalation alongside `ce-optimize` and `evo`. SkillOpt trains markdown skills NN-style (epochs / mini-batches / validation gates) against standardized benchmarks (SearchQA, ALFWorld, DocVQA, SpreadsheetBench, OfficeQA). Best fit for benchmark-driven rigor; ce-optimize for in-session workflow; evo for parallel/tree-search architecture.
