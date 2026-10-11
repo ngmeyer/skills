@@ -10,3 +10,11 @@
 
 ## Run
 `bash tests/eval.sh` (needs git; no network). Exit 0 = pass.
+
+## from-memories (v0.2)
+Fixtures: `tests/fixtures/repo` (AGENTS.md + docs/topics + one real path) and `tests/fixtures/memories` (project memory, global memory, Grok-style export). The eval lays them out as a Claude-style `~/.claude` tree in a temp dir and asserts:
+- map: encoded project dir → repo, global file → global, `project:` header export → repo;
+- triage: durable → CANDIDATE, missing path → STALE, AGENTS.md and docs/topics repeats → DUPLICATE, personal and global → NOT-FOR-REPO;
+- redact: a runtime-built GitHub token + email file is BLOCKED, masked, contributes no candidates; AWS key, password assignment, phone block; example.com / 555-01xx allowed; committed fixtures are clean;
+- source memory tree is byte-identical afterwards (read-only).
+No token-shaped string is committed; the secret is assembled at test time.
