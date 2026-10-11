@@ -37,7 +37,7 @@ Generic, reusable examples only. When in doubt, genericize.
 
 Pushing to GitHub `main` publishes immediately: it updates the skills.sh package and the plugin marketplace, and **downstream consumers (incl. Vercel installs) are notified on every push.** Treat each push as a production release.
 
-- **Test before you push.** Run the affected skill's `tests/eval.sh` and confirm **0 failures** first. There is no CI — the eval is the gate, and you are it.
+- **Test before you push.** Run the affected skill's `tests/eval.sh` and confirm **0 failures** first. `scripts/lint-skills.sh --evals` runs every eval plus repo-wide skill lint (FAIL = hard rule, WARN = context best-practice gap). There is no CI — the eval is the gate, and you are it.
 - **Never push** a red eval, a WIP change, or an unscoped working tree. Stage only the files that ship.
 - **Batch** related changes into one push; every push pings consumers, so avoid noise.
 - A docs-only change (this file, README) is still a production push — same discipline, lower risk.

@@ -1,0 +1,2 @@
+# Sources
+Practice numbers refer to the context-best-practices research notes: #2 map, #3 progressive disclosure, #4 no discoverable overviews (ETH AGENTS.md paper), #5 why, #8 mechanical enforcement, #9 reference not copy, #11 doc gardening (OpenAI harness eng.), #12 learn after task, #13 disposable specs vs ADRs (Context Specs). Pilot gaps: the context-best-practices research notes §4 ("Post-merge /learn memory PR: Missing", "Slice lifecycle: Missing").

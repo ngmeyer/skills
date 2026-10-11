@@ -209,6 +209,8 @@ For each touched project that has (or should have) a `CLAUDE.md` / `AGENTS.md`:
 
 **Never run `/init` to update an existing CLAUDE.md.** `/init` *regenerates* the file wholesale: it invents architecture sections and discards the curated, hard-won lessons that were never written into it. This phase is **surgical promotion** (add the few lines that earned their place, leave the rest byte-for-byte), not regeneration. If a project has no `CLAUDE.md` yet, *suggest* a minimal one -- don't auto-generate a large one.
 
+If this session **merged a PR**, also run `learn <pr>` (sibling skill, if installed) to write durable lessons into the repo as a draft PR and retire that feature's specs; skip silently if absent.
+
 This is a **soft dependency by design** -- it degrades to a printed list when `claude-md` is absent, so session-close stays self-contained for a cherry-picked install.
 
 ### Phase 8: CLEANUP -- Offer to remove artifacts
