@@ -37,7 +37,7 @@ metadata:
 4. **Place.** Route each kept lesson: cross-cutting landmine → AGENTS.md (one line + why + link); area-specific → `docs/topics/<area>.md`; decision with tradeoffs → new ADR in `docs/decisions/`; invariant that can be checked → propose a lint/test and a one-line pointer instead of prose.
 5. **Dedupe + staleness** — references/dedupe-staleness.md. For each lesson, search existing context; choose ADD / EDIT (merge into existing line) / SKIP (already said). Then check every AGENTS.md/topic line the merged diff touches (paths, commands, symbols renamed or deleted) and propose EDIT/DELETE for lines now false. Why: an edit that leaves a contradicting old line behind is worse than no edit.
 6. **Retire specs/slices** — references/spec-retirement.md. Only files the merged PR created or that the user named; default action is `git mv` to `docs/archive/` (or delete if repo convention says so and the user confirmed). Move any still-open item to an issue/backlog first. Never touch specs of another in-flight feature.
-7. **Budget check.** AGENTS.md must stay within the repo's budget (lint if present, else ≤ 400 words). If over, move the least-cross-cutting lines to a topic instead of growing.
+7. **Budget check.** AGENTS.md must stay within the repo's budget. **The repo's own lint wins** — read the limit out of it. The ≤ 400-word fallback is a borrowed default (one project's lint limit), not a measured threshold, so a repo that states its own number overrides it and a repo with none should set one. If over, move the least-cross-cutting lines to a topic instead of growing.
 8. **Open the PR** with references/pr-template.md, as a draft, base = default branch. If no forge access, leave the branch + rendered PR body file and report. **Never merge it.**
 9. **Verify** (below). Report the PR link, counts, and anything skipped.
 
@@ -48,7 +48,7 @@ Why: lessons stranded in one agent's private memory never reach other agents or 
 3. **Map** each file to a repo or `global` (`scripts/memory-triage.sh map`). Global and personal items go to a **Not for repo** list that is printed, never committed.
 4. **Triage + filter.** `scripts/memory-triage.sh triage` marks STALE / DUPLICATE / NOT-FOR-REPO mechanically; apply references/lesson-filter.md to every remaining CANDIDATE.
 5. **Place, dedupe, verify** exactly as steps 4, 5, 7 and 9 of the procedure above. No spec retirement in this mode.
-6. **One draft PR per repo**, at most 5 lessons each (`--max-lessons`); split the rest into numbered batches (`learn/memories-<date>-<n>`). Re-run the redact scan on the staged diff before every commit.
+6. **One draft PR per repo**, at most `--max-lessons` each (default 5, chosen to keep a review readable — not a measured limit); split the rest into numbered batches (`learn/memories-<date>-<n>`). Re-run the redact scan on the staged diff before every commit.
 7. **Report** per repo: PR link, Not-for-repo list, blocked files, and the source memory lines that become safe to prune *after* the PR merges (never prune them yourself).
 
 ## Verification (must all pass before step 8)

@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
 # Repo-wide skill lint (context best practices). There is no CI: run before every push.
+#
+# What this script CAN check (mechanical): frontmatter shape, metadata.owner, SKILL.md
+# length, Changelog placement, missing tests/eval.sh, plugin.json listing, hardcoded user
+# paths, Claude-only paths in core, user-invocable, presence of a trigger phrase.
+#
+# What it CANNOT check -- a clean run is not a passing audit. These need a human or an
+# agent reading the prose:
+#   1. Does each rule say *why*?  A rule without a reason gets dropped under pressure.
+#   2. Is content copied or referenced?  Duplicated text drifts; a pointer cannot.
+#   3. Is the trigger actually *clear*?  Grepping for the word "trigger" proves the word
+#      is present, not that an agent can tell when to reach for the skill.
 # Usage: scripts/lint-skills.sh [--strict] [--evals]
 #   default  : hard rules FAIL, best-practice gaps WARN (exit 1 only on FAIL)
 #   --strict : WARNs also fail (target once existing skills are migrated)

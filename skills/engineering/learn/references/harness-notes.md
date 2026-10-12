@@ -14,8 +14,24 @@ Cursor: rules in `.cursor/rules/*.mdc` that point to topics count as context —
 |---|---|---|---|
 | Claude Code | `~/.claude/CLAUDE.md` | `~/.claude/projects/<encoded-abs-path>/memory/*.md` (+ `MEMORY.md` index), repo `CLAUDE.md`, `CLAUDE.local.md` | encoded path = absolute repo path with each non-alphanumeric char → `-`; `CLAUDE.local.md` is personal by convention → Not for repo. See the two shapes and the namespace rule below. |
 | Cursor | User Rules (Settings → Rules; copy out as text) | `.cursor/rules/*.mdc`, legacy `.cursorrules`; Memories (Settings → Rules → Memories, export as text) | rules already in the repo are dedupe targets, not imports, unless the user names them |
-| Grok Bot | memory export (plain text the user pastes or saves) | same export with a `project: <repo root>` first line, or saved inside the repo | treat unscoped exports as global |
-| any | user-named `.md`/`.txt` | — | map by path/header; else global |
+| Grok Bot | short sentences held server-side; the user pastes them in as plain text | none — there is no per-project store | **global unless the user names the repo.** See below. |
+| any | user-named `.md`/`.txt` | a hand-added `project: <repo root>` first line (also `repo:`/`path:`) | map by path, then by that header; else global |
+
+### Grok Bot has no export format
+Its memory is not files on disk: it is short sentences kept off the user's machine, with
+no header and no envelope. So there is nothing to parse and no project scoping to read —
+pasted Grok memory is **global** until the user says which repo a line belongs to, and
+the agent may only *suggest* a repo for a line, never assign one.
+
+The `project: <repo root>` first line this skill accepts is **this skill's own
+convention**, not any harness's output. It works on any plain-text file because a human
+typed it there. Do not tell a user to "export with the project header" — there is no such
+export.
+
+**Verification status.** The Claude Code shapes above were checked by sampling real memory
+dirs. The Cursor and Grok Bot rows were checked by reading files and documentation only —
+neither skill has been loaded in a live Cursor or Grok session. Treat those two rows as
+untested until someone runs them.
 
 ### Claude Code: one fact per file, not a bullet list
 A memory dir there is usually **one fact per file** with YAML frontmatter and a prose body — no bullets at all:

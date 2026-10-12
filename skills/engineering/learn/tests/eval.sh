@@ -87,25 +87,25 @@ cd "$SKILL_DIR"
 M=$(mktemp -d); trap 'rm -rf "$T" "$M"' EXIT
 cp -r tests/fixtures/repo "$M/app"; R=$(cd "$M/app" && pwd)
 E=$(printf '%s' "$R" | sed -E 's/[^A-Za-z0-9]/-/g')
-mkdir -p "$M/home/.claude/projects/$E/memory" "$M/grok"
+mkdir -p "$M/home/.claude/projects/$E/memory" "$M/pasted"
 cp tests/fixtures/memories/project.md "$M/home/.claude/projects/$E/memory/project.md"
 cp tests/fixtures/memories/global.md "$M/home/.claude/CLAUDE.md"
-sed "s#__REPO__#$R#" tests/fixtures/memories/grok-export.txt > "$M/grok/export.txt"
+sed "s#__REPO__#$R#" tests/fixtures/memories/pasted-text.txt > "$M/pasted/notes.txt"
 # secret is assembled at runtime so no token-shaped string is ever committed
 tok="gh""p_$(printf 'Z%.0s' $(seq 1 36))"
-printf -- "- Staging deploy uses %s\n- Escalate to %s\n" "$tok" "ops.lead@""corp-mail.io" > "$M/grok/secret.txt"
+printf -- "- Staging deploy uses %s\n- Escalate to %s\n" "$tok" "ops.lead@""corp-mail.io" > "$M/pasted/secret.txt"
 cp -r "$M/home" "$M/home.before"
 PM="$M/home/.claude/projects/$E/memory/project.md"
-map=$(scripts/memory-triage.sh map "$R" -- "$PM" "$M/home/.claude/CLAUDE.md" "$M/grok/export.txt")
+map=$(scripts/memory-triage.sh map "$R" -- "$PM" "$M/home/.claude/CLAUDE.md" "$M/pasted/notes.txt")
 grep -qE "project.md[[:space:]]$R$" <<<"$map" && pass "map: Claude project memory -> repo (encoded path)" || { echo "$map"; fail "map project"; }
 grep -qE "CLAUDE.md[[:space:]]global$" <<<"$map" && pass "map: global CLAUDE.md -> global" || fail "map global"
-grep -qE "export.txt[[:space:]]$R$" <<<"$map" && pass "map: plain-text export with project: header -> repo" || fail "map export"
+grep -qE "notes.txt[[:space:]]$R$" <<<"$map" && pass "map: pasted text with hand-typed project: header -> repo" || fail "map pasted header"
 tri=$(scripts/memory-triage.sh triage "$R" "$PM")
 grep -qE '^CANDIDATE[[:space:]].*Scheduled job routes' <<<"$tri" && pass "triage: durable lesson is CANDIDATE" || { echo "$tri"; fail "candidate"; }
 grep -qE '^STALE[[:space:]].*legacy importer' <<<"$tri" && pass "triage: missing path -> STALE" || fail "stale"
 grep -qE '^DUPLICATE[[:space:]].*npm run verify' <<<"$tri" && pass "triage: AGENTS.md duplicate -> DUPLICATE" || fail "dup AGENTS.md"
 grep -qE '^NOT-FOR-REPO[[:space:]].*I prefer tabs' <<<"$tri" && pass "triage: personal line -> NOT-FOR-REPO" || fail "personal"
-scripts/memory-triage.sh triage "$R" "$M/grok/export.txt" | grep -qE '^DUPLICATE[[:space:]].*idempotent' && pass "triage: docs/topics duplicate -> DUPLICATE" || fail "dup topics"
+scripts/memory-triage.sh triage "$R" "$M/pasted/notes.txt" | grep -qE '^DUPLICATE[[:space:]].*idempotent' && pass "triage: docs/topics duplicate -> DUPLICATE" || fail "dup topics"
 scripts/memory-triage.sh triage global "$M/home/.claude/CLAUDE.md" | grep -qE '^NOT-FOR-REPO[[:space:]].*British' && pass "triage: global item -> NOT-FOR-REPO" || fail "global item"
 # One-fact-per-file memories have no bullets at all: the lesson is the frontmatter
 # description, so a bullet-only read reports an empty file and imports nothing.
@@ -114,7 +114,7 @@ grep -qE '^CANDIDATE[[:space:]].*\[type:feedback\].*equalize its error reasons' 
 uf=$(scripts/memory-triage.sh triage "$R" tests/fixtures/memories/user-frontmatter.md)
 [ -z "$(grep -v '^NOT-FOR-REPO' <<<"$uf")" ] && [ -n "$uf" ] && pass "triage: type:user takes the whole file (body included)" || { echo "$uf"; fail "user-type file"; }
 printf -- '- grep CLAUDE.md for `https://.*:.*@` before committing\n' | scripts/redact-scan.sh - >/dev/null && pass "redact: documented credential pattern is not a credential" || fail "pattern read as credential"
-out=$(scripts/memory-triage.sh triage "$R" "$M/grok/secret.txt"); rc=$?
+out=$(scripts/memory-triage.sh triage "$R" "$M/pasted/secret.txt"); rc=$?
 [ $rc -ne 0 ] && grep -q '^BLOCKED-SECRET.*\[token\]' <<<"$out" && grep -q '^BLOCKED-SECRET.*\[email\]' <<<"$out" && pass "triage: token + email BLOCK (exit $rc)" || { echo "$out"; fail "secret not blocked"; }
 grep -qF "$tok" <<<"$out" && fail "secret echoed unmasked" || pass "blocked output is masked"
 grep -q CANDIDATE <<<"$out" && fail "lines from secret file leaked as candidates" || pass "secret file contributes no candidates"

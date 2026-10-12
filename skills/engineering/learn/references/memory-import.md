@@ -1,7 +1,7 @@
 # from-memories: importing agent memory into repos
 
 ## Inputs (read-only)
-Any mix of: Claude Code global/project instruction files and per-project memory dirs, Cursor rules/memories, Grok Bot memory exports (plain text), or any `.md`/`.txt` the user names. Paths per harness: harness-notes.md. Memories are **never** edited, moved, or deleted by this mode.
+Any mix of: Claude Code global/project instruction files and per-project memory dirs, Cursor rules/memories, Grok Bot memory the user pastes in as plain text (no export format exists — it stays global until the user names a repo), or any `.md`/`.txt` the user names. Paths per harness: harness-notes.md. Memories are **never** edited, moved, or deleted by this mode.
 
 ## 1. Redact gate (blocking)
 `scripts/redact-scan.sh <files>` flags: provider tokens (GitHub, OpenAI-style `sk-`, Slack, AWS `AKIA`, Google `AIza`, JWTs, PEM private keys), `key|secret|token|password = value` assignments, credentials in URLs, emails (except example.com/noreply), phone numbers (except 555-01xx).
@@ -13,7 +13,7 @@ Any mix of: Claude Code global/project instruction files and per-project memory 
 `scripts/memory-triage.sh map <repo roots...> -- <files...>` assigns a file to a repo when:
 - it lives inside the repo (project instruction file, `.cursor/rules/*`, an export saved in the repo), or
 - its directory name is the repo's absolute path with every non-alphanumeric char replaced by `-` (Claude Code project memory), or
-- a plain-text export starts with `project: <repo root>` (or `repo:`/`path:`).
+- a plain-text file starts with `project: <repo root>` (or `repo:`/`path:`) — this skill's own convention for pasted text, present only because a human typed it. No harness emits it; never tell a user to "export with the header".
 Otherwise → `global`. Global files are never committed; the agent may *suggest* a repo for a specific line, but only the user can move it.
 
 **Pass every path the repo is reachable by.** The encoded dir encodes a *path*, not a repo identity, so a moved checkout, a mirror, or a symlinked working dir gives one repo two namespaces — only the path you passed matches, and the rest map to `global` and are dropped without a word. A non-repo parent (a portfolio root above many repos) is also a real namespace whose lessons are repo-scoped. List the aliases before you start; treat a true split as `session-recover`'s job first.
@@ -31,7 +31,7 @@ The script is a conservative pre-pass. The agent must still (a) confirm each STA
 **A fact is a bullet (`- `/`* `) or a whole file.** Memories written one-fact-per-file put the lesson in frontmatter `description` with a prose body and no bullets, so a bullet-only read sees nothing. The script emits one record from `description` and tags it `[type:<t>]` when frontmatter declares one; weight the lesson filter by type — `feedback`/`reference` are the durable ones, `project` is usually status that fails *recurs*, and `user` takes the whole file out. Shape per harness: harness-notes.md.
 
 ## 4. Batching
-- One branch + draft PR per repo; ≤ `--max-lessons` (default 5) lessons per PR. Overflow → `learn/memories-<YYYY-MM-DD>-2`, `-3`, … each a separate draft PR, ordered by cross-cutting impact (AGENTS.md landmines first).
+- One branch + draft PR per repo; ≤ `--max-lessons` lessons per PR. **Default 5 — a chosen default, not a measured limit:** it exists to keep a review small enough that a human actually reads every lesson. Raise or lower it per repo; nothing breaks either way. Overflow → `learn/memories-<YYYY-MM-DD>-2`, `-3`, … each a separate draft PR, ordered by cross-cutting impact (AGENTS.md landmines first).
 - Before opening batch n+1, rebase on default and re-run dedupe: batch n may already cover it.
 
 ## 5. PR body additions (on top of pr-template.md)

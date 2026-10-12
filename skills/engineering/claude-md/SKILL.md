@@ -57,13 +57,26 @@ Measure one CLAUDE.md against Anthropic's official best practices + community-va
 
 **One empirical caveat (Claude Code specifically).** When the target file is short (<100 lines) and already aligned with Karpathy-style rules, *adding* more rules can regress Claude Code quality. Augment Code (April 2026) tested Karpathy rules across Auggie, Claude Code, and Codex on 40 OpenClaw PRs: speed and cost improved on all three (−3% to −8% on duration and tool calls), but Claude Code quality dropped 0.07 overall (correctness −0.07, completeness −0.06, code reuse −0.05). Auggie and Codex were stable. Their hypothesis: Claude Code's system prompt already encodes similar constraints; further layering reduces exploration. When the rubric scores 9/10 or 10/10 on a Claude Code target, the default recommendation is trim, not add.
 
+### Budgets (one definition — cite it, don't restate it)
+
+Two different metrics were both called "the budget" here, with three different numbers. They are not the same thing:
+
+| metric | value | unit | source |
+|---|---|---|---|
+| **Line budget** | **200** | lines of the file | Anthropic — [memory docs](https://code.claude.com/docs/en/memory) |
+| **Instruction count** | 100 / 200 | imperative lines (see Phase A-5) | this skill's own bands |
+
+The **line budget is the single number**. Every mode reports against it and nothing restates it with a different value. The instruction count is a separate signal: a 150-line file can hold 200 instructions, and the fix differs (trim prose vs. split rules out).
+
+**If you want the line budget tighter, change it here and nowhere else.** OpenAI's harness guidance puts an always-loaded map file at roughly **100 lines**, which is half of Anthropic's figure for this file. Both are published and both are defensible; 200 is kept because it is Anthropic's number for *this* file. Tightening to 100 is a judgment call, not a bug fix.
+
 ### The Rubric
 
 Ten checks, each backed by a primary source. Every recommendation cites the rule.
 
 | # | Rule | Source |
 |---|---|---|
-| R1 | **Length under 200 lines.** Longer reduces adherence. | Anthropic — [How Claude remembers your project](https://code.claude.com/docs/en/memory) |
+| R1 | **Length within the line budget** (see Budgets). Longer reduces adherence. | Anthropic — [How Claude remembers your project](https://code.claude.com/docs/en/memory) |
 | R2 | **Removability test on every line.** | Anthropic — [Claude Code Best Practices](https://code.claude.com/docs/en/best-practices) |
 | R3 | **Specificity: instructions concrete enough to verify.** No "be a senior engineer." | Anthropic — Memory docs |
 | R4 | **Emphasis on load-bearing rules.** `IMPORTANT:` / `YOU MUST` / `NEVER`. Use sparingly — if every rule is IMPORTANT, none are. | Anthropic — Best Practices |
@@ -128,7 +141,7 @@ Three categories of change:
 ## CLAUDE.md Improvement Proposal
 
 **File:** [path]
-**Current size:** N lines (R1 budget: 200)
+**Current size:** N lines (R1 line budget: see Budgets)
 **Rubric pass rate:** M of 10
 
 ### Summary
@@ -204,7 +217,7 @@ Wording sourced from the Karpathy-derived rule compilations (Fraser, May 2026; "
 
 ## Audit Mode
 
-Lint and audit CLAUDE.md files across all projects. Flags drift (claimed facts no longer matching code), leaked secrets, duplicate blocks, descriptive-vs-prescriptive line balance, and files approaching the 150-200 instruction budget.
+Lint and audit CLAUDE.md files across all projects. Flags drift (claimed facts no longer matching code), leaked secrets, duplicate blocks, descriptive-vs-prescriptive line balance, and files approaching either budget (see Budgets).
 
 CLAUDE.md files rot. In practice, a portfolio audit will routinely surface several projects with drifted CLAUDE.md — and occasionally one with a leaked secret. This mode catches both shapes in one pass.
 
@@ -255,10 +268,10 @@ For each drift finding: report the CLAUDE.md line, the actual code fact, and the
 #### Phase A-5: INSTRUCTION BUDGET + PRESCRIPTIVE RATIO
 
 1. Count instructions — any line starting with imperative verb (Always, Never, Use, Don't, Prefer, Avoid, Run, Check, Write, Edit, Follow) OR inside a bullet list under "Rules/Conventions/Do/Don't" heading
-2. Budget thresholds:
+2. Instruction-count bands — a different metric from the R1 line budget, so report both:
    - ≤ 100 instructions: 🟢 healthy
    - 100–200: 🟡 monitor
-   - > 200: 🟠 over budget — suggest splits or cuts
+   - > 200: 🟠 over — suggest splits or cuts
 3. Descriptive vs prescriptive classifier:
    - **Descriptive** = describes what code already shows ("this is a Next.js app with Postgres")
    - **Prescriptive** = tells Claude what to do ("when editing migrations, add both up and down")
