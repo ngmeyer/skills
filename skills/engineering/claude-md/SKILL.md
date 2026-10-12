@@ -15,6 +15,8 @@ description: >
 user-invocable: true
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep"]
 argument-hint: "[improve|audit] [project name | 'all' | path to CLAUDE.md] — defaults to auto-detect"
+metadata:
+  harness: claude-code
 ---
 
 # /claude-md -- Audit and Improve CLAUDE.md Files

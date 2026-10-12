@@ -35,7 +35,12 @@ lines=$(wc -l < SKILL.md); [ "$lines" -le 250 ] && pass "SKILL.md $lines lines" 
 bytes=$(wc -c < SKILL.md); [ "$bytes" -le 16000 ] && pass "SKILL.md $bytes bytes (<=16k)" || fail "SKILL.md $bytes bytes"
 body_dash=$(awk 'NR>1 && /^---$/{c++} END{print c+0}' SKILL.md)
 [ "$body_dash" -eq 1 ] && pass "no bare --- in body" || fail "bare --- lines in body: $((body_dash-1))"
-if grep -nE '~/\.claude|\.claude/|\.cursor/|allowed-tools|/Users/|/home/[a-z]|\bgh (pr|api)\b|Bash\(|AskUserQuestion' SKILL.md; then fail "harness-specific token in core"; else pass "no harness-specific tokens in core"; fi
+# The body is what every harness reads as instructions, so that is what must stay
+# harness-agnostic. Frontmatter is per-harness metadata each one parses or ignores:
+# `user-invocable`/`allowed-tools` is what makes this a slash command in Claude Code.
+body=$(awk 'NR>1 && /^---$/{f=1;next} f' SKILL.md)
+if grep -nE '~/\.claude|\.claude/|\.cursor/|allowed-tools|/Users/|/home/[a-z]|\bgh (pr|api)\b|Bash\(|AskUserQuestion' <<<"$body"; then fail "harness-specific token in core"; else pass "no harness-specific tokens in core"; fi
+grep -qE '^user-invocable: true' SKILL.md && pass "slash-invocable in Claude Code" || fail "no user-invocable: true"
 LEAK=0
 for term in signupspark swim-records ourgospelstudy voltron localcred superscore pithybyte gearu verowrite portolan ponytail /workspace; do
   grep -rqiF "$term" SKILL.md references/ scripts/ && { echo "  leak: $term"; LEAK=1; }
@@ -102,6 +107,13 @@ grep -qE '^DUPLICATE[[:space:]].*npm run verify' <<<"$tri" && pass "triage: AGEN
 grep -qE '^NOT-FOR-REPO[[:space:]].*I prefer tabs' <<<"$tri" && pass "triage: personal line -> NOT-FOR-REPO" || fail "personal"
 scripts/memory-triage.sh triage "$R" "$M/grok/export.txt" | grep -qE '^DUPLICATE[[:space:]].*idempotent' && pass "triage: docs/topics duplicate -> DUPLICATE" || fail "dup topics"
 scripts/memory-triage.sh triage global "$M/home/.claude/CLAUDE.md" | grep -qE '^NOT-FOR-REPO[[:space:]].*British' && pass "triage: global item -> NOT-FOR-REPO" || fail "global item"
+# One-fact-per-file memories have no bullets at all: the lesson is the frontmatter
+# description, so a bullet-only read reports an empty file and imports nothing.
+ff=$(scripts/memory-triage.sh triage "$R" tests/fixtures/memories/project-frontmatter.md)
+grep -qE '^CANDIDATE[[:space:]].*\[type:feedback\].*equalize its error reasons' <<<"$ff" && pass "triage: frontmatter description -> CANDIDATE with type" || { echo "$ff"; fail "frontmatter fact"; }
+uf=$(scripts/memory-triage.sh triage "$R" tests/fixtures/memories/user-frontmatter.md)
+[ -z "$(grep -v '^NOT-FOR-REPO' <<<"$uf")" ] && [ -n "$uf" ] && pass "triage: type:user takes the whole file (body included)" || { echo "$uf"; fail "user-type file"; }
+printf -- '- grep CLAUDE.md for `https://.*:.*@` before committing\n' | scripts/redact-scan.sh - >/dev/null && pass "redact: documented credential pattern is not a credential" || fail "pattern read as credential"
 out=$(scripts/memory-triage.sh triage "$R" "$M/grok/secret.txt"); rc=$?
 [ $rc -ne 0 ] && grep -q '^BLOCKED-SECRET.*\[token\]' <<<"$out" && grep -q '^BLOCKED-SECRET.*\[email\]' <<<"$out" && pass "triage: token + email BLOCK (exit $rc)" || { echo "$out"; fail "secret not blocked"; }
 grep -qF "$tok" <<<"$out" && fail "secret echoed unmasked" || pass "blocked output is masked"

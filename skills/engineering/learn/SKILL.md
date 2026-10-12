@@ -9,10 +9,12 @@ description: >
   'retire the specs', 'update AGENTS.md from this merge', or right after a feature PR merges.
   Mode `from-memories` imports durable lessons from agent memory files into each repo the same way.
   Not for: reconciling local/personal memory (use session-close) or auditing a whole context file (use claude-md).
+user-invocable: true
+allowed-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep"]
 argument-hint: "<merged PR|SHA> [--specs <path>] [--dry-run] | from-memories <memory paths...> [--repos <roots...>] [--max-lessons 5]"
 metadata:
   owner: ngmeyer
-  version: 0.2.0
+  version: 0.3.0
 ---
 
 # learn — write durable lessons back into the repo after a merge
@@ -41,7 +43,7 @@ metadata:
 
 ## Mode: from-memories (import agent memory into repos)
 Why: lessons stranded in one agent's private memory never reach other agents or teammates. Detail and rules: references/memory-import.md; per-harness memory locations: references/harness-notes.md.
-1. **Collect** the memory files the user names (or the harness defaults). Read-only: never edit, move, or delete a source memory.
+1. **Collect** the memory files the user names (or the harness defaults). Read-only: never edit, move, or delete a source memory. A fact is a bullet *or* a whole file (frontmatter `description` + prose), and one repo can own more than one memory namespace — enumerate both before you trust a count. Shapes and paths: references/harness-notes.md.
 2. **Redact gate.** Run `scripts/redact-scan.sh` on every file. Any finding blocks that file entirely and is reported masked; nothing from it is imported. Why: one leaked token in a public repo is unrecoverable.
 3. **Map** each file to a repo or `global` (`scripts/memory-triage.sh map`). Global and personal items go to a **Not for repo** list that is printed, never committed.
 4. **Triage + filter.** `scripts/memory-triage.sh triage` marks STALE / DUPLICATE / NOT-FOR-REPO mechanically; apply references/lesson-filter.md to every remaining CANDIDATE.

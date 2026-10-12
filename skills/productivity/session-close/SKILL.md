@@ -9,6 +9,8 @@ description: >
 user-invocable: true
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent"]
 argument-hint: "[optional: project name if not obvious from cwd/context]"
+metadata:
+  harness: claude-code
 ---
 
 # /session-close -- Session-to-Memory Reconciliation
@@ -68,6 +70,7 @@ For each identified project:
 Also read:
 - `MEMORY.md` index (to check whether index updates are needed)
 - The project's CLAUDE.md if you need stack/architecture context
+- **The repo's committed knowledge base** -- `AGENTS.md`, `docs/topics/*`, `docs/decisions/*` (whichever exist). Phase 3.5 routes durable items *into* these; once something is there, writing it to local memory too recreates the split this skill exists to close. A fact already committed is already in every agent's context: cite it, don't copy it. If a `learn` PR has merged for this repo, its lessons live here -- and the memory lines it listed as "safe to prune after merge" are now yours to prune in Phase 4.
 
 ### Phase 3: EXTRACT -- Classify and filter session events
 

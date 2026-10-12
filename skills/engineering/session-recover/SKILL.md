@@ -16,6 +16,8 @@ description: >
 user-invocable: true
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Glob"]
 argument-hint: "[optional: project name token, e.g. 'myapp' or 'api' — used to grep for candidate dup dirs]"
+metadata:
+  harness: claude-code
 ---
 
 # /session-recover — Manually merge duplicate Claude Code project directories

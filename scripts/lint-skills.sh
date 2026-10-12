@@ -29,7 +29,15 @@ for skill in skills/*/*/; do
   [ "$l" -gt 150 ] && [ ! -d "$s/references" ] && warn "$n: $l lines and no references/"
   grep -qE '^\s+owner:|^owner:' "$md" || warn "$n: no metadata.owner"
   grep -qE '^## Changelog' "$md" && warn "$n: ## Changelog in SKILL.md (always-loaded history; move out)"
-  c=$(grep -cE '~/\.claude' "$md"); [ "$c" -eq 0 ] || warn "$n: $c Claude-only path(s) in core (move to references/harness-*.md)"
+  # Portability is only a goal for skills that claim it. A skill whose whole job is
+  # Claude's own local memory declares `harness: claude-code` and is not nagged to
+  # abstract away the paths it exists to manage.
+  if grep -qE '^[[:space:]]*harness:[[:space:]]*claude-code' "$md"; then
+    :
+  else
+    c=$(grep -cE '~/\.claude' "$md"); [ "$c" -eq 0 ] || warn "$n: $c Claude-only path(s) in core (move to references/harness-*.md, or declare metadata.harness: claude-code)"
+  fi
+  grep -qE '^user-invocable:' "$md" || warn "$n: no user-invocable (no /$n slash command in Claude Code)"
   grep -qiE 'use when|trigger' "$md" || warn "$n: no explicit trigger phrases"
 done
 # plugin.json entries must exist
