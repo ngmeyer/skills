@@ -76,7 +76,11 @@ if have "weekly-setup-improvements-" SKILL.md; then pass "Archive-by-date patter
 echo ""
 echo "== Sibling skill awareness =="
 if have "vault-audit" SKILL.md; then pass "Mentions /vault-audit sibling"; else fail "Missing /vault-audit reference"; fi
-if have "claude-md-audit" SKILL.md; then pass "Mentions /claude-md-audit sibling"; else fail "Missing /claude-md-audit reference"; fi
+# Assert the live skill name, not a specific mode spelling: `claude-md-audit` and
+# `claude-md-improve` merged into one `/claude-md` skill, and this assertion pinned the
+# dead name for months. A sibling check should survive a sibling's rename-by-merge.
+if have "claude-md" SKILL.md; then pass "Mentions /claude-md sibling"; else fail "Missing /claude-md reference"; fi
+if have "claude-md-audit" SKILL.md; then fail "stale sibling name /claude-md-audit (merged into /claude-md)"; else pass "no stale /claude-md-audit name"; fi
 
 echo ""
 echo "== Gotchas =="

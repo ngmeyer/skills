@@ -31,7 +31,7 @@ Every week generates patterns. Most patterns reveal an obvious next step -- a co
 | **Scope** | One folder | Whole machine |
 | **Window** | Trailing 7 days | All time |
 | **Output** | Forward-looking actions | Backward-looking diary |
-| **Sibling** | `/vault-audit` (snapshot, no time window), `/claude-md-audit` (CLAUDE.md drift only) | |
+| **Sibling** | `/vault-audit` (snapshot, no time window), `/claude-md audit` (CLAUDE.md drift only) | |
 
 ## Arguments
 
