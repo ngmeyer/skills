@@ -68,7 +68,9 @@ Two different metrics were both called "the budget" here, with three different n
 
 The **line budget is the single number**. Every mode reports against it and nothing restates it with a different value. The instruction count is a separate signal: a 150-line file can hold 200 instructions, and the fix differs (trim prose vs. split rules out).
 
-**If you want the line budget tighter, change it here and nowhere else.** OpenAI's harness guidance puts an always-loaded map file at roughly **100 lines**, which is half of Anthropic's figure for this file. Both are published and both are defensible; 200 is kept because it is Anthropic's number for *this* file. Tightening to 100 is a judgment call, not a bug fix.
+**If you want the line budget tighter, change it here and nowhere else.** OpenAI puts an always-loaded map file at roughly half that: "we treat it as **the table of contents**… A short `AGENTS.md` (roughly 100 lines) is injected into context and serves primarily as a map, with pointers to deeper sources" ([Harness engineering](https://openai.com/index/harness-engineering/), Feb 2026). Both numbers are published and both are defensible; 200 is kept because it is Anthropic's figure for *this* file. Tightening to 100 is a judgment call, not a bug fix.
+
+**Do not borrow either number for a `SKILL.md`.** Both apply to files injected at launch. A skill body is not: only its `name` and `description` are pre-loaded, and the body is read when the skill becomes relevant, so its ceiling is 500 lines and its enforced limit lives in `scripts/lint-skills.sh`. Same word, different artifact.
 
 ### The Rubric
 

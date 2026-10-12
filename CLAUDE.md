@@ -16,7 +16,7 @@ Only ship-ready skills appear in `plugin.json` — that file is the canonical li
 ## Adding or editing a skill
 
 1. Author with the `skillforge` skill (it enforces frontmatter, progressive disclosure, mandatory Gotchas).
-2. Frontmatter is `name` + `description` (Matt-Pocock convention). Keep SKILL.md under Anthropic's 500-line bar; push detail into `references/`.
+2. Frontmatter is `name` + `description` (Matt-Pocock convention), description ≤1,024 chars (Anthropic's hard limit). Keep SKILL.md within the limit `scripts/lint-skills.sh` enforces — that script is the single source for the number; push detail into `references/`.
 3. Add `tests/eval.sh` with structural assertions (heading shape, anti-pattern checks, portability — see existing skills for the pattern).
 4. Add the path to `.claude-plugin/plugin.json`.
 5. Optimize to V2 with `skillforge optimize <skill>` once it has a real outcome to measure; record the V1→V2 delta in the skill's `## Changelog`.

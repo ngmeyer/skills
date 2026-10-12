@@ -34,7 +34,7 @@ Anthropic's recommended creation flow: *iterate on a single challenging task unt
    - Tools that would otherwise prompt? → list in `allowed-tools:`
 
 2. **Draft the skill** - create:
-   - SKILL.md with concise instructions (target ≤100 lines locally; Anthropic's public bar is 500)
+   - SKILL.md with concise instructions — shorter is better, and `scripts/lint-skills.sh` holds the enforced limit (don't restate a number here; see that script's header for why 500 is the ceiling and the house limit is tighter)
    - `references/` files for detail that doesn't need to load on every invoke
    - `scripts/` for deterministic helpers (sorting, validation, format conversion)
 
@@ -142,8 +142,8 @@ Three stages, per Anthropic:
 
 After drafting, verify:
 
-- [ ] Description includes triggers ("Use when...") and is ≤1,536 chars
-- [ ] SKILL.md under 100 lines (local target; Anthropic's public bar is 500)
+- [ ] Description includes triggers ("Use when...") and is ≤1,024 chars (Anthropic's hard limit)
+- [ ] SKILL.md within the repo's line limit — `scripts/lint-skills.sh` is the one that counts
 - [ ] Frontmatter declares `allowed-tools` if the skill needs specific ones
 - [ ] `disable-model-invocation: true` set if the skill has side effects
 - [ ] Gotchas section present (or marked as TODO with first failure)

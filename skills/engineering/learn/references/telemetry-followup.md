@@ -1,10 +1,22 @@
 # Suggested follow-up: review-pass telemetry
 
-**Status: suggestion, not a finding.** These come from a single scored code-review pass
-(one PR, one reviewer agent) plus the research it cited. n = 1. Nothing here has been
-measured across repos, so treat it as a shape worth trying and discard any item that does
-not survive contact with a second real review. Not part of `learn` v0.1; each item is a
-separate PR against the review skills, plus one hook here.
+**Status: sound method, one data point.** The metric definitions come from a reusable
+scorecard grounded in published software-engineering literature — Bacchelli & Bird
+(ICSE 2013) on what review actually produces; Czerwonka, Greiler & Tilford (ICSE SEIP
+2015), who found only ~15% of reviewer comments indicate a possible defect; Sadowski et
+al. (ICSE-SEIP 2018) on review latency across ~9M Google changes, as the industry analog
+for time-to-first-finding; Johnson et al. (ICSE 2013) on false positives blocking
+adoption of defect finders; and NIST SP 500-326 (SATE V) for precision/recall
+methodology. The definitions are worth adopting.
+
+What is **not** established is any number for *these* skills. The scorecard was filled
+once, against one PR, and it honestly marks precision, recall, FP rate, TTFF and escape
+rate all **TBD** for want of outcome tags and timestamps — which is exactly the gap the
+items below close. So: build the instrumentation, and do not quote a rate until it has
+been measured more than once. Published figures are methodology grounding, never targets.
+
+Not part of `learn` v0.1; each item is a separate PR against the review skills, plus one
+hook here.
 
 1. **adversarial-review, council-review:** closing `## Telemetry` block — `pass_started_at`, `first_finding_at` (ISO), table `id | severity | outcome | decided_by`, outcome ∈ accepted/fixed/dismissed_fp/deferred/unaddressed (default unaddressed). Enables TTFF, precision proxy, FP rate.
 2. **adversarial-review (+ council CRITICAL path):** CRITICAL invalid unless Trigger + What breaks + `[reproduced]` or `[not-reproduced: reason]`; only `[reproduced]` counts toward validated rate. Add eval assert.
