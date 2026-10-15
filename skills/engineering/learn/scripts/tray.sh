@@ -12,6 +12,16 @@
 #     capture. Writes nothing anywhere else: no commit, no staging, no file in the
 #     working tree.
 #
+#   tray.sh list
+#     Prints every entry — id, age, track, state, claim, match paths — so an entry can be
+#     judged without opening the file. An empty tray says so and is not an error. Scans
+#     the entries it reads and reports findings masked, deleting nothing. Runs the expiry
+#     sweep after printing, so an entry past the window is reported and then reaped.
+#
+#   tray.sh reject <id> --reason "<why>"
+#     Deletes that one entry and appends the reason to the tray log. The only verb that
+#     deletes on purpose. An unknown id is reported and nothing changes.
+#
 #   tray.sh sweep (--no-matches | --matched <id> [--matched <id>]...)
 #     Expires entries past the window and records each removal in the tray log. Prints
 #     nothing on stdout. Creates nothing — no tray, no log — until there is a removal to
@@ -37,6 +47,16 @@
 # Every removal is recorded in the tray log (`tray-path.sh log`), one line, never rewritten:
 #   - <swept-date> expired id=<id> age=<days>d captured=<date> reason=<reason>
 # so `grep ' expired id=' <log>` counts removals and nothing else.
+#
+# THE TRAY LOG IS SHARED, AND THE VERB IS WHAT DISTINGUISHES THE WRITER. The sweep writes
+# `expired`, reject writes `rejected`, and a later verb writes its own word — never another
+# verb's, or that verb's count silently inflates. The same rule is why no writer may add a
+# header line that another writer's grep would match (the first version of this file's
+# header restated the expiry format and was counted as an expiry). Reject's line is
+#   - <rejection-date> rejected id=<id> captured=<date> reason="<why>"
+# and the free-text reason is checked against the expiry grep before the line is appended:
+# the reason is the one field a caller controls, so it is the one way a rejection could
+# still land a line that counts as an expiry.
 #
 # The window is eight weeks (56 days), counted from the entry's capture date, which leaves
 # a three-week-old entry real margin. An entry is expired once it is OLDER than the window,
@@ -157,6 +177,119 @@ sweep() {
   done
 }
 
+# An entry read back the way the schema promises any agent can read it: strip the key,
+# unquote, unescape. Nothing here parses YAML.
+field() { sed -n "s/^$2: //p" "$1" | sed 's/^"\(.*\)"$/\1/; s/\\\(.\)/\1/g'; }
+epaths() { awk '/^paths:/{f=1;next} f&&/^  - /{sub(/^  - /,"");print;next} f{exit}' "$1" \
+  | sed 's/^"\(.*\)"$/\1/; s/\\\(.\)/\1/g'; }
+# The capture date off the filename, or empty when the name carries none. The id comes from
+# the filename too, and for the same reason the sweep takes it from there: a listing that
+# read the id out of the frontmatter instead could name an entry differently from the log
+# line recording its removal.
+date_of() { local d=${1##*/}; d=${d#entry-}; d=${d%%-*}
+  case $d in [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]) printf '%s\n' "$d";; *) printf '\n';; esac; }
+id_of() { local b=${1##*/} d; b=${b%.md}; d=$(date_of "$1")
+  if [ -n "$d" ]; then printf '%s\n' "${b#entry-"$d"-}"; else printf '%s\n' "${b#entry-}"; fi; }
+# R17: the capture-time scan binds only the capture verb, so an entry written as a plain
+# file by a human or a non-Claude agent never reached it. Every verb that reads the tray
+# scans what it reads. A finding is reported — already masked by the scanner — and nothing
+# is deleted: deletion is reject's alone.
+scan_entry() { local found blocks
+  if ! found=$("$HERE/redact-scan.sh" "$1" 2>&1); then
+    blocks=$(printf '%s\n' "$found" | grep '^BLOCK ')
+    if [ -n "$blocks" ]; then
+      printf '%s\n' "$blocks" | sed 's/^/  ! /'
+      printf '  ! the entry is left in place; only `reject` deletes. Rotate the credential, then reject this entry.\n'
+    else
+      # The scanner did not run. Saying "unscanned" is the only honest report: a non-zero
+      # exit with no finding is indistinguishable from a clean entry otherwise, and this
+      # verb's whole claim is that what it reads has been scanned.
+      printf '  ! UNSCANNED: the secret scan could not run on this entry (%s)\n' "$(printf '%s' "$found" | tr '\n' ' ')"
+    fi
+  fi
+}
+
+list() {
+  local tray log today f d id age n=0 seen="" line p
+  [ $# -eq 0 ] || die "list takes no arguments — it lists the whole tray (see the usage at the top of $0)"
+  tray=$("$HERE/tray-path.sh") || exit 1
+  log=$("$HERE/tray-path.sh" log) || exit 1
+  # No tray is an answer, not an error — and listing must not create the one it was asked
+  # to read, or capture's "a finding writes nothing, not even the tray" stops being true.
+  if [ -d "$tray" ]; then
+    today=$(days "$(date +%Y%m%d)")
+    for f in "$tray"/entry-*.md; do
+      [ -f "$f" ] || continue                    # no entries: the glob is literal
+      d=$(date_of "$f"); id=$(id_of "$f")
+      if [ -n "$d" ]; then age="$((today - $(days "$d")))d"; else age=unknown; fi
+      n=$((n+1)); seen=$seen$id' '$f$NL
+      printf 'entry %s  age=%s  track=%s  state=%s\n' "$id" "$age" "$(field "$f" track)" "$(field "$f" state)"
+      printf '  claim: %s\n' "$(field "$f" claim)"
+      epaths "$f" | while IFS= read -r p; do printf '  path: %s\n' "$p"; done
+      scan_entry "$f"
+    done
+  fi
+  [ "$n" = 0 ] && printf 'the tray is empty: no lesson has been captured in this repository.\n'
+
+  # Listing is one of the three expiry runners (see EXPIRY) and the only one that fires in a
+  # repository nobody is capturing into. It sweeps AFTER printing: an over-age entry is
+  # reported and then reaped, in that order, so the operator reads what this listing removed
+  # instead of finding it silently gone. Which entries went is read off the disk afterwards
+  # rather than predicted here, so the sweep stays the only judge of what is over-age.
+  ( sweep --no-matches ) || :
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    id=${line%% *}; f=${line#* }
+    [ -e "$f" ] && continue
+    printf 'expired %s: past the expiry window — removed by this listing, recorded in %s\n' "$id" "$log"
+  done <<<"${seen%$NL}"
+}
+
+reject() {
+  local id="" reason="" tray log f found count=0 d captured line
+  while [ $# -gt 0 ]; do
+    case $1 in
+      --reason)
+        [ $# -ge 2 ] || die "--reason needs a value"
+        oneline reason "$2"; reason=$2; shift 2;;
+      -*) die "unknown argument '$1' — see the usage at the top of $0";;
+      *)  [ -z "$id" ] || die "reject takes one entry id; got '$id' and '$1'"
+          id=$1; shift;;
+    esac
+  done
+  [ -n "$id" ]     || die "reject needs the entry id to delete: tray.sh reject <id> --reason \"<why>\""
+  [ -n "$reason" ] || die "reject needs --reason \"<why>\": the deletion is permanent and the tray log is the only record of why"
+  # A glob metacharacter in the id would match several entries, and reject deletes exactly
+  # the one it was given.
+  case $id in *[!A-Za-z0-9_-]*) die "'$id' is not an entry id — ids are letters, digits, '-' and '_' (see 'tray.sh list')";; esac
+
+  tray=$("$HERE/tray-path.sh") || exit 1
+  for f in "$tray"/entry-*-"$id".md; do [ -f "$f" ] || continue; found=$f; count=$((count+1)); done
+  [ "$count" != 0 ] || die "no entry with id '$id' in the tray — nothing was changed. 'tray.sh list' shows the ids actually there."
+  [ "$count" = 1 ] || die "$count entries match id '$id'; refusing to guess which one to delete"
+
+  log=$("$HERE/tray-path.sh" log) || exit 1
+  d=$(date_of "$found")
+  if [ -n "$d" ]; then captured="${d:0:4}-${d:4:2}-${d:6:2}"; else captured=unknown; fi
+  line=$(printf -- '- %s rejected id=%s captured=%s reason=%s' "$(date +%Y-%m-%d)" "$id" "$captured" "$(q "$reason")")
+  # The rendered line, not the raw reason: this is exactly what the counting greps see.
+  case $line in
+    *" expired id="*) die "that reason would make the rejection line count as an expiry (\`grep ' expired id='\`); reword it";;
+  esac
+  if [ ! -e "$log" ]; then
+    # Generic, and naming no line format: a format example in the log reads as a removal to
+    # anyone counting removals with grep. The formats live in this file's TRAY LOG note.
+    { printf -- '# learn — tray log\n\n'
+      printf 'Append-only: one line per tray entry removed, naming the verb that removed it.\n\n'
+    } >> "$log" || die "cannot write the tray log at $log"
+  fi
+  # Recorded before the removal, as the sweep does: a failed write then costs a rejection
+  # the caller can repeat, where the other order costs an entry nothing records the loss of.
+  printf '%s\n' "$line" >> "$log" || die "cannot write the tray log at $log"
+  rm "$found" || die "logged the rejection of $id but could not remove $found"
+  printf 'rejected %s: removed, reason recorded in %s\n' "$id" "$log"
+}
+
 capture() {
   local track="" claim="" evidence="" accepted="" paths="" p id path base d captured_on body found
   while [ $# -gt 0 ]; do
@@ -243,6 +376,8 @@ capture() {
 
 case ${1:-} in
   capture) shift; capture "$@";;
+  list)    shift; list "$@";;
+  reject)  shift; reject "$@";;
   sweep)   shift; sweep "$@";;
-  *) sed -n '2,19p' "$0" >&2; exit 2;;
+  *) sed -n '2,29p' "$0" >&2; exit 2;;
 esac

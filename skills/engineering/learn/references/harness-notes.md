@@ -85,6 +85,42 @@ store with a different owner: it lives under the user's home agent directory, is
 an encoded absolute path, and is read-only to this skill. The tray is in the repo's git
 dir and is this skill's to write.
 
+## Running the tray verbs (plain shell, every harness)
+
+Every step is a plain command. **A harness hook is an optional accelerant, never a
+requirement:** nothing here needs a harness API, an MCP server, an env var or a forge CLI,
+and a human at a prompt runs the same commands an agent does. Run them from anywhere
+inside the repository — the tray is resolved from the git directory, not from the cwd.
+
+| verb | command | prints on stdout |
+|---|---|---|
+| capture | `scripts/tray.sh capture --track <decision\|checkable\|standing> --claim "<one line>" --evidence "<one line>" --path <repo-relative> [--path ...] [--accepted true\|false]` | the path it wrote, one line |
+| list | `scripts/tray.sh list` | one block per entry — `entry <id>  age=<n>d  track=…  state=…`, then `claim:`, then one `path:` line per match path — followed by one line per entry this listing expired |
+| reject | `scripts/tray.sh reject <id> --reason "<why>"` | one line naming the entry removed |
+| sweep | `scripts/tray.sh sweep --no-matches` \| `--matched <id> [--matched <id>]...` | nothing |
+
+Exit 0 is success; any refusal is non-zero with a `learn: …` line on stderr and no change
+on disk. Reading the tray with `cat` and `ls` instead is fine — the entries are Markdown —
+but resolve the directory through `scripts/tray-path.sh`, never by hand.
+
+- **`list` is one of the three expiry runners** (capture, list, promotion). It prints
+  first and sweeps second, so an entry past the window is reported *and then* reaped in the
+  same listing: the operator reads what was removed rather than finding it gone. It is the
+  only runner that fires in a repository nobody is capturing into, which is the only reason
+  a forgotten tray does not grow forever.
+- **`list` scans every entry it reads** and reports findings masked. The capture-time scan
+  binds only `capture`, so an entry written as a plain file — by a human, or by an agent
+  that printf'd it — never passed one. A finding on read **deletes nothing**; it tells you
+  to rotate the credential and then reject the entry.
+- **`reject` is the only deliberate deletion.** A lesson a promotion's filter declines is
+  "not yet" and stays listable; rejecting it is permanent, which is why `--reason` is
+  required and lands in the log.
+- **The tray log is append-only and shared.** More than one verb writes to it and the verb
+  is what distinguishes the writer: the sweep writes `expired`, `reject` writes `rejected`.
+  So `grep ' expired id=' <log>` counts expiries and nothing else, and `grep ' rejected
+  id='` counts rejections and nothing else. A new writer takes its own word, never
+  another's, and adds no header line that another writer's grep would match.
+
 ## What a tray entry contains
 
 One entry is one Markdown file with YAML frontmatter — the same frontmatter-plus-prose

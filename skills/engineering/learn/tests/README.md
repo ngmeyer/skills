@@ -113,3 +113,66 @@ rather than on its own.
 The first green run also found a real bug: the log's header restated the line format, and a
 `grep` counting removals counted the header as one. The header no longer names the fields —
 the format is documented in the script's EXPIRY note instead.
+
+## list and reject
+`scripts/tray.sh list` and `scripts/tray.sh reject`, against scratch repos built the same
+way (`newrepo` + `mkentry` at chosen ages). Asserts:
+- an **empty** tray lists cleanly — exit 0, says it is empty, and creates nothing (listing
+  the tray it was asked to read into existence would kill AE12's "not even the tray");
+- **R18** — a listed entry carries id, age, track, state, claim and every match path. Each
+  field is demanded separately, because an id-only listing satisfies "the entry is listed"
+  while being useless for judging it, which is the point of the verb;
+- the whole sequence: capture, list, **reject**, list — the entry appears, the rejection
+  removes it, and the log carries one line naming the id and quoting the reason;
+- **R20 ordering** — a listing holding an over-age unmatched entry reports it *and then*
+  reaps it: the entry's block appears in the output (asserted by line number, before the
+  removal notice) and the file is gone afterwards, logged once as an expiry;
+- a `proposed` entry is listed and **byte-identical** afterwards — neither reaped nor
+  reconciled (reconciliation belongs to the unit that owns the pull-request reference);
+- the shared-log contract: an expiry and a rejection in one log count separately
+  (`' expired id='` = 1, `' rejected id='` = 1), and a `--reason` whose rendered line would
+  match the expiry grep is refused — the reason is the only field a caller controls, so it
+  is the only way a rejection could still be counted as an expiry;
+- reject with an **unknown id** reports it by name and changes nothing (no entry removed,
+  log byte-identical); reject with **no `--reason`** refuses outright;
+- an entry captured in a **linked worktree** is listed from the main tree (one tray per
+  repository, which is the only reason the tray lives in the shared git directory);
+- **R17** — a credential in a *hand-written* entry (never through `capture`, so it never
+  met the capture-time scan) is reported on `list`, **masked**, and the entry is **not
+  deleted** and not logged: deletion is `reject`'s alone (R16);
+- **R16** — declining is not rejecting: an entry no verb rejected is still listed,
+  byte-identical, after a later listing; the same entry rejected is gone from the listing
+  and named in the log.
+
+Also asserted: the three verbs are reachable from `SKILL.md`, not only from the scripts —
+fixed-string pins on the `## Mode: no-merge capture` heading, on each of
+`scripts/tray.sh capture --track`, `scripts/tray.sh list` and
+`scripts/tray.sh reject <id> --reason`, on `stays listable`, and on step 1's `nothing
+merged` routing clause (without it an agent whose session produced no merge stops at step 1
+and never reaches the mode). The heading pin carries its `##` on purpose: the step-1
+pointer names the mode too, so a bare `Mode: no-merge capture` passed with the whole
+section deleted — it did, as a mutant, before the `##` was added.
+
+Every assertion that would hold against an untouched tray or a missing verb is anchored on
+the thing having happened: the reject asserts demand exit 0 *and* the file gone *and* the
+log present (before the verbs existed they printed usage and exited 2, which satisfies a
+bare `rc -ne 0`), and the R17 asserts demand the masked finding before claiming the entry
+survived. One anchor was written wrong and caught on the first run: the `still` predicate
+for "declining is not rejecting" included "the file exists", so it went false the moment
+the rejection it was anchoring succeeded; it now snapshots the two earlier listings only.
+
+Mutants run and seen red, each caught by the assertion it was aimed at: listing without
+sweeping (not a runner); sweeping **before** printing, which makes the reaped entry vanish
+from the very listing that removed it; reject logging under `expired` instead of
+`rejected`; reject deleting without logging; `--reason` made optional; the reason/expiry
+collision guard dropped; a reject header that restates the expiry line format (the exact
+mistake the sweep's header made, and the rejection-does-not-inflate-the-expiry-count assert
+catches it); list omitting the match paths; list skipping the read-time scan; list deleting
+an entry whose scan found a credential; list reconciling a `proposed` entry by deleting it;
+list erroring on an empty tray; list creating the tray it was asked to read; and a failed
+scan passed over in silence. Two mutants **survived** and the gaps they exposed were closed
+before they were re-run red: reject matching ids by **prefix** (nothing noticed, because no
+fixture had two ids sharing a prefix — there is now an `7777777`/`77777770` pair), and list
+naming entries by their **frontmatter** id instead of the filename's, which only matters
+when the two disagree — so an entry is now written with a deliberately mismatched
+frontmatter id, and the listing must use the id `reject` and the log answer to.

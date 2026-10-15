@@ -29,6 +29,14 @@ for r in memory-import lesson-filter dedupe-staleness spec-retirement pr-templat
 done
 for x in verify redact-scan memory-triage tray-path tray; do [ -x scripts/$x.sh ] && pass "scripts/$x.sh executable" || fail "$x.sh not executable"; done
 for k in "Mode: from-memories" "Redact gate" "Not for repo" "One draft PR per repo" "never prune them yourself" "Read-only"; do chk "from-memories: $k" "$k"; done
+# R7/R18/R20 reachable from the instructions, not only from the scripts: an agent whose
+# session produced no merge stops at step 1 unless step 1 routes it onward, and the mode it
+# lands in has to name all three tray verbs.
+# The heading pin carries its `##`: the step-1 pointer names the mode too, so a bare
+# "Mode: no-merge capture" passes with the section itself deleted — it did, as a mutant.
+for k in "nothing merged" "## Mode: no-merge capture" "scripts/tray.sh capture --track" "scripts/tray.sh list" "scripts/tray.sh reject <id> --reason" "stays listable"; do
+  chk "no-merge mode: $k" "$k"
+done
 
 echo "== Portability (core is harness-agnostic) =="
 lines=$(wc -l < SKILL.md); [ "$lines" -le 250 ] && pass "SKILL.md $lines lines" || fail "SKILL.md $lines lines"
@@ -350,6 +358,154 @@ intact=1; for e in $keep; do cmp -s "$e" "$TRAY6.before/$(basename "$e")" || int
 [ $rc = 0 ] && [ "$(ents "$TRAY6")" = 3 ] && [ "$(grep -c ' expired id=' "$LOG6")" = 3 ] \
   && pass "after a long silence one sweep catches up on every overdue entry (3 removed, 3 kept)" || { echo "  rc=$rc out='$o' entries=$(ents "$TRAY6")"; fail "catch-up sweep"; }
 [ "$(ents "$TRAY6")" = 3 ] && [ $intact = 1 ] && pass "the entries it keeps are byte-identical — the tray is intact, not corrupted" || fail "survivors modified"
+cd "$SKILL_DIR"
+
+echo "== Behavioral: list and reject =="
+# R18 + R20 + R17 + R16. The tray only pays off if a later session can judge an entry
+# without opening the file, and is only safe if the one verb that deletes on purpose says
+# why in the log. `list` is also the third expiry runner — the only one that fires in a
+# repository nobody is capturing into.
+LS=$(mktemp -d); trap 'rm -rf "$T" "$M" "$TR" "$CT" "$XP" "$LS"' EXIT
+
+# An empty tray is an answer, not an error — and listing must create nothing, or AE12's
+# "nothing written, not even the tray" stops meaning anything.
+(newrepo "$LS/r7") >/dev/null 2>&1 || fail "list fixture setup"
+cd "$LS/r7"; TRAY7=$(bash "$TP"); LOG7=$(bash "$TP" log)
+lo=$(bash "$TS" list 2>&1); rc=$?
+[ $rc = 0 ] && [ -n "$lo" ] && grep -qi 'empty' <<<"$lo" && [ ! -e "$TRAY7" ] \
+  && pass "R20: an empty tray lists cleanly — exit 0, says it is empty, creates nothing" || { echo "  rc=$rc out='$lo'"; fail "empty tray does not list cleanly"; }
+
+# The whole verification sequence: capture, list, reject, list again.
+p=$(cap); i=$(fm "${p:-/nonexistent}" id)
+lo=$(bash "$TS" list 2>&1); rc=$?
+# Every field is demanded separately. An id-only listing satisfies "the entry is listed"
+# while being useless for judging it, which is the entire point of R18. And `grep -q ""`
+# matches any output at all, so each id/claim grep is guarded by its value being non-empty.
+[ $rc = 0 ] && [ -n "$i" ] && grep -q "$i" <<<"$lo" && grep -qF "$CLAIM" <<<"$lo" \
+  && grep -q 'track=checkable' <<<"$lo" && grep -q 'state=captured' <<<"$lo" \
+  && grep -qF 'src/jobs/auth.ts' <<<"$lo" && grep -qE 'age=[0-9]+d' <<<"$lo" \
+  && pass "R18: a listed entry shows its id, age, track, state, claim and match paths" || { echo "$lo"; fail "R18 listing is not enough to judge an entry"; }
+REASON='the claim is already a line in AGENTS.md'
+ro=$(bash "$TS" reject "$i" --reason "$REASON" 2>&1); rc=$?
+# Anchored on the deletion having happened: "not logged"/"still empty" hold for free
+# against a missing verb, and exit 127 with no output satisfies a bare `rc -ne 0`.
+rejected() { [ -n "$i" ] && [ $rc = 0 ] && [ ! -e "${p:-/nonexistent}" ] && [ -f "$LOG7" ]; }
+rejected && [ "$(ents "$TRAY7")" = 0 ] && pass "R18: reject deletes the entry it was given" || { echo "  rc=$rc out='$ro' entries=$(ents "$TRAY7")"; fail "R18 reject did not remove the entry"; }
+rl=$(grep -F " rejected id=$i " "$LOG7" 2>/dev/null)
+rejected && grep -qE "^- [0-9]{4}-[0-9]{2}-[0-9]{2} rejected id=$i captured=[0-9]{4}-[0-9]{2}-[0-9]{2} reason=\"$REASON\"$" <<<"$rl" \
+  && pass "R18: the rejection is one log line naming the id and the reason" || { echo "  got '$rl'"; fail "R18 rejection log line shape"; }
+rejected && [ "$(grep -c ' expired id=' "$LOG7")" = 0 ] \
+  && pass "the rejection line does not match the expiry grep (' expired id=' counts expiries and nothing else)" || { cat "$LOG7" 2>/dev/null; fail "rejection inflates the expiry count"; }
+lo2=$(bash "$TS" list 2>&1)
+rejected && grep -qi 'empty' <<<"$lo2" && ! grep -q "$i" <<<"$lo2" \
+  && pass "capture, list, reject, list: the entry appears, then is gone, and the tray lists clean when emptied" || { echo "$lo2"; fail "rejected entry still listed"; }
+
+# Listing an over-age entry: it is reported AND reaped, in that order, so the operator
+# reads what this listing removed instead of finding it silently gone.
+(newrepo "$LS/r8") >/dev/null 2>&1 || fail "list-reaps fixture setup"
+cd "$LS/r8"; TRAY8=$(bash "$TP"); LOG8=$(bash "$TP" log); mkdir -p "$TRAY8"
+oldl=$(mkentry  "$TRAY8" 400 fffffff1 captured) || fail "mkentry list 400d"
+propl=$(mkentry "$TRAY8" 400 fffffff2 proposed) || fail "mkentry list proposed"
+cp "$propl" "$LS/proposed.before"
+lo=$(bash "$TS" list 2>&1); rc=$?
+reaped8() { [ $rc = 0 ] && [ ! -e "${oldl:-/nonexistent}" ] && [ -f "$LOG8" ]; }
+reaped8 && grep -q fffffff1 <<<"$lo" && pass "R20: listing reports the over-age entry it reaps (it is not silently gone)" || { echo "  rc=$rc out='$lo'"; fail "R20 over-age entry not reported by the listing that reaped it"; }
+rep=$(grep -n fffffff1 <<<"$lo" | head -1 | cut -d: -f1)
+exp=$(grep -n '^expired' <<<"$lo" | head -1 | cut -d: -f1)
+reaped8 && [ -n "$rep" ] && [ -n "$exp" ] && [ "$rep" -lt "$exp" ] \
+  && pass "R20 ordering: the entry's listing block precedes the removal notice — report, then reap" || { echo "  listed at '$rep', removal notice at '$exp'"; fail "R20 ordering: report does not precede reap"; }
+reaped8 && [ "$(grep -c ' expired id=' "$LOG8")" = 1 ] && grep -q 'id=fffffff1' "$LOG8" \
+  && pass "R20: the reap a listing performs is logged as an expiry, once" || { cat "$LOG8" 2>/dev/null; fail "listing's reap not logged as one expiry"; }
+reaped8 && grep -q fffffff2 <<<"$lo" && cmp -s "$propl" "$LS/proposed.before" \
+  && pass "a proposed entry is listed and left untouched — neither reaped nor reconciled (reconciliation is not this unit's)" || { echo "  rc=$rc out='$lo'"; fail "proposed entry reaped or modified by list"; }
+reaped8 && ! grep -q 'id=fffffff2' "$LOG8" && pass "nothing is recorded against the proposed entry" || fail "proposed entry written to the log"
+
+# One log, two writers (the cross-unit contract): U5 records expiries, U4 records
+# rejections, and each must be countable without catching the other.
+e3=$(mkentry "$TRAY8" 3 fffffff3 captured) || fail "mkentry 3d for rejection"
+ro=$(bash "$TS" reject fffffff3 --reason 'duplicates an existing topic line' 2>&1); rc=$?
+[ $rc = 0 ] && [ ! -e "${e3:-/nonexistent}" ] && [ "$(grep -c ' expired id=' "$LOG8")" = 1 ] && [ "$(grep -c ' rejected id=' "$LOG8")" = 1 ] \
+  && pass "one log, two writers: an expiry and a rejection in the same log count separately and correctly" || { echo "  rc=$rc out='$ro'"; cat "$LOG8" 2>/dev/null; fail "expiry/rejection counts collide"; }
+# A reason is free text, so it is the one way a rejection could still land a line that the
+# expiry grep matches.
+n0=$(ents "$TRAY8"); o=$(bash "$TS" reject fffffff2 --reason 'was expired id=fffffff2 before we looked' 2>&1); rc=$?
+[ $rc -ne 0 ] && grep -q '^learn: ' <<<"$o" && [ "$(ents "$TRAY8")" = "$n0" ] && [ "$(grep -c ' expired id=' "$LOG8")" = 1 ] \
+  && pass "a reason that would be counted as an expiry is refused, so the expiry grep stays exact" || { echo "  rc=$rc out='$o'"; fail "reason collides with the expiry grep"; }
+# Unknown id, and a rejection with no reason: both report and change nothing.
+before=$(cat "$LOG8"); o=$(bash "$TS" reject deadbeef --reason 'never captured' 2>&1); rc=$?
+[ $rc -ne 0 ] && grep -q '^learn: ' <<<"$o" && grep -q deadbeef <<<"$o" && [ "$(ents "$TRAY8")" = "$n0" ] && [ "$(cat "$LOG8")" = "$before" ] \
+  && pass "rejecting an unknown id reports it by name and changes nothing (no entry, no log line)" || { echo "  rc=$rc out='$o'"; fail "unknown id not reported or something changed"; }
+o=$(bash "$TS" reject fffffff2 2>&1); rc=$?
+[ $rc -ne 0 ] && grep -q '^learn: ' <<<"$o" && [ -f "${propl:-/nonexistent}" ] && [ "$(cat "$LOG8")" = "$before" ] \
+  && pass "reject without --reason refuses: deletion is permanent and the log is the only record of why" || { echo "  rc=$rc out='$o'"; fail "reject ran with no reason"; }
+# The id in a listing must be the id `reject` and the log answer to — the filename's, which
+# is where the sweep takes it from too. An entry whose frontmatter disagrees (hand-written,
+# or copied from another) must not be listed under a name no verb accepts.
+mm=$(mkentry "$TRAY8" 3 fffffff4 captured) || fail "mkentry mismatched id"
+sed 's/^id: fffffff4$/id: a-different-id/' "$mm" > "$LS/mm.t" && cp "$LS/mm.t" "$mm"
+lo=$(bash "$TS" list 2>&1); ro=$(bash "$TS" reject fffffff4 --reason 'the frontmatter id is a typo' 2>&1); rc=$?
+grep -q '^entry fffffff4 ' <<<"$lo" && ! grep -q 'a-different-id' <<<"$lo" && [ $rc = 0 ] && [ ! -e "${mm:-/nonexistent}" ] \
+  && pass "an entry is listed under the id reject and the log use (the filename's), not the one its frontmatter claims" || { echo "  rc=$rc out='$ro'"; echo "$lo"; fail "listing id disagrees with the id the verbs accept"; }
+# A scan that cannot run is not a clean entry. Copy the two scripts somewhere without the
+# scanner beside them: a non-zero exit with no finding must read as UNSCANNED, not silence.
+mkdir -p "$LS/partial"; cp "$TS" "$TP" "$LS/partial/"
+lo=$(bash "$LS/partial/tray.sh" list 2>&1); rc=$?
+[ $rc = 0 ] && grep -q '^entry fffffff2 ' <<<"$lo" && grep -q 'UNSCANNED' <<<"$lo" \
+  && pass "a secret scan that cannot run is reported as UNSCANNED, not read as a clean entry" || { echo "  rc=$rc out='$lo'"; fail "a failed scan is indistinguishable from a clean entry"; }
+
+# One tray per repository: an entry captured in a linked worktree is listable from the main
+# tree. This is what the shared git directory buys (and the only reason the tray lives there).
+(newrepo "$LS/r9") >/dev/null 2>&1 || fail "worktree list fixture setup"
+cd "$LS/r9"; git worktree add -q "$LS/r9wt" -b side >/dev/null 2>&1 || fail "worktree add"
+WTCLAIM='A linked worktree and its main tree share one capture tray'
+pw=$(cd "$LS/r9wt" && bash "$TS" capture --track standing --claim "$WTCLAIM" --evidence 'the tray resolves to the shared git directory' --path src/jobs/auth.ts)
+iw=$(fm "${pw:-/nonexistent}" id)
+lo=$(cd "$LS/r9" && bash "$TS" list 2>&1); rc=$?
+[ $rc = 0 ] && [ -n "$iw" ] && [ -f "${pw:-/nonexistent}" ] && grep -q "$iw" <<<"$lo" && grep -qF "$WTCLAIM" <<<"$lo" \
+  && pass "list shows an entry captured in a different worktree" || { echo "  rc=$rc pw='$pw' out='$lo'"; fail "worktree capture not listed from the main tree"; }
+
+# R17: the capture-time scan binds only `capture`. An entry a human or a non-Claude agent
+# wrote as a plain file never passed it, so every verb that READS the tray scans what it
+# reads and reports findings masked — and a finding on read deletes nothing.
+(newrepo "$LS/r10") >/dev/null 2>&1 || fail "plain-file secret fixture setup"
+cd "$LS/r10"; TRAY10=$(bash "$TP"); LOG10=$(bash "$TP" log); mkdir -p "$TRAY10"
+tok3="gh""p_$(printf 'X%.0s' $(seq 1 36))"
+hs=$(mkentry "$TRAY10" 3 9999999a captured) || fail "mkentry secret entry"
+printf 'The failing request carried %s in its header.\n' "$tok3" >> "$hs"
+lo=$(bash "$TS" list 2>&1); rc=$?
+# Anchored on the report: "the entry is still there" and "nothing was logged" both hold
+# against a list that never scanned anything at all.
+reported() { grep -q 'BLOCK token' <<<"$lo" && grep -q 9999999a <<<"$lo"; }
+[ $rc = 0 ] && reported && pass "R17: a secret in a hand-written entry is reported on list (exit $rc)" || { echo "  rc=$rc out='$lo'"; fail "R17 secret in a plain-file entry went unreported"; }
+reported && ! grep -qF "$tok3" <<<"$lo" && pass "R17: the finding is reported masked" || fail "R17 the finding was echoed unmasked"
+reported && [ -f "$hs" ] && [ "$(ents "$TRAY10")" = 1 ] && pass "R16: a finding on read does not delete the entry — deletion is reject's alone" || fail "R17 list deleted the entry it flagged"
+reported && [ ! -e "$LOG10" ] && pass "a finding on read records nothing in the tray log" || { cat "$LOG10" 2>/dev/null; fail "finding written to the log"; }
+
+# "Exactly that entry" needs a sibling whose id shares a prefix: with one entry in the
+# tray, a glob-happy match deletes the right file for the wrong reason and nothing notices
+# (it survived as a mutant until this was written).
+s1=$(mkentry "$TRAY10" 3 7777777  captured) || fail "mkentry prefix id"
+s2=$(mkentry "$TRAY10" 3 77777770 captured) || fail "mkentry prefix sibling"
+cp "$s2" "$LS/sibling.before"
+ro=$(bash "$TS" reject 7777777 --reason 'the path it names no longer exists' 2>&1); rc=$?
+[ $rc = 0 ] && [ ! -e "${s1:-/nonexistent}" ] && [ -f "${s2:-/nonexistent}" ] && cmp -s "$s2" "$LS/sibling.before" \
+  && [ "$(grep -c ' rejected id=7777777 ' "$LOG10")" = 1 ] && ! grep -q ' rejected id=77777770 ' "$LOG10" \
+  && pass "R18: reject removes exactly the entry named — a sibling whose id shares its prefix is untouched" || { echo "  rc=$rc out='$ro'"; fail "reject matched more than the id it was given"; }
+
+# R16: a filter declining an entry at one promotion is "not yet", so the entry stays
+# listable. Only reject is permanent, and the two outcomes must not look alike.
+d1=$(mkentry "$TRAY10" 3 9999999b captured) || fail "mkentry declined"
+cp "$d1" "$LS/declined.before"
+l1=$(bash "$TS" list 2>&1); l2=$(bash "$TS" list 2>&1)
+# `still` is the snapshot of the two listings taken while the entry was only declined, so
+# it keeps meaning after the rejection deletes the file.
+still() { grep -q 9999999b <<<"$l1" && grep -q 9999999b <<<"$l2"; }
+still && [ -f "${d1:-/nonexistent}" ] && cmp -s "$d1" "$LS/declined.before" \
+  && pass "R16: an entry no verb rejected is still listable, byte-identical, after a later listing (declining is 'not yet')" || { echo "  l2='$l2'"; fail "R16 a declined entry did not survive"; }
+ro=$(bash "$TS" reject 9999999b --reason 'the claim is wrong: the guard does read the body' 2>&1); rc=$?
+l3=$(bash "$TS" list 2>&1)
+still && [ $rc = 0 ] && [ ! -e "${d1:-/nonexistent}" ] && ! grep -q 9999999b <<<"$l3" && grep -q ' rejected id=9999999b ' "$LOG10" \
+  && pass "R16: rejection is the permanent half — the same entry is gone from the listing and the log says why" || { echo "  rc=$rc out='$ro'"; fail "R16 rejection is not distinct from declining"; }
 cd "$SKILL_DIR"
 
 echo ""; echo "PASS: $PASS  FAIL: $FAIL"
