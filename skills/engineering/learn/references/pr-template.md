@@ -15,6 +15,19 @@ Merged PR: #<n> (<merge sha>) · specs: <paths> · run by: <agent/harness> at <I
 ## Considered and dropped
 - <candidate> — reason (throwaway: one-off / discoverable / unverified / duplicate of <file:line>)
 
+## Promoted from the capture tray (omit the section if none)
+This PR is **opened as a draft and is never merged** by the skill. Each entry below stays
+`state: proposed` until this PR's head branch is gone from the remote.
+
+| entry id | track | evidence | destination | why not the instruction file |
+|---|---|---|---|---|
+| <id> | checkable | <path> (re-anchored from <commit>) | docs/topics/<area>.md | instruction file is at <n> of <budget> words |
+| <id> | standing | asserted — nothing in the repo resolves it | docs/topics/<area>.md | a standing lesson never goes in it |
+| <id> | decision | the alternative not adopted, and what was | docs/decisions/<date>-<id>.md | — |
+
+- **Left staged**, nothing deleted: <id> — the evidence contradicts the claim: <the contradiction, named> · <id> — the evidence did not resolve and re-anchoring failed: <why>
+- **Excluded by the secret scan**: <id> — <masked finding>. **Rotate the credential**, then reject that entry.
+
 ## Retired
 | path | action | why safe |
 |---|---|---|

@@ -27,6 +27,20 @@
 #     nothing on stdout. Creates nothing — no tray, no log — until there is a removal to
 #     record, so a sweep is invisible in a repository nobody has captured into.
 #
+#   tray.sh promote --event <merge|decision-acceptance>
+#                   [--confirms <id>]...
+#                   [--contradicts <id>="<what the default branch says instead>"]...
+#                   [--as <id>=<track>]...        # a disclosed override of the routing hint
+#                   [--budget <words>] [--instruction-file <path>]
+#     Evaluates EVERY entry and prints one routing line each — promote / staged / excluded
+#     / held — with the line it would add and where. It WRITES NOTHING: the session applies
+#     the lines, re-scans the staged diff, commits, opens ONE DRAFT pull request it never
+#     merges, and records it with `propose`.
+#
+#   tray.sh propose <id> [<id>...] --branch <head branch> --pr <reference>
+#     Marks each promoted entry `state: proposed` with the pull request it now sits in.
+#     The filename never changes, so the capture date — the expiry clock — is untouched.
+#
 # Paths come from tray-path.sh and nowhere else, so there is one tray per repository.
 #
 # EXPIRY — lazy, and ordered after matching
@@ -66,6 +80,60 @@
 # will not merge itself, and that dwell has no upper bound. The exemption is only safe
 # because the same three runners reconcile a proposed entry against its pull request —
 # without that, exempt means permanent.
+#
+# RECONCILIATION — the precondition that makes that exemption safe, on all three runners
+# The signal is git and nothing else: `propose` records the pull request's HEAD BRANCH, and
+# reconciliation asks the remote whether that branch is still there. R18's verbs must work
+# with no forge tooling, so there is no API call to make and no status to read.
+#   - branch still on the remote -> leave `proposed`, clock frozen. This precondition is
+#     the whole of it: a merged claim is ABSENT from the default branch for as long as the
+#     pull request is open, so reading "absent -> return to captured" without first asking
+#     about the branch demotes every staged entry on the first runner after a promotion —
+#     restarting the expiry clock mid-dwell and letting one lesson promote twice.
+#   - branch gone, claim present in the default branch -> consumed: the entry is removed
+#     and the removal is logged as `consumed`, its own word, never another verb's.
+#   - branch gone, claim absent -> a reviewer trimmed that line out of the pull request.
+#     The entry returns to `captured` with its clock UNTOUCHED (the filename, which carries
+#     the capture date, is never rewritten) so the next session can promote it again. Two
+#     of three lines merging must not take the third with them.
+# Every signal it cannot get leaves the entry alone: no recorded branch, an unreachable
+# remote, an unresolvable default branch. Consumption deletes, so it never guesses.
+#
+# ROUTING — what `promote` decides, and in what order
+# EVERY promotion event evaluates EVERY entry: the track selects the gate, not the trigger.
+# EVIDENCE RESOLVES BEFORE THE TRACK ROUTES, and that order is load-bearing. `standing`
+# skips the evidence step entirely and `decision` is exempt from it, so routing first and
+# resolving second would let a `checkable` entry whose evidence just failed be re-routed
+# onto `standing` and promoted on the strength of the step that refused it. The override
+# is therefore refused for such an entry, not merely disclosed.
+#   checkable, evidence confirms                   -> promote (the gate is a condition, not
+#                                                     an event: both events open it)
+#   checkable, evidence unresolvable               -> re-anchor against the entry's paths;
+#                                                     if that fails too, SURFACE and leave
+#                                                     staged. Never deleted, never expired
+#                                                     quietly into nothing.
+#   checkable, evidence contradicts the claim      -> surface with the contradiction NAMED,
+#                                                     leave staged. Nothing here can tell a
+#                                                     claim that was always false from one
+#                                                     the merge just fixed, and the merge
+#                                                     most likely to touch a bug's paths is
+#                                                     the fix for it — deleting on
+#                                                     contradiction would reap the entry at
+#                                                     the moment it became worth keeping.
+#   decision                                       -> a merge does not accept a decision:
+#                                                     promote on a merge only if acceptance
+#                                                     is recorded, and on a decision-
+#                                                     acceptance event as a decision record.
+#   standing                                       -> promote to docs/topics/, flagged
+#                                                     ASSERTED, never into the instruction
+#                                                     file, on either event.
+# Destination: a `checkable` lesson goes to the instruction file only if it FITS the word
+# budget. Assume it does not — an instruction file at its limit is the normal case, not the
+# exception — in which case it goes to docs/topics/ and the report says so. A lesson is
+# never silently dropped and the budget is never silently blown.
+# A secret found in an entry at promotion time excludes ONLY that entry, by id, masked,
+# with a rotate-the-credential instruction; the rest of the batch promotes. Aborting the
+# whole promotion would let one poisoned entry block every later one indefinitely.
 #
 # ENTRY SCHEMA — YAML frontmatter in a Markdown file. Free text is double-quoted
 # (backslash and quote escaped); the constrained fields are bare. All required:
@@ -111,6 +179,25 @@ die() { printf 'learn: %s\n' "$1" >&2; exit 1; }
 q() { printf '"%s"' "$(printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g')"; }
 oneline() { case $2 in *"$NL"*) die "--$1 must be one line; put longer prose in the entry body";; esac; }
 WINDOW_DAYS=56   # eight weeks; see EXPIRY above
+BUDGET_WORDS=400 # the instruction-file fallback budget; the repo's own lint wins (--budget)
+REMOTE=${REMOTE:-origin}   # same knob verify.sh uses
+
+# The default branch as a ref this repository can read, resolved with git alone.
+def_ref() {
+  local s b
+  if s=$(git symbolic-ref --quiet "refs/remotes/$REMOTE/HEAD" 2>/dev/null) && [ -n "$s" ]; then
+    printf '%s\n' "${s#refs/remotes/}"; return 0
+  fi
+  for b in main master trunk; do
+    if git rev-parse --verify --quiet "refs/remotes/$REMOTE/$b" >/dev/null 2>&1; then
+      printf '%s/%s\n' "$REMOTE" "$b"; return 0
+    fi
+  done
+  return 1
+}
+in_set() { case "$NL$2$NL" in *"$NL$1$NL"*) return 0;; esac; return 1; }
+val_for() { printf '%s\n' "$2" | sed -n "s/^$1=//p" | head -1; }   # ids are [A-Za-z0-9_-]
+ok_id() { case $1 in ''|*[!A-Za-z0-9_-]*) return 1;; esac; return 0; }
 
 # YYYYMMDD -> days since 1970-01-01, by arithmetic only. `date -d` is GNU, `date -v` is
 # BSD, and a sweep that cannot subtract two dates on the host it runs on expires nothing
@@ -190,6 +277,8 @@ date_of() { local d=${1##*/}; d=${d#entry-}; d=${d%%-*}
   case $d in [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]) printf '%s\n' "$d";; *) printf '\n';; esac; }
 id_of() { local b=${1##*/} d; b=${b%.md}; d=$(date_of "$1")
   if [ -n "$d" ]; then printf '%s\n' "${b#entry-"$d"-}"; else printf '%s\n' "${b#entry-}"; fi; }
+cap_date() { local d; d=$(date_of "$1")
+  if [ -n "$d" ]; then printf '%s-%s-%s\n' "${d:0:4}" "${d:4:2}" "${d:6:2}"; else printf 'unknown\n'; fi; }
 # R17: the capture-time scan binds only the capture verb, so an entry written as a plain
 # file by a human or a non-Claude agent never reached it. Every verb that reads the tray
 # scans what it reads. A finding is reported — already masked by the scanner — and nothing
@@ -209,11 +298,130 @@ scan_entry() { local found blocks
   fi
 }
 
+# See RECONCILIATION above. Runs on all three runners (capture, list, promote) because
+# `state: proposed` is exempt from expiry: a runner that skipped this would leave an entry
+# exempt forever, and shipping the exemption without the reconciler is the one combination
+# that leaks entries permanently. Reports on stdout; every caller sends it to stderr, so
+# the verb's own output stays exactly what it was.
+reconcile() {
+  local tray log ref f id b r heads claim line rc t
+  tray=$("$HERE/tray-path.sh") || return 1
+  [ -d "$tray" ] || return 0
+  log=$("$HERE/tray-path.sh" log) || return 1
+  for f in "$tray"/entry-*.md; do
+    [ -f "$f" ] || continue
+    grep -q '^state: proposed$' "$f" || continue
+    id=$(id_of "$f"); b=$(field "$f" pr_branch); r=$(field "$f" pr_ref)
+    if [ -z "$b" ]; then
+      printf 'proposed %s: no pull request is recorded, so nothing can be reconciled — left proposed. `propose` records one; an entry marked by hand may carry none.\n' "$id"
+      continue
+    fi
+    # GIT_TERMINAL_PROMPT=0 so a remote that wants credentials FAILS instead of blocking:
+    # this runs inside an ordinary capture, and a capture that hangs on a password prompt
+    # is worse than one that reports it could not reconcile.
+    if ! heads=$(GIT_TERMINAL_PROMPT=0 git ls-remote --heads "$REMOTE" "$b" 2>/dev/null); then
+      printf 'proposed %s: cannot ask %s whether %s is still there — left proposed. Nothing is consumed on a signal this verb could not get.\n' "$id" "$REMOTE" "$b"
+      continue
+    fi
+    if [ -n "$heads" ]; then
+      printf 'proposed %s: %s is still on %s — left proposed, expiry clock frozen.\n' "$id" "$b" "$REMOTE"
+      continue
+    fi
+    if ! ref=$(def_ref); then
+      printf 'proposed %s: %s is gone from %s, but the default branch cannot be resolved there — left proposed.\n' "$id" "$b" "$REMOTE"
+      continue
+    fi
+    claim=$(field "$f" claim)
+    if [ -z "$claim" ]; then
+      printf 'proposed %s: no claim to look for in %s — left proposed.\n' "$id" "$ref"; continue
+    fi
+    git grep -qF -e "$claim" "$ref" >/dev/null 2>&1; rc=$?
+    if [ $rc -gt 1 ]; then
+      printf 'proposed %s: cannot read %s to look for the claim — left proposed.\n' "$id" "$ref"; continue
+    fi
+    if [ $rc = 0 ]; then
+      # `consumed` is this verb's own word in the shared log (see THE TRAY LOG IS SHARED).
+      # The pull request reference is caller-controlled text, so the rendered line is
+      # checked against the other verbs' greps before it is appended.
+      line=$(printf -- '- %s consumed id=%s captured=%s pr=%s' "$(date +%Y-%m-%d)" "$id" "$(cap_date "$f")" "$(q "$r")")
+      case $line in *" expired id="*|*" rejected id="*)
+        printf 'proposed %s: the recorded pull request reference would make its consumption line count as another verb — left proposed.\n' "$id"; continue;;
+      esac
+      if [ ! -e "$log" ]; then
+        { printf -- '# learn — tray log\n\n'
+          printf 'Append-only: one line per tray entry removed, naming the verb that removed it.\n\n'
+        } >> "$log" || { printf 'proposed %s: cannot write the tray log at %s — left proposed.\n' "$id" "$log"; continue; }
+      fi
+      # Recorded before the removal, as the sweep and reject are: a failed write costs a
+      # reconciliation the next runner repeats, the other order costs the record.
+      printf '%s\n' "$line" >> "$log" || { printf 'proposed %s: cannot write the tray log at %s — left proposed.\n' "$id" "$log"; continue; }
+      rm "$f" || { printf 'logged the consumption of %s but could not remove %s\n' "$id" "$f"; continue; }
+      printf 'consumed %s: %s is gone from %s and the claim is in %s — the lesson is durable now; recorded in %s\n' "$id" "$b" "$REMOTE" "$ref" "$log"
+    else
+      # The filename is not touched, so the capture date — the clock — is untouched too.
+      t=$tray/.tmp.$$
+      if awk '/^state: proposed$/ && !d { print "state: captured"; d=1; next }
+              /^pr_branch: /{next} /^pr_ref: /{next} {print}' "$f" > "$t" && mv "$t" "$f"; then
+        printf 'returned %s: %s is gone from %s but the claim is not in %s — a reviewer trimmed it out. Back to captured, clock untouched; nothing was deleted.\n' "$id" "$b" "$REMOTE" "$ref"
+      else
+        rm -f "$t"; printf 'proposed %s: could not return it to captured — left proposed.\n' "$id"
+      fi
+    fi
+  done
+}
+
+propose() {
+  local branch="" pr="" ids="" id f found count tray qb qr t
+  while [ $# -gt 0 ]; do
+    case $1 in
+      --branch) [ $# -ge 2 ] || die "--branch needs a value"; oneline branch "$2"; branch=$2; shift 2;;
+      --pr)     [ $# -ge 2 ] || die "--pr needs a value";     oneline pr "$2";     pr=$2;     shift 2;;
+      -*) die "unknown argument '$1' — see the usage at the top of $0";;
+      *)  ok_id "$1" || die "'$1' is not an entry id — ids are letters, digits, '-' and '_' (see 'tray.sh list')"
+          ids=$ids$1$NL; shift;;
+    esac
+  done
+  [ -n "$ids" ]    || die "propose needs the ids the promotion put in the pull request: tray.sh propose <id> [<id>...] --branch <head> --pr <ref>"
+  [ -n "$branch" ] || die "propose needs --branch <head branch>: reconciliation asks the remote whether that branch is still there, and with no forge tooling that is the only signal it has"
+  [ -n "$pr" ]     || die "propose needs --pr <reference>: an entry exempt from expiry has to name the pull request it is waiting on"
+  case $branch in *[[:space:]]*|*'*'*|*'?'*|*'['*) die "'$branch' is not a branch name the remote can be asked about";; esac
+  case $pr in *" expired id="*|*" rejected id="*|*" consumed id="*)
+    die "that pull request reference would make this entry's consumption line count as another verb's in the tray log; reword it";; esac
+
+  tray=$("$HERE/tray-path.sh") || exit 1
+  qb=$(q "$branch"); qr=$(q "$pr")
+  # Validated first, marked second: a batch naming one bad id must not leave half of one
+  # pull request's entries marked and half not.
+  while IFS= read -r id; do
+    [ -n "$id" ] || continue
+    found=""; count=0
+    for f in "$tray"/entry-*-"$id".md; do [ -f "$f" ] || continue; found=$f; count=$((count+1)); done
+    [ "$count" != 0 ] || die "no entry with id '$id' in the tray — nothing was changed. 'tray.sh list' shows the ids actually there."
+    [ "$count" = 1 ] || die "$count entries match id '$id'; refusing to guess which one to mark"
+    grep -q '^state: captured$' "$found" || die "entry '$id' is in state '$(field "$found" state)', not captured — refusing to overwrite the pull request it already records"
+  done <<<"${ids%$NL}"
+  while IFS= read -r id; do
+    [ -n "$id" ] || continue
+    found=""
+    for f in "$tray"/entry-*-"$id".md; do [ -f "$f" ] || continue; found=$f; done
+    t=$tray/.tmp.$$
+    awk -v b="$qb" -v r="$qr" '/^state: captured$/ && !d { print "state: proposed"; print "pr_branch: " b; print "pr_ref: " r; d=1; next } {print}' \
+      "$found" > "$t" && mv "$t" "$found" || { rm -f "$t"; die "could not mark '$id' proposed; $found is unchanged"; }
+    printf 'proposed %s: waiting on %s (%s) — exempt from expiry until that branch is gone from %s\n' "$id" "$pr" "$branch" "$REMOTE"
+  done <<<"${ids%$NL}"
+}
+
 list() {
   local tray log today f d id age n=0 seen="" line p
   [ $# -eq 0 ] || die "list takes no arguments — it lists the whole tray (see the usage at the top of $0)"
   tray=$("$HERE/tray-path.sh") || exit 1
   log=$("$HERE/tray-path.sh" log) || exit 1
+  # Reconciliation runs BEFORE the printing, so the state each entry is listed under is the
+  # state it is actually in: one consumed here is not listed at all, and one a reviewer
+  # trimmed out lists as `captured` again. Its report goes to stderr — stdout is the
+  # listing. (See RECONCILIATION: listing is the only runner that fires in a repository
+  # nobody is capturing into, so it is the one that must not skip this.)
+  ( reconcile ) >&2 || :
   # No tray is an answer, not an error — and listing must not create the one it was asked
   # to read, or capture's "a finding writes nothing, not even the tray" stops being true.
   if [ -d "$tray" ]; then
@@ -371,13 +579,216 @@ capture() {
   # matches nothing, so it declares --no-matches. The subshell is why a tray the sweep
   # cannot write (a read-only git directory) reports on stderr instead of failing a
   # capture that already succeeded.
+  #
+  # Capture is also one of the three reconciliation runners, for the same reason it is one
+  # of the three expiry runners: `state: proposed` is exempt from expiry, so an entry no
+  # runner reconciles is exempt forever. Reconciliation goes first — it decides what state
+  # an entry is in, where the sweep only decides what to do about an over-age one — and
+  # like the sweep it reports on stderr, so capture's stdout stays exactly one path.
+  ( reconcile ) >&2 || :
   ( sweep --no-matches ) || :
+}
+
+# What git can answer about an entry's evidence: whether the artifact it cites is still
+# there to be looked at. Prints "<outcome> <detail>".
+#   located <anchor>     the citation resolves in the default branch
+#   re-anchored <path>   the cited commit is unreachable — a squash merge does that as a
+#                        matter of routine — but a path of this entry is still there
+#   unresolvable <why>   neither; there is nothing left to resolve against
+locate_evidence() { # <entry file> <default ref>
+  local ev commit p hit=""
+  ev=$(field "$1" evidence)
+  commit=$(printf '%s' "$ev" | tr -c '0-9A-Za-z' '\n' | grep -xE '[0-9a-f]{7,40}' | head -1)
+  while IFS= read -r p; do
+    [ -n "$p" ] || continue
+    git cat-file -e "$2:$p" 2>/dev/null && { hit=$p; break; }
+  done <<<"$(epaths "$1")"
+  if [ -n "$commit" ]; then
+    git merge-base --is-ancestor "$commit" "$2" 2>/dev/null && { printf 'located %s\n' "$commit"; return 0; }
+    [ -z "$hit" ] || { printf 're-anchored %s\n' "$hit"; return 0; }
+    printf 'unresolvable the cited commit %s is not reachable from %s and no path of this entry is there to re-anchor against\n' "$commit" "$2"
+    return 0
+  fi
+  [ -z "$hit" ] || { printf 'located %s\n' "$hit"; return 0; }
+  printf 'unresolvable no path of this entry exists in %s to resolve its evidence against\n' "$2"
+}
+# The area a topic file is named for: the directory the claim is about.
+area_of() { local p=${1%/} d; d=${p%/*}
+  if [ "$d" = "$p" ]; then d=${p##*/}; d=${d%.*}; else d=${d##*/}; fi
+  printf '%s\n' "${d:-general}"; }
+render_line() { # <entry file> <effective track>
+  local claim ev ps="" p
+  claim=$(field "$1" claim); ev=$(field "$1" evidence)
+  while IFS= read -r p; do [ -n "$p" ] || continue; ps=${ps:+$ps, }$p; done <<<"$(epaths "$1")"
+  case $2 in
+    standing) printf -- '- %s (learn: asserted — nothing in the repository resolves this; %s; %s)\n' "$claim" "$ev" "$ps";;
+    decision) printf -- '- %s (learn: decision record, against the alternative not adopted; %s; %s)\n' "$claim" "$ev" "$ps";;
+    *)        printf -- '- %s (learn: %s; %s)\n' "$claim" "$ev" "$ps";;
+  esac
+}
+
+promote() {
+  local event="" budget=$BUDGET_WORDS ifile="" confirms="" contras="" asks=""
+  local tray ref f id st track loc ev det sc eff dest why line a sw
+  local missing="" matched="" npro=0 nst=0 nex=0 nheld=0 n=0 wf wl
+  while [ $# -gt 0 ]; do
+    case $1 in
+      --event) [ $# -ge 2 ] || die "--event needs a value"
+        case $2 in merge|decision-acceptance) event=$2;;
+          *) die "unknown event '$2' — merge or decision-acceptance";; esac; shift 2;;
+      --confirms) [ $# -ge 2 ] || die "--confirms needs an entry id"
+        ok_id "${2:-}" || die "--confirms '${2:-}' is not an entry id"
+        confirms=$confirms$2$NL; shift 2;;
+      --contradicts) [ $# -ge 2 ] || die "--contradicts needs <id>=\"<what the default branch says instead>\""
+        case $2 in *=*) ;; *) die "--contradicts takes <id>=\"<what the default branch says instead>\": a contradiction nobody named cannot be surfaced to the session that reads this entry next";; esac
+        ok_id "${2%%=*}" || die "--contradicts '${2%%=*}' is not an entry id"
+        [ -n "${2#*=}" ] || die "--contradicts '${2%%=*}' names no contradiction; say what the default branch holds instead"
+        contras=$contras$2$NL; shift 2;;
+      --as) [ $# -ge 2 ] || die "--as needs <id>=<track>"
+        ok_id "${2%%=*}" || die "--as '${2%%=*}' is not an entry id"
+        case ${2#*=} in decision|checkable|standing) ;;
+          *) die "--as '$2': the track must be decision, checkable or standing";; esac
+        asks=$asks$2$NL; shift 2;;
+      --budget) [ $# -ge 2 ] || die "--budget needs a word count"
+        case $2 in ''|*[!0-9]*) die "--budget '$2' is not a word count";; esac; budget=$2; shift 2;;
+      --instruction-file) [ $# -ge 2 ] || die "--instruction-file needs a path"
+        [ -n "$2" ] || die "--instruction-file is empty"; ifile=$2; shift 2;;
+      *) die "unknown argument '$1' — see the usage at the top of $0";;
+    esac
+  done
+  [ -n "$event" ] || die "promote needs --event merge|decision-acceptance: every promotion event evaluates every entry, and the event is what selects each track's gate"
+  if [ -z "$ifile" ]; then
+    if [ -f CLAUDE.md ] && [ ! -f AGENTS.md ]; then ifile=CLAUDE.md; else ifile=AGENTS.md; fi
+  fi
+
+  tray=$("$HERE/tray-path.sh") || exit 1
+  ( reconcile ) >&2 || :
+  if [ -d "$tray" ]; then for f in "$tray"/entry-*.md; do [ -f "$f" ] && n=$((n+1)); done; fi
+  [ "$n" != 0 ] || { printf 'no lesson is staged in this repository: the tray is empty.\n'; return 0; }
+  ref=$(def_ref) || die "cannot resolve the default branch through '$REMOTE' — evidence resolves against it and promotion will not guess. Fetch the remote, or set REMOTE."
+
+  # PASS 1 — resolve and validate everything before reporting anything, so a refusal
+  # cannot land halfway through a report that already said it was promoting entries.
+  for f in "$tray"/entry-*.md; do
+    [ -f "$f" ] || continue
+    id=$(id_of "$f"); ok_id "$id" || continue
+    grep -q '^state: captured$' "$f" || continue
+    [ -z "$(scan_entry "$f")" ] || continue
+    track=$(field "$f" track)
+    if [ "$track" != checkable ]; then
+      if in_set "$id" "$confirms" || in_set "$id" "$(printf '%s' "$contras" | sed 's/=.*//')"; then
+        die "'$id' is on the $track track, which the evidence step does not apply to — there is nothing here to confirm or contradict"
+      fi
+      continue
+    fi
+    loc=$(locate_evidence "$f" "$ref"); st=${loc%% *}; det=${loc#* }
+    if [ "$st" = unresolvable ]; then
+      if in_set "$id" "$confirms" || in_set "$id" "$(printf '%s' "$contras" | sed 's/=.*//')"; then
+        die "nothing resolved for '$id', so there is nothing to confirm or contradict: $det"
+      fi
+      a=$(val_for "$id" "$asks")
+      [ -z "$a" ] || die "refusing to re-route '$id' onto $a: its evidence did not resolve on the checkable track ($det), and $a would skip the evidence step that just refused it. The entry stays staged; re-anchor it or reject it."
+      continue
+    fi
+    if in_set "$id" "$confirms"; then
+      ! in_set "$id" "$(printf '%s' "$contras" | sed 's/=.*//')" || die "'$id' is given as both confirmed and contradicted"
+    elif in_set "$id" "$(printf '%s' "$contras" | sed 's/=.*//')"; then
+      a=$(val_for "$id" "$asks")
+      [ -z "$a" ] || die "refusing to re-route '$id' onto $a: its evidence resolved and contradicts its claim, and $a would skip the evidence step that just refused it. The entry stays staged — nothing here deletes it."
+    else
+      missing="$missing $id"
+    fi
+  done
+  [ -z "$missing" ] || die "promotion needs the evidence verdict for:$missing — --confirms <id>, or --contradicts <id>=\"<what the default branch says instead>\". Evidence resolves before the track routes, so a checkable entry whose evidence resolved cannot be routed until this invocation says what it found."
+
+  # PASS 2 — the report.
+  for f in "$tray"/entry-*.md; do
+    [ -f "$f" ] || continue
+    id=$(id_of "$f"); track=$(field "$f" track)
+    if ! ok_id "$id"; then
+      printf 'held id=%s reason=unusable-id note=no-verb-can-name-this-entry\n' "${f##*/}"; nheld=$((nheld+1)); continue
+    fi
+    if ! grep -q '^state: captured$' "$f"; then
+      printf 'held id=%s state=%s reason=already-in-a-pull-request\n' "$id" "$(field "$f" state)"; nheld=$((nheld+1)); continue
+    fi
+    sc=$(scan_entry "$f")
+    if [ -n "$sc" ]; then
+      case $sc in *BLOCK*) printf 'excluded id=%s reason=secret-finding note=only-this-entry-the-rest-of-the-batch-promotes\n' "$id";;
+                  *)       printf 'excluded id=%s reason=unscanned note=only-this-entry-the-rest-of-the-batch-promotes\n' "$id";; esac
+      printf '%s\n' "$sc"; nex=$((nex+1)); continue
+    fi
+    # Evidence FIRST, then the track routes. The override below cannot reach back and
+    # change what this step found — that is the whole of the refusal in pass 1.
+    ev=exempt; det=""
+    case $track in
+      standing) ev=skipped;;
+      decision) ev=exempt;;
+      checkable)
+        loc=$(locate_evidence "$f" "$ref"); st=${loc%% *}; det=${loc#* }
+        if [ "$st" = unresolvable ]; then ev=unresolvable
+        elif in_set "$id" "$confirms"; then
+          if [ "$st" = re-anchored ]; then ev=re-anchored; else ev=confirms; fi
+        else ev=contradicts; det=$(val_for "$id" "$contras"); fi;;
+    esac
+    case $ev in
+      unresolvable)
+        printf 'staged id=%s track=%s evidence=unresolvable reason="%s" note=surfaced-not-expired-nothing-deleted\n' "$id" "$track" "$det"
+        nst=$((nst+1)); continue;;
+      contradicts)
+        # Matched by this event: the merge most likely to touch a bug's paths is the fix
+        # for that bug, so the sweep this same invocation runs must not reap it.
+        printf 'staged id=%s track=%s evidence=contradicts contradiction="%s" note=left-staged-nothing-deleted\n' "$id" "$track" "$det"
+        matched=$matched$id$NL; nst=$((nst+1)); continue;;
+    esac
+    eff=$track; a=$(val_for "$id" "$asks")
+    [ -z "$a" ] || eff=$a
+    case $eff in
+      decision)
+        if [ "$event" = merge ] && [ "$(field "$f" accepted)" != true ]; then
+          printf 'staged id=%s track=%s reason=no-acceptance-recorded note=a-merge-does-not-accept-a-decision\n' "$id" "$eff"
+          nst=$((nst+1)); continue
+        fi
+        dest="docs/decisions/$(field "$f" captured_on)-$id.md"; why=decision-record-draft;;
+      standing)
+        dest="docs/topics/$(area_of "$(epaths "$f" | head -1)").md"
+        why=standing-is-asserted-never-the-instruction-file;;
+      *)
+        line=$(render_line "$f" "$eff")
+        wf=0; [ ! -f "$ifile" ] || wf=$(wc -w < "$ifile" | tr -d ' ')
+        wl=$(printf '%s\n' "$line" | wc -w | tr -d ' ')
+        if [ $((wf + wl)) -gt "$budget" ]; then
+          dest="docs/topics/$(area_of "$(epaths "$f" | head -1)").md"
+          why="instruction-file-over-budget($ifile=${wf}w+${wl}w>${budget}w)"
+        else
+          dest=$ifile; why="fits-the-instruction-file-budget(${wf}w+${wl}w<=${budget}w)"
+        fi;;
+    esac
+    printf 'promote id=%s track=%s%s event=%s evidence=%s dest=%s reason=%s\n' \
+      "$id" "$track" "$([ "$eff" = "$track" ] || printf -- '->%s' "$eff")" "$event" "$ev" "$dest" "$why"
+    printf '  line: %s' "$(render_line "$f" "$eff")"; printf '\n'
+    matched=$matched$id$NL; npro=$((npro+1))
+  done
+  printf 'promoted=%s staged=%s excluded=%s held=%s event=%s instruction-file=%s budget=%s\n' \
+    "$npro" "$nst" "$nex" "$nheld" "$event" "$ifile" "$budget"
+  printf 'next: apply these lines, re-run scripts/redact-scan.sh on the staged diff, commit on a learn/ branch, open ONE DRAFT pull request and never merge it here, then record it with: tray.sh propose <id>... --branch <head> --pr <ref>\n'
+  # Promotion is the third expiry runner. The matched set is every entry this event
+  # resolved against the repository — the ones it promotes, and the contradicted ones R16
+  # is written about. An entry it could not resolve at all was not matched by it and ages
+  # normally; its paths are gone, which is what made it unresolvable.
+  if [ -z "$matched" ]; then ( sweep --no-matches ) || :
+  else
+    sw=""
+    while IFS= read -r id; do [ -n "$id" ] || continue; sw="$sw --matched $id"; done <<<"${matched%$NL}"
+    ( sweep $sw ) || :   # ids are [A-Za-z0-9_-]; splitting them into arguments is the point
+  fi
 }
 
 case ${1:-} in
   capture) shift; capture "$@";;
+  promote) shift; promote "$@";;
+  propose) shift; propose "$@";;
   list)    shift; list "$@";;
   reject)  shift; reject "$@";;
   sweep)   shift; sweep "$@";;
-  *) sed -n '2,29p' "$0" >&2; exit 2;;
+  *) sed -n '2,43p' "$0" >&2; exit 2;;
 esac

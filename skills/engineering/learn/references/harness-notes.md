@@ -98,6 +98,8 @@ inside the repository — the tray is resolved from the git directory, not from 
 | list | `scripts/tray.sh list` | one block per entry — `entry <id>  age=<n>d  track=…  state=…`, then `claim:`, then one `path:` line per match path — followed by one line per entry this listing expired |
 | reject | `scripts/tray.sh reject <id> --reason "<why>"` | one line naming the entry removed |
 | sweep | `scripts/tray.sh sweep --no-matches` \| `--matched <id> [--matched <id>]...` | nothing |
+| promote | `scripts/tray.sh promote --event <merge\|decision-acceptance> [--confirms <id>]... [--contradicts <id>="<what the default branch says instead>"]... [--as <id>=<track>]... [--budget <words>] [--instruction-file <path>]` | one routing line per entry — `promote` / `staged` / `excluded` / `held` — each `promote` followed by the `line:` it would add, then a count and the next step |
+| propose | `scripts/tray.sh propose <id> [<id>...] --branch <head branch> --pr <reference>` | one line per entry marked |
 
 Exit 0 is success; any refusal is non-zero with a `learn: …` line on stderr and no change
 on disk. Reading the tray with `cat` and `ls` instead is fine — the entries are Markdown —
@@ -116,10 +118,57 @@ but resolve the directory through `scripts/tray-path.sh`, never by hand.
   "not yet" and stays listable; rejecting it is permanent, which is why `--reason` is
   required and lands in the log.
 - **The tray log is append-only and shared.** More than one verb writes to it and the verb
-  is what distinguishes the writer: the sweep writes `expired`, `reject` writes `rejected`.
-  So `grep ' expired id=' <log>` counts expiries and nothing else, and `grep ' rejected
-  id='` counts rejections and nothing else. A new writer takes its own word, never
-  another's, and adds no header line that another writer's grep would match.
+  is what distinguishes the writer: the sweep writes `expired`, `reject` writes
+  `rejected`, reconciliation writes `consumed`. So `grep ' expired id=' <log>` counts
+  expiries and nothing else, and the same holds for each of the others. A new writer takes
+  its own word, never another's, and adds no header line that another writer's grep would
+  match. The one field a caller controls — a rejection's reason, a consumption's pull
+  request reference — is checked against the other verbs' greps before the line is written.
+
+## Promotion: the routing table
+
+Every promotion event evaluates **every** entry — the track selects the gate, not the
+trigger — and **evidence resolves before the track routes**.
+
+| track | evidence | merge event | decision-acceptance event |
+|---|---|---|---|
+| `checkable` | resolves, confirms | promote | promote — the gate is a condition, not an event |
+| `checkable` | unresolvable | re-anchor against the entry's paths; if that fails, surface and leave staged | same |
+| `checkable` | resolves, contradicts | surface the contradiction by name, leave staged | same |
+| `decision` | not evaluated — exempt | leave staged unless acceptance is recorded | promote as a decision-record draft |
+| `decision` | later contradicted by the repo adopting the alternative | leave staged — still exempt from the evidence step | promote; the adopted alternative is the lesson, and it is the most valuable entry in the tray |
+| `standing` | skipped entirely | promote to `docs/topics/`, flagged **asserted** | same |
+| any | `state: proposed`, head branch still on the remote | leave proposed, clock frozen | same |
+| any | `state: proposed`, head branch gone | claim in the default branch → consumed; absent → back to `captured`, clock untouched | same |
+
+- **Why that order.** `standing` skips the evidence step and `decision` is exempt from it.
+  Route first and an entry whose evidence just failed can be re-routed onto one of them
+  and promoted on the strength of the step that refused it — so `--as` is **refused** for
+  such an entry, not merely disclosed. `--as` on an entry the evidence step cleared is
+  honoured and shown in the report as `track=checkable->standing`.
+- **Promotion writes nothing.** It prints the routing and the line it would add; the
+  session applies the lines, re-runs `redact-scan.sh` on the staged diff, commits, opens
+  **one draft pull request it never merges**, and records it with `propose`.
+- **The instruction file's word budget is the normal obstacle, not the exception.** An
+  always-loaded file sits at its limit, so assume a lesson does not fit: it goes to
+  `docs/topics/` and the report and PR body say so, with the count. Nothing is silently
+  dropped and the budget is never silently blown. `--budget` overrides the 400-word
+  fallback — the repo's own lint wins.
+- **A secret found at promotion excludes that entry alone**, by id, masked, with a
+  rotate-the-credential instruction. The rest of the batch promotes; aborting it all would
+  let one poisoned entry block every later lesson indefinitely.
+- **Reconciliation runs on all three runners** (capture, `list`, `promote`), because
+  `state: proposed` is exempt from expiry and an entry nothing reconciles is exempt
+  forever. The signal is git alone — `git ls-remote --heads` for the recorded head branch,
+  then the claim's presence in the default branch — so it works with no forge tooling. A
+  signal it cannot get (no recorded branch, an unreachable remote) leaves the entry
+  exactly as it is: consumption deletes, so it never guesses. **Apply the `line:` the
+  promotion printed, verbatim** — the claim in it is what reconciliation later looks for in
+  the default branch, so a reworded line reads as a trimmed one and the entry comes back to
+  `captured` instead of being consumed. That direction is the safe one (a second promotion
+  attempt, never a deletion), but it is avoidable. Consumption takes its own
+  word in the tray log, `consumed`, so it inflates neither the expiry nor the rejection
+  count.
 
 ## What a tray entry contains
 
@@ -138,7 +187,7 @@ at promotion, where the capturing session is gone and the gap can no longer be f
 | `paths` | repo-relative paths the claim is about, in order, **with no line numbers** — paths are the match key and survive edits, line numbers are evidence and do not |
 | `captured_on` | the capture date, read back out of the filename so the two can never disagree |
 | `track` | `decision` \| `checkable` \| `standing` |
-| `state` | `captured` (what capture writes) \| `proposed` (a promoted entry) |
+| `state` | `captured` (what capture writes) \| `proposed` (a promoted entry, written by `propose` together with `pr_branch` and `pr_ref` — the only signal reconciliation has) |
 | `verified` | always `false` at capture: nothing has re-checked the claim yet |
 | `accepted` | `decision` track only — whether the decision was accepted, because nothing else in the system records that |
 

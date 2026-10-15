@@ -37,6 +37,27 @@ for k in "Mode: from-memories" "Redact gate" "Not for repo" "One draft PR per re
 for k in "nothing merged" "## Mode: no-merge capture" "scripts/tray.sh capture --track" "scripts/tray.sh list" "scripts/tray.sh reject <id> --reason" "stays listable"; do
   chk "no-merge mode: $k" "$k"
 done
+# The mode's exit. Without a promotion step an agent reading this file can capture, list
+# and reject, and has no instruction for how a staged lesson ever leaves the tray — the
+# tray becomes a drawer. Each pin is a rule an agent cannot reconstruct from the scripts:
+# where promotion re-enters the spine, the order evidence and routing happen in, what the
+# refusal is, and the two halves of the proposed state's reconciliation.
+for k in "scripts/tray.sh promote --event" "scripts/tray.sh propose <id>... --branch <head> --pr <ref>" \
+         "Evidence resolves before the track routes" "the attempt is refused" "step 4 (Place)" \
+         "one draft PR and never merge it here" "clock stays frozen while that branch is still on the remote" \
+         "returns to \`captured\` with its clock untouched"; do
+  chk "no-merge mode promotion: $k" "$k"
+done
+# Gate 4 demanded evidence in the merged tree, which a rejected alternative has none of by
+# definition — R10 and the gate were in direct conflict. The fix is a second evidence
+# class, not a weaker gate for every track.
+rchk() { if grep -qF -- "$3" "references/$2"; then pass "$1"; else fail "$1"; fi; }
+for k in "*Resolved*" "*Recorded*" "by definition" "flagged **asserted**" "never into the instruction file"; do
+  rchk "lesson-filter gate 4: $k" lesson-filter.md "$k"
+done
+for k in "Promoted from the capture tray" "opened as a draft and is never merged" "Left staged" "Rotate the credential"; do
+  rchk "pr-template: $k" pr-template.md "$k"
+done
 
 echo "== Portability (core is harness-agnostic) =="
 lines=$(wc -l < SKILL.md); [ "$lines" -le 250 ] && pass "SKILL.md $lines lines" || fail "SKILL.md $lines lines"
@@ -417,7 +438,7 @@ reaped8 && [ -n "$rep" ] && [ -n "$exp" ] && [ "$rep" -lt "$exp" ] \
 reaped8 && [ "$(grep -c ' expired id=' "$LOG8")" = 1 ] && grep -q 'id=fffffff1' "$LOG8" \
   && pass "R20: the reap a listing performs is logged as an expiry, once" || { cat "$LOG8" 2>/dev/null; fail "listing's reap not logged as one expiry"; }
 reaped8 && grep -q fffffff2 <<<"$lo" && cmp -s "$propl" "$LS/proposed.before" \
-  && pass "a proposed entry is listed and left untouched — neither reaped nor reconciled (reconciliation is not this unit's)" || { echo "  rc=$rc out='$lo'"; fail "proposed entry reaped or modified by list"; }
+  && pass "a proposed entry is listed and left untouched — not reaped, and not reconciled either, because it records no pull request to reconcile against" || { echo "  rc=$rc out='$lo'"; fail "proposed entry reaped or modified by list"; }
 reaped8 && ! grep -q 'id=fffffff2' "$LOG8" && pass "nothing is recorded against the proposed entry" || fail "proposed entry written to the log"
 
 # One log, two writers (the cross-unit contract): U5 records expiries, U4 records
@@ -506,6 +527,302 @@ ro=$(bash "$TS" reject 9999999b --reason 'the claim is wrong: the guard does rea
 l3=$(bash "$TS" list 2>&1)
 still && [ $rc = 0 ] && [ ! -e "${d1:-/nonexistent}" ] && ! grep -q 9999999b <<<"$l3" && grep -q ' rejected id=9999999b ' "$LOG10" \
   && pass "R16: rejection is the permanent half — the same entry is gone from the listing and the log says why" || { echo "  rc=$rc out='$ro'"; fail "R16 rejection is not distinct from declining"; }
+cd "$SKILL_DIR"
+
+echo "== Behavioral: the proposed state and reconciliation (KTD4, AE8) =="
+# `state: proposed` is exempt from expiry, and the dwell in a pull request has no upper
+# bound — so the exemption is only safe if something later reconciles the entry against
+# that pull request. The signal is git and nothing else (R18's verbs must work with no
+# forge tooling): the recorded head branch is either still on the remote or it is gone.
+PM=$(mktemp -d); trap 'rm -rf "$T" "$M" "$TR" "$CT" "$XP" "$LS" "$PM"' EXIT
+pmrepo() { # <dir> -> <dir>/w: a clone, on main, of a real <dir>/origin.git
+  git init -q --bare "$1/origin.git"
+  git init -q "$1/seed"
+  git -C "$1/seed" config user.email t@t; git -C "$1/seed" config user.name t
+  git -C "$1/seed" checkout -q -b main
+  mkdir -p "$1/seed/docs/topics" "$1/seed/src/jobs"
+  printf 'Read docs/topics/x.md\n' > "$1/seed/AGENTS.md"
+  printf 'topics\n' > "$1/seed/docs/topics/x.md"
+  printf 'export function handler(req){ return ok(req) }\n' > "$1/seed/src/jobs/auth.ts"
+  git -C "$1/seed" add -A; git -C "$1/seed" commit -qm init
+  git -C "$1/seed" remote add origin "$1/origin.git"; git -C "$1/seed" push -q -u origin main
+  git clone -q "$1/origin.git" "$1/w"
+  git -C "$1/w" config user.email t@t; git -C "$1/w" config user.name t
+}
+EV='the guard returns before the body is read'
+
+# AE8 — the trimmed line. A reviewer deletes one of three lines from the promotion PR and
+# merges. Two entries are consumed; the third must come back, not vanish and not stay
+# exempt forever. This is the one data-loss path with no signal anywhere, so it is built
+# before the happy path.
+(pmrepo "$PM/ae8") >/dev/null 2>&1 || fail "AE8 fixture setup"
+cd "$PM/ae8/w"; TRAY_A=$(bash "$TP"); LOG_A=$(bash "$TP" log)
+C1='A scheduled-job route behind a bare header check rejects every caller'
+C2='The importer is idempotent because the queue redelivers on timeout'
+C3='A squash merge leaves the branch commit unreachable from the default branch'
+pa=$(bash "$TS" capture --track standing --claim "$C1" --evidence "$EV" --path src/jobs/auth.ts)
+pb=$(bash "$TS" capture --track standing --claim "$C2" --evidence "$EV" --path src/jobs/auth.ts)
+pc=$(bash "$TS" capture --track standing --claim "$C3" --evidence "$EV" --path src/jobs/auth.ts)
+ia=$(fm "${pa:-/nonexistent}" id); ib=$(fm "${pb:-/nonexistent}" id); ic=$(fm "${pc:-/nonexistent}" id)
+age_entry() { # <path> <days-ago> -> the same entry with its clock (the filename) moved back
+  local d n; d=$(daysago "$2") || return 1
+  n="${1%/*}/entry-$d-$(fm "$1" id).md"
+  sed "s/^captured_on: .*/captured_on: ${d:0:4}-${d:4:2}-${d:6:2}/" "$1" > "$n" && rm "$1" && printf '%s\n' "$n"
+}
+# The entry the reviewer will trim is given a real age, well inside the window. Captured
+# today it would be indistinguishable from one whose clock a promotion silently reset —
+# and the reset is the bug KTD4 is about.
+pc=$(age_entry "$pc" 30) || fail "AE8: age_entry needs BSD date -v or GNU date -d"
+cp "$pc" "$PM/ae8-c.captured" 2>/dev/null
+po=$(bash "$TS" propose "$ia" "$ib" "$ic" --branch learn/tray-1 --pr '#7' 2>&1); rc=$?
+prop3() { [ $rc = 0 ] && [ -n "$ia$ib$ic" ] && grep -q '^state: proposed$' "${pa:-/nonexistent}" \
+  && grep -q '^state: proposed$' "${pb:-/nonexistent}" && grep -q '^state: proposed$' "${pc:-/nonexistent}"; }
+prop3 && [ "$(fm "$pa" pr_branch)" = learn/tray-1 ] && [ "$(fm "$pa" pr_ref)" = '#7' ] \
+  && pass "a promoted entry is marked proposed with the pull request it sits in (branch + reference)" || { echo "  rc=$rc out='$po'"; fail "propose did not record the pull request"; }
+prop3 && [ "$(ents "$TRAY_A")" = 3 ] && pass "propose renames nothing and deletes nothing — three entries, same three files" || fail "propose moved or removed an entry"
+git push -q origin HEAD:learn/tray-1 2>/dev/null || fail "AE8 branch push"
+cp "$pa" "$PM/ae8-a.open" 2>/dev/null
+
+# KTD4: while the head branch is still on the remote the claim is absent from the default
+# branch for the whole review — reading the table's `proposed` row without that
+# precondition demotes every staged entry on the first listing after a promotion.
+lo=$(bash "$TS" list 2>&1); rc=$?
+# Anchored on the listing having actually asked about the branch: "still proposed" is also
+# what a list that never reconciled at all would leave behind.
+asked() { [ $rc = 0 ] && grep -q 'learn/tray-1' <<<"$lo"; }
+asked && cmp -s "$pa" "$PM/ae8-a.open" && grep -q '^state: proposed$' "${pc:-/nonexistent}" && [ "$(ents "$TRAY_A")" = 3 ] \
+  && pass "KTD4: a listing while the pull request is still open leaves every entry proposed, clock frozen" || { echo "  rc=$rc out='$lo'"; fail "KTD4: an open pull request demoted or changed its entries"; }
+
+# The merge, with one of the three lines trimmed out by the reviewer, and the head branch
+# deleted the way a forge deletes it on merge.
+printf -- '- %s (learn)\n- %s (learn)\n' "$C1" "$C2" >> docs/topics/x.md
+git add -A >/dev/null 2>&1; git commit -qm 'learn: two of the three lines' >/dev/null 2>&1
+git push -q origin main 2>/dev/null || fail "AE8 merge push"
+git push -q origin --delete learn/tray-1 2>/dev/null || fail "AE8 branch delete"
+lo=$(bash "$TS" list 2>&1); rc=$?
+gone2() { [ $rc = 0 ] && [ -n "$ia$ib" ] && [ ! -e "${pa:-/nonexistent}" ] && [ ! -e "${pb:-/nonexistent}" ] && [ -f "${LOG_A:-/nonexistent}" ]; }
+gone2 && [ "$(grep -c ' consumed id=' "$LOG_A")" = 2 ] && grep -q " consumed id=$ia " "$LOG_A" && grep -q " consumed id=$ib " "$LOG_A" \
+  && pass "AE8: the two lines that survived the trim are consumed, each recorded once" || { echo "  rc=$rc out='$lo'"; cat "$LOG_A" 2>/dev/null; fail "AE8: surviving lines not consumed"; }
+gone2 && [ -f "${pc:-/nonexistent}" ] && [ "$(ents "$TRAY_A")" = 1 ] \
+  && pass "AE8: the tray is left holding exactly the trimmed entry — not empty" || { echo "  entries=$(ents "$TRAY_A")"; fail "AE8: the trimmed entry was lost with the other two"; }
+# Byte-identical to the file capture wrote: same filename (so the same capture date), same
+# captured_on, state back to captured, no pull-request fields left behind. That is the
+# whole of "returns to captured with its clock untouched", in one comparison.
+gone2 && cmp -s "$pc" "$PM/ae8-c.captured" \
+  && pass "AE8: the trimmed entry is byte-identical to its capture — back to captured, clock untouched" || { diff "$PM/ae8-c.captured" "$pc" 2>&1 | head -8; fail "AE8: the returned entry is not its captured self"; }
+gone2 && [ "$(grep -c ' expired id=' "$LOG_A")" = 0 ] && [ "$(grep -c ' rejected id=' "$LOG_A")" = 0 ] \
+  && pass "AE8: consumption takes its own word in the shared log — it inflates neither count" || { cat "$LOG_A"; fail "AE8: consumption counted as an expiry or a rejection"; }
+lo2=$(bash "$TS" list 2>&1)
+gone2 && grep -q "$ic" <<<"$lo2" && grep -q 'state=captured' <<<"$lo2" && ! grep -q "$ia" <<<"$lo2" \
+  && pass "AE8: the returned entry lists as captured again, so a later session can promote it" || { echo "$lo2"; fail "AE8: the returned entry is not listable as captured"; }
+
+# Reconciliation is wired into all three runners. Expiry already exempts `state: proposed`,
+# so a runner that does not reconcile leaves an entry exempt FOREVER — shipping the
+# exemption without the reconciler is the one combination that leaks entries permanently.
+# Each runner is proved on its own fixture: a shared one cannot tell which runner acted.
+RC='A retry without a jittered backoff turns one timeout into a thundering herd'
+runner_fixture() { # <dir> -> the entry path, proposed, its branch merged and deleted
+  pmrepo "$1" >/dev/null 2>&1 || return 1
+  cd "$1/w" || return 1
+  local p i
+  p=$(bash "$TS" capture --track standing --claim "$RC" --evidence "$EV" --path src/jobs/auth.ts) || return 1
+  i=$(fm "$p" id)
+  bash "$TS" propose "$i" --branch learn/r-1 --pr '#9' >/dev/null 2>&1
+  git push -q origin HEAD:learn/r-1 2>/dev/null || return 1
+  printf -- '- %s\n' "$RC" >> docs/topics/x.md
+  git add -A >/dev/null 2>&1; git commit -qm merged >/dev/null 2>&1
+  git push -q origin main 2>/dev/null || return 1
+  git push -q origin --delete learn/r-1 2>/dev/null || return 1
+  printf '%s\n' "$p"
+}
+for runner in list capture promote; do
+  # The fixture runs in a command substitution, so its `cd` does not reach here.
+  rp=$(runner_fixture "$PM/rc-$runner") || { fail "reconcile-runner fixture ($runner)"; continue; }
+  cd "$PM/rc-$runner/w" || { fail "reconcile-runner cwd ($runner)"; continue; }
+  RLOG=$(bash "$TP" log)
+  case $runner in
+    list)    bash "$TS" list >/dev/null 2>&1;;
+    capture) bash "$TS" capture --track standing --claim 'An unrelated lesson, captured later' --evidence "$EV" --path src/jobs/auth.ts >/dev/null 2>&1;;
+    promote) bash "$TS" promote --event merge >/dev/null 2>&1;;
+  esac
+  # Both halves demanded: the entry gone AND the consumption recorded. "Still proposed" is
+  # what an unwired runner leaves, and an entry that merely disappeared is a different bug.
+  [ -n "$rp" ] && [ ! -e "$rp" ] && grep -q ' consumed id=' "$RLOG" 2>/dev/null \
+    && pass "reconciliation runs on \`$runner\`: a merged, branch-deleted entry is consumed by it alone" || { echo "  entry='$rp'"; fail "reconciliation is not wired into $runner"; }
+done
+
+# Fail-closed. Consumption deletes, so every signal it cannot get must leave the entry
+# alone rather than guess: an unreachable remote, and an entry marked proposed by hand
+# with no pull request recorded at all.
+(newrepo "$PM/r11") >/dev/null 2>&1 || fail "fail-closed fixture setup"
+cd "$PM/r11"; TRAY_B=$(bash "$TP"); LOG_B=$(bash "$TP" log); mkdir -p "$TRAY_B"
+nb=$(mkentry "$TRAY_B" 3 8888888a proposed) || fail "mkentry no-branch"
+cp "$nb" "$PM/nb.before"
+lo=$(bash "$TS" list 2>&1); rc=$?
+# Anchored on the surface line, not on "nothing changed": an unwired reconciler changes
+# nothing either, and that pair of assertions would pass against no reconciler at all.
+[ $rc = 0 ] && grep -q 'no pull request is recorded' <<<"$lo" && [ -f "$nb" ] && cmp -s "$nb" "$PM/nb.before" && [ ! -e "$LOG_B" ] \
+  && pass "an entry marked proposed with no pull request recorded is surfaced and left exactly as it is" || { echo "  rc=$rc out='$lo'"; fail "a proposed entry with no recorded pull request was changed or went unsurfaced"; }
+ub=$(mkentry "$TRAY_B" 3 8888888b proposed) || fail "mkentry unreachable-remote"
+printf 'pr_branch: "learn/nowhere"\npr_ref: "#1"\n' >> "$ub"   # appended after the body: still readable by the same reader
+cp "$ub" "$PM/ub.before"
+lo=$(bash "$TS" list 2>&1); rc=$?
+# Same anchor: the branch name only reaches the output if reconciliation read the field
+# and tried to ask the remote about it.
+[ $rc = 0 ] && grep -q 'learn/nowhere' <<<"$lo" && [ -f "$ub" ] && cmp -s "$ub" "$PM/ub.before" && [ ! -e "$LOG_B" ] \
+  && pass "no remote to ask: nothing is consumed and nothing is demoted (reconciliation fails closed)" || { echo "  rc=$rc out='$lo'"; fail "reconciliation acted without being able to ask the remote, or never asked"; }
+cd "$SKILL_DIR"
+
+echo "== Behavioral: promotion routes by track, and evidence resolves first =="
+# Every promotion event evaluates EVERY entry: the track selects the gate, not the
+# trigger. Each track must therefore promote on its own event and on no other, and the
+# entries that do not promote must be surfaced rather than quietly dropped.
+(pmrepo "$PM/rt") >/dev/null 2>&1 || fail "routing fixture setup"
+cd "$PM/rt/w"; TRAY_R=$(bash "$TP"); LOG_R=$(bash "$TP" log)
+# A squash merge, which is what makes a cited commit unreachable as a matter of routine.
+(set -e
+ git checkout -q -b squashed
+ printf 'export function guard(req){ return req.headers.get("x-internal") }\n' >> src/jobs/auth.ts
+ git add -A; git commit -qm 'the guard'
+ git rev-parse HEAD > "$PM/sq"
+ git checkout -q main; git merge -q --squash squashed; git commit -qm 'squash: the guard'
+ git push -q origin main; git branch -q -D squashed) >/dev/null 2>&1 || fail "squash fixture"
+SQ=$(cat "$PM/sq" 2>/dev/null)
+git merge-base --is-ancestor "${SQ:-HEAD}" origin/main 2>/dev/null && fail "squash fixture: the cited commit is still reachable, so AE9 would prove nothing"
+mk() { bash "$TS" capture "$@"; }
+pk=$(mk --track checkable --claim 'A scheduled-job route behind a bare header check rejects the scheduler' --evidence "$EV" --path src/jobs/auth.ts)
+pg=$(mk --track checkable --claim 'The legacy importer swallowed every error it could not parse' --evidence 'the importer caught and dropped the parse failure' --path src/legacy/importer.ts)
+pb=$(mk --track checkable --claim 'The admin route rejects an authenticated caller with 500' --evidence 'the handler reads the body before the guard runs' --path src/jobs/auth.ts)
+ps=$(mk --track checkable --claim 'The guard must read the header before the body' --evidence "commit $SQ added the guard on the branch" --path src/jobs/auth.ts)
+pdy=$(mk --track decision --accepted true --claim 'Chose the queue over a cron route for retries' --evidence 'a cron route cannot retry a single failed run' --path src/jobs/auth.ts)
+pdn=$(mk --track decision --accepted false --claim 'Considered a second datastore and did not adopt it' --evidence 'two writers leave no authority over the same row' --path src/jobs/auth.ts)
+pst=$(mk --track standing --claim 'Reviewers read the diff, not the spec it came from' --evidence 'nothing in the tree settles this' --path src/jobs/auth.ts)
+k_ok=$(fm "${pk:-/nonexistent}" id);  k_gone=$(fm "${pg:-/nonexistent}" id); k_bad=$(fm "${pb:-/nonexistent}" id)
+k_sq=$(fm "${ps:-/nonexistent}" id);  d_yes=$(fm "${pdy:-/nonexistent}" id); d_no=$(fm "${pdn:-/nonexistent}" id)
+s_1=$(fm "${pst:-/nonexistent}" id)
+[ "$(ents "$TRAY_R")" = 7 ] && [ -n "$k_ok$k_gone$k_bad$k_sq$d_yes$d_no$s_1" ] && pass "routing fixture: seven entries, one per cell of the table" || fail "routing fixture entries"
+cp "$pb" "$PM/rt-bad.before" 2>/dev/null
+CONTRA='the route now returns 401 and the guard runs before the body'
+
+po=$(bash "$TS" promote --event merge --confirms "$k_ok" --confirms "$k_sq" --contradicts "$k_bad=$CONTRA" 2>/dev/null); rc=$?
+# Anchored on the run having produced a report at all: every `grep -q` below is satisfied
+# by nothing when the output is empty, and `rc` alone cannot tell a refusal from a crash.
+ran() { [ $rc = 0 ] && grep -q '^promoted=' <<<"$po"; }
+ran && grep -q "^promote id=$k_ok track=checkable event=merge evidence=confirms dest=AGENTS.md " <<<"$po" \
+  && grep -A1 "^promote id=$k_ok " <<<"$po" | grep -q '^  line: .*src/jobs/auth.ts' \
+  && pass "AE2: a merge promotes a checkable entry whose evidence resolves, with its file reference attached" || { echo "  rc=$rc"; echo "$po"; fail "AE2: confirmed checkable entry not promoted"; }
+ran && grep -q "^promote id=$k_sq track=checkable event=merge evidence=re-anchored dest=" <<<"$po" \
+  && pass "AE9: a cited commit a squash merge made unreachable is re-anchored through the entry's paths, and promotes" || { echo "$po"; fail "AE9: squashed-away commit not re-anchored"; }
+ran && grep -q "^promote id=$s_1 track=standing event=merge evidence=skipped dest=docs/topics/jobs.md " <<<"$po" \
+  && grep -A1 "^promote id=$s_1 " <<<"$po" | grep -q '^  line: .*asserted' \
+  && pass "AE11: a standing entry promotes into docs/topics/, flagged asserted" || { echo "$po"; fail "AE11: standing entry misrouted"; }
+# The distinguishing half: in this very run the instruction file had the headroom and a
+# checkable entry went into it. So "standing went to topics" is the track's doing, not the
+# budget's — with one entry in the fixture the two are indistinguishable.
+ran && ! grep -q "^promote id=$s_1 .*dest=AGENTS.md" <<<"$po" && grep -q "dest=AGENTS.md" <<<"$po" \
+  && pass "AE11: standing never reaches the instruction file, in a run where another entry did" || { echo "$po"; fail "AE11: standing/instruction-file separation is untested"; }
+ran && grep -q "^staged id=$k_bad track=checkable evidence=contradicts contradiction=\"$CONTRA\" " <<<"$po" \
+  && pass "a checkable entry whose evidence contradicts its claim is surfaced with the contradiction named" || { echo "$po"; fail "contradiction not surfaced by name"; }
+# The debugging case: the entry was staged against a broken route and this is the merge
+# that fixed it. Deleting on contradiction would reap the lesson at the moment it became
+# worth keeping, so the file has to come through untouched.
+ran && [ -f "${pb:-/nonexistent}" ] && cmp -s "$pb" "$PM/rt-bad.before" && [ ! -e "$LOG_R" ] \
+  && pass "R16: the contradicted entry stays in the tray, byte-identical — nothing is deleted and nothing is logged" || { fail "R16: the fix for the bug reaped the lesson about it"; }
+ran && grep -q "^staged id=$k_gone track=checkable evidence=unresolvable " <<<"$po" \
+  && pass "R16: evidence that cannot be resolved is surfaced and left staged, distinct from one that contradicts" || { echo "$po"; fail "unresolvable evidence not surfaced"; }
+ran && grep -q "^promote id=$d_yes track=decision event=merge evidence=exempt dest=docs/decisions/" <<<"$po" \
+  && pass "a decision whose acceptance is recorded promotes at a merge event" || { echo "$po"; fail "accepted decision not promoted at a merge"; }
+ran && grep -q "^staged id=$d_no track=decision reason=no-acceptance-recorded" <<<"$po" \
+  && pass "a decision with no recorded acceptance stays staged through a merge event" || { echo "$po"; fail "unaccepted decision promoted by a merge"; }
+ran && [ "$(ents "$TRAY_R")" = 7 ] && [ "$(fm "$pk" state)" = captured \
+  ] && pass "promotion itself writes nothing: seven entries in, seven out, all still captured" || fail "promote mutated the tray"
+ran && grep -q 'ONE DRAFT pull request and never merge it here' <<<"$po" \
+  && pass "the promotion report ends in a draft pull request the skill never merges" || { echo "$po"; fail "promotion does not say draft/never-merge"; }
+
+# The same tray, the other event. Each track must promote on its own event and on no other.
+po2=$(bash "$TS" promote --event decision-acceptance --confirms "$k_ok" --confirms "$k_sq" --contradicts "$k_bad=$CONTRA" 2>/dev/null); rc=$?
+ran2() { [ $rc = 0 ] && grep -q '^promoted=' <<<"$po2"; }
+ran2 && grep -q "^promote id=$d_yes track=decision event=decision-acceptance evidence=exempt dest=docs/decisions/" <<<"$po2" \
+  && pass "an already-accepted decision promotes at an acceptance event too" || { echo "$po2"; fail "accepted decision not promoted at an acceptance event"; }
+ran2 && grep -q "^promote id=$d_no track=decision event=decision-acceptance evidence=exempt dest=docs/decisions/" <<<"$po2" \
+  && pass "AE3: a decision-track entry promotes as a decision record at an acceptance event, with no merge in existence" || { echo "$po2"; fail "AE3: decision entry did not promote on its own event"; }
+ran2 && grep -q "^promote id=$k_ok track=checkable event=decision-acceptance evidence=confirms dest=AGENTS.md " <<<"$po2" \
+  && pass "a checkable entry already true in the default branch promotes at a decision-acceptance event (its gate is a condition, not an event)" || { echo "$po2"; fail "checkable entry gated on the merge event"; }
+ran2 && grep -q "^promote id=$s_1 track=standing event=decision-acceptance evidence=skipped dest=docs/topics/" <<<"$po2" \
+  && pass "a standing entry promotes on either event, always to docs/topics/" || { echo "$po2"; fail "standing entry gated on an event"; }
+ran2 && grep -q "^promote id=$k_sq track=checkable event=decision-acceptance evidence=re-anchored dest=" <<<"$po2" \
+  && pass "re-anchoring is not an event's doing either: the squashed-away citation promotes on both events" || { echo "$po2"; fail "re-anchored entry gated on the merge event"; }
+ran2 && grep -q "^staged id=$k_bad .*evidence=contradicts" <<<"$po2" && grep -q "^staged id=$k_gone .*evidence=unresolvable" <<<"$po2" \
+  && pass "neither failed-evidence entry promotes on the other event either — the evidence gate is not an event gate" || { echo "$po2"; fail "a failed-evidence entry promoted on a decision-acceptance event"; }
+
+# R16/KTD7: the refusal. `standing` skips the evidence step entirely, so re-routing an
+# entry whose evidence just failed onto it would promote it on the strength of the step
+# that refused it. The attempt is refused, not disclosed.
+for bad in "$k_gone=standing" "$k_bad=standing"; do
+  o=$(bash "$TS" promote --event merge --confirms "$k_ok" --confirms "$k_sq" --contradicts "$k_bad=$CONTRA" --as "$bad" 2>&1); rc=$?
+  [ $rc -ne 0 ] && grep -q '^learn: ' <<<"$o" && grep -q "${bad%%=*}" <<<"$o" && ! grep -q '^promote id=' <<<"$o" \
+    && pass "a failed-evidence entry cannot be re-routed onto standing (${bad%%=*}): the attempt is refused, and nothing promotes" || { echo "  rc=$rc out='$o'"; fail "re-routing ${bad%%=*} onto standing was allowed or merely disclosed"; }
+done
+# The control that makes the refusal mean something: an override IS allowed, and disclosed,
+# when the evidence step did not refuse the entry. Without this, refusing every --as passes.
+o=$(bash "$TS" promote --event merge --confirms "$k_ok" --confirms "$k_sq" --contradicts "$k_bad=$CONTRA" --as "$k_ok=standing" 2>/dev/null); rc=$?
+[ $rc = 0 ] && grep -q "^promote id=$k_ok track=checkable->standing event=merge evidence=confirms dest=docs/topics/" <<<"$o" \
+  && pass "an override of the routing hint is honoured and disclosed when the evidence resolved" || { echo "  rc=$rc out='$o'"; fail "every override is refused, so the refusal proves nothing"; }
+# Evidence resolves before the track routes, so promotion cannot run until the session
+# says what it found — and must not demand a verdict for the entry nothing resolved for.
+o=$(bash "$TS" promote --event merge 2>&1); rc=$?
+[ $rc -ne 0 ] && grep -q '^learn: ' <<<"$o" && grep -q "$k_ok" <<<"$o" && grep -q "$k_sq" <<<"$o" && grep -q "$k_bad" <<<"$o" \
+  && ! grep -q "$k_gone" <<<"$o" && ! grep -q '^promote id=' <<<"$o" \
+  && pass "promotion refuses until the evidence verdict is stated for every checkable entry that resolved — and asks for none where nothing resolved" || { echo "  rc=$rc out='$o'"; fail "promotion routed checkable entries with no verdict"; }
+o=$(bash "$TS" promote --event merge --confirms "$k_ok" --confirms "$k_sq" --confirms "$s_1" --contradicts "$k_bad=$CONTRA" 2>&1); rc=$?
+[ $rc -ne 0 ] && grep -q '^learn: ' <<<"$o" && grep -q "$s_1" <<<"$o" \
+  && pass "a verdict offered for a track the evidence step does not apply to is refused, not quietly applied" || { echo "  rc=$rc out='$o'"; fail "standing entry accepted an evidence verdict"; }
+
+# R17 at promotion time: a secret introduced AFTER capture (capture's scan cannot have
+# seen it) excludes that entry alone. Aborting the batch would let one poisoned entry
+# block every later lesson indefinitely.
+tok5="gh""p_$(printf 'W%.0s' $(seq 1 36))"
+printf 'The failing request carried %s in its header.\n' "$tok5" >> "$pk"
+po3=$(bash "$TS" promote --event merge --confirms "$k_ok" --confirms "$k_sq" --contradicts "$k_bad=$CONTRA" 2>/dev/null); rc=$?
+ex() { [ $rc = 0 ] && grep -q "^excluded id=$k_ok reason=secret-finding" <<<"$po3"; }
+ex && grep -q 'BLOCK token' <<<"$po3" && ! grep -qF "$tok5" <<<"$po3" && grep -qi 'rotate the credential' <<<"$po3" \
+  && pass "R17: a secret introduced after capture excludes that entry by id, masked, with a rotate-the-credential instruction" || { echo "  rc=$rc"; echo "$po3"; fail "R17: promotion-time finding not excluded or not masked"; }
+ex && grep -q "^promote id=$s_1 " <<<"$po3" && grep -q "^promote id=$d_yes " <<<"$po3" \
+  && pass "R17: the rest of the batch still promotes — one poisoned entry does not block every later one" || { echo "$po3"; fail "R17: one finding aborted the whole promotion"; }
+ex && [ -f "$pk" ] && pass "R17: the excluded entry is not deleted (only reject deletes)" || fail "R17: promotion deleted the entry it flagged"
+
+# Promotion is the third expiry runner, and the matched set is what this event resolved.
+# Same age, same track, one difference: whether this promotion resolved against it.
+(pmrepo "$PM/sw") >/dev/null 2>&1 || fail "promotion-sweep fixture setup"
+cd "$PM/sw/w"; TRAY_S=$(bash "$TP"); LOG_S=$(bash "$TP" log)
+oa=$(mk --track checkable --claim 'The retired importer logged nothing on a parse failure' --evidence 'the importer caught and dropped it' --path src/legacy/importer.ts)
+ob=$(mk --track checkable --claim 'The admin route rejects an authenticated caller with 500' --evidence 'the handler reads the body before the guard runs' --path src/jobs/auth.ts)
+oa=$(age_entry "$oa" 400) || fail "age_entry unresolvable"
+ob=$(age_entry "$ob" 400) || fail "age_entry contradicted"
+ib=$(fm "${ob:-/nonexistent}" id)
+po4=$(bash "$TS" promote --event merge --contradicts "$ib=$CONTRA" 2>/dev/null); rc=$?
+swept4() { [ $rc = 0 ] && [ -n "$ib" ] && [ ! -e "${oa:-/nonexistent}" ] && [ -f "${LOG_S:-/nonexistent}" ]; }
+swept4 && grep -q ' expired id=' "$LOG_S" \
+  && pass "promotion is the third expiry runner: an over-age entry it could not resolve ages out, logged" || { echo "  rc=$rc out='$po4'"; fail "promotion did not sweep"; }
+swept4 && [ -f "${ob:-/nonexistent}" ] && ! grep -q "id=$ib" "$LOG_S" \
+  && pass "KTD5 at promotion: the contradicted entry, the same age, is matched by this event and survives its sweep" || { cat "$LOG_S" 2>/dev/null; fail "the sweep reaped the entry this promotion had just resolved against"; }
+
+# The instruction file's word budget. Overflow is the NORMAL path — an always-loaded file
+# sits at its limit — so the surprise worth testing is a promotion that fits.
+(pmrepo "$PM/bud") >/dev/null 2>&1 || fail "budget fixture setup"
+cd "$PM/bud/w"
+yes word | head -397 | tr '\n' ' ' > AGENTS.md
+[ "$(wc -w < AGENTS.md | tr -d ' ')" = 397 ] || fail "budget fixture: AGENTS.md is not 397 words"
+pbu=$(mk --track checkable --claim 'A scheduled-job route behind a bare header check rejects the scheduler' --evidence "$EV" --path src/jobs/auth.ts)
+ibu=$(fm "${pbu:-/nonexistent}" id)
+po5=$(bash "$TS" promote --event merge --confirms "$ibu" 2>/dev/null); rc=$?
+[ $rc = 0 ] && [ -n "$ibu" ] && grep -q "^promote id=$ibu .*dest=docs/topics/jobs.md reason=instruction-file-over-budget(AGENTS.md=397w" <<<"$po5" \
+  && pass "a lesson that would push the instruction file over its budget routes to docs/topics/ and the report says so, with the count" || { echo "  rc=$rc out='$po5'"; fail "budget overflow not routed or not stated"; }
+po6=$(bash "$TS" promote --event merge --confirms "$ibu" --budget 100000 2>/dev/null); rc=$?
+# The same entry, the same instruction file: only the budget differs. Without this pair,
+# "it went to topics" is indistinguishable from a router that never looks at the budget.
+[ $rc = 0 ] && grep -q "^promote id=$ibu .*dest=AGENTS.md reason=fits-the-instruction-file-budget(397w" <<<"$po6" \
+  && pass "the same lesson under a budget it fits goes into the instruction file — the budget is what moved it" || { echo "  rc=$rc out='$po6'"; fail "the router does not read the budget"; }
 cd "$SKILL_DIR"
 
 echo ""; echo "PASS: $PASS  FAIL: $FAIL"

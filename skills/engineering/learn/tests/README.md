@@ -127,8 +127,9 @@ way (`newrepo` + `mkentry` at chosen ages). Asserts:
 - **R20 ordering** — a listing holding an over-age unmatched entry reports it *and then*
   reaps it: the entry's block appears in the output (asserted by line number, before the
   removal notice) and the file is gone afterwards, logged once as an expiry;
-- a `proposed` entry is listed and **byte-identical** afterwards — neither reaped nor
-  reconciled (reconciliation belongs to the unit that owns the pull-request reference);
+- a `proposed` entry is listed and **byte-identical** afterwards — not reaped, and not
+  reconciled either, because the hand-written fixture entry records no pull request to
+  reconcile against (the reconciler itself is asserted further down);
 - the shared-log contract: an expiry and a rejection in one log count separately
   (`' expired id='` = 1, `' rejected id='` = 1), and a `--reason` whose rendered line would
   match the expiry grep is refused — the reason is the only field a caller controls, so it
@@ -152,6 +153,82 @@ merged` routing clause (without it an agent whose session produced no merge stop
 and never reaches the mode). The heading pin carries its `##` on purpose: the step-1
 pointer names the mode too, so a bare `Mode: no-merge capture` passed with the whole
 section deleted — it did, as a mutant, before the `##` was added.
+
+## The proposed state, reconciliation and promotion
+
+`scripts/tray.sh propose`, `promote`, and the reconciliation all three runners perform.
+Fixtures here are **real repositories with a real remote** (`pmrepo`: a bare `origin.git`,
+a seeded `main`, a clone) because the only signal reconciliation has is git — a branch
+pushed and later deleted, and a claim present or absent in the default branch. No forge
+tooling, no network, and **no pull request is ever opened**: "opens a draft PR" is asserted
+as instruction text and report text, never performed.
+
+- **AE8, the trimmed line — written and run before the happy path.** Three entries are
+  captured, one is aged 30 days, all three are marked `proposed` on one branch, the branch
+  is pushed, two of the three lines are merged to `main` and the branch is deleted. Two
+  entries are **consumed** (gone, logged once each) and the third **returns to `captured`,
+  byte-identical to the file capture wrote** — same filename, so the same capture date, so
+  an untouched clock, and no pull-request fields left behind. The third entry is aged on
+  purpose: captured today it would be indistinguishable from one whose clock a promotion
+  silently reset, which is the bug KTD4 is about. The tray is asserted to hold exactly one
+  entry afterwards, not zero.
+- **KTD4, the open pull request.** A listing taken *between* the push and the merge leaves
+  every entry `proposed` and byte-identical. Anchored on the branch name appearing in the
+  output: "still proposed" is also what a listing that never reconciled would leave, so
+  the assertion demands evidence that the remote was actually asked.
+- **Reconciliation on each of the three runners, proved separately** — `list`, `capture`
+  and `promote` each get their own fixture, since a shared one cannot say which runner
+  acted. Each demands the entry gone *and* the consumption logged. This is the combination
+  that leaks entries permanently: expiry already exempts `state: proposed`, so a runner
+  that does not reconcile leaves an entry exempt forever.
+- **Fail-closed.** A proposed entry with no recorded pull request, and one whose remote
+  cannot be reached, are both surfaced and left exactly as they are — nothing consumed,
+  nothing demoted, nothing logged. Both are anchored on the surface line (the phrase, and
+  the branch name) because "nothing changed" is also true of no reconciler at all.
+- **The routing table, one fixture, seven entries** — one per cell: a checkable entry whose
+  evidence resolves (AE2, promoted with its file reference attached), one whose paths are
+  gone (unresolvable → surfaced, staged), one contradicted (surfaced *with the
+  contradiction named*, staged, byte-identical, nothing logged), one citing a commit a real
+  `git merge --squash` made unreachable (AE9 → re-anchored through its paths, promotes), a
+  decision with acceptance recorded, one without, and a standing entry. Both events are
+  run over the same tray, so each track is shown promoting on its own event **and not on
+  the other**.
+- **AE11 is asserted against a fixture that can distinguish it:** the standing entry goes
+  to `docs/topics/` flagged `asserted` in the *same run* in which another entry goes into
+  the instruction file. With one entry in the tray, "standing went to topics" and "the
+  budget moved it" are the same observation.
+- **The refusal (R16/KTD7).** Re-routing a failed-evidence entry onto `standing` — the
+  track that skips the evidence step — is refused, and nothing promotes. Paired with its
+  control: an override of an entry the evidence step *cleared* is honoured and disclosed
+  (`track=checkable->standing`). Without the control, an implementation that refuses every
+  `--as` would pass. Promotion also refuses to run until the verdict is stated for every
+  checkable entry that resolved — and must not demand one for the entry nothing resolved
+  for, which is the half that proves the order.
+- **R17 at promotion time.** A credential appended to an entry *after* capture (so the
+  capture-time scan cannot have seen it) excludes that entry alone, by id, masked, with a
+  rotate-the-credential instruction, while the rest of the batch still promotes and the
+  entry is not deleted.
+- **The budget.** 397 words of instruction file against the 400-word fallback: the lesson
+  routes to `docs/topics/` and the report says so with the count. The same entry under
+  `--budget 100000` goes into the instruction file — the pair is what proves the router
+  reads the budget rather than always choosing topics.
+- **Promotion is the third expiry runner**, and the matched set is what this event resolved
+  against the repository: two 400-day-old entries, one unresolvable and one contradicted,
+  and only the unresolvable one ages out.
+
+Fifteen mutants were run and all fifteen were caught, each by the assertion aimed at it:
+reconciliation omitted from `list`, from `capture`, and from `promote` (three separate
+mutants, three separate kills); the branch-gone precondition dropped, which demotes every
+staged entry on the first runner after a promotion; the track routed **before** the
+evidence resolved; the re-route refusal softened to a disclosure; one secret finding
+aborting the whole batch; the `promote` verb unreachable from the dispatcher (which fails
+all 28 routing assertions, the retroactive red run for them); a contradicted entry deleted
+instead of surfaced; a standing lesson routed into the instruction file; the word budget
+never checked; re-anchoring dropped; the evidence-verdict requirement softened to a no-op;
+the returned entry re-dated to today; and `propose` recording no head branch. No mutant
+survived. The clock-reset mutant is the reason the trimmed entry in the AE8 fixture is
+aged 30 days: against an entry captured today a reset is invisible, and that fixture
+weakness was found by the mutant, not by the test.
 
 Every assertion that would hold against an untouched tray or a missing verb is anchored on
 the thing having happened: the reject asserts demand exit 0 *and* the file gone *and* the
