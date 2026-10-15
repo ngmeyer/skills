@@ -125,6 +125,54 @@ but resolve the directory through `scripts/tray-path.sh`, never by hand.
   match. The one field a caller controls — a rejection's reason, a consumption's pull
   request reference — is checked against the other verbs' greps before the line is written.
 
+### Grok Bot parity — open (KTD12)
+
+Claude Code parity is **machine-verified**: `tests/eval.sh` produces one tray-and-
+instruction-file state three ways — by the verbs, by hand, and with a stream editor — and
+fails unless every check on it returns an identical exit code and identical output; it
+then runs the verbs a second time under `env -i` with only `PATH`, `HOME` and `TZ`, with
+no forge CLI on `PATH`, and fails unless that output matches the run made with harness
+environment variables set. Grok Bot has no such runner here, so its parity is an **open
+item owned by Grok Bot**. The interim evidence is the manual procedure below and the date
+a human last ran it — not a claim that it works.
+
+- status: open
+- procedure last run by hand: NOT-YET-RUN — nobody has run steps 1-6 in a Grok Bot session
+  yet. The date below is when this record was written and reviewed, which is not a run.
+- record last reviewed: 2026-10-14
+- open question: does Grok Bot's shell share a git directory with the user's clone? Still
+  unanswered, and step 1 is what answers it. If the shell is a separate box or container
+  with its own checkout, the tray resolves into *that* git directory: entries captured
+  there are invisible from the user's clone and go away with the container. That is not a
+  defect in the verbs — it is a different repository — but it decides whether one person
+  can run steps 2-6 end to end at all, so nothing below should be read as assuming it.
+
+The procedure. Run it in a Grok Bot session against a repository that has a lesson worth
+capturing, then replace `NOT-YET-RUN` with the ISO date of the run and change `status:` to
+`hand-verified`. Do not fill the date in from anywhere but a run you performed.
+
+1. In the shell, `cd` into the repository and record the output of
+   `git rev-parse --path-format=absolute --git-common-dir`. Compare it with the same
+   command in the user's own clone: that comparison is the answer to the open question.
+2. `scripts/tray.sh capture --track checkable --claim "<one line>" --evidence "<one line>"
+   --path <repo-relative path>` — it prints one path. `cat` that path and check the
+   frontmatter against *What a tray entry contains* below.
+3. `scripts/tray.sh list` — the entry appears with its id, age, track, state, claim and
+   match paths.
+4. `scripts/tray.sh promote --event merge --confirms <id>` — one routing line, with the
+   `line:` it would add and where.
+5. Apply that line **verbatim**, commit, push the branch, open **one draft pull request**
+   (the web UI is fine; there is no CLI requirement), then
+   `scripts/tray.sh propose <id> --branch <head branch> --pr <reference>`.
+6. After the pull request merges and its head branch is deleted, run `scripts/tray.sh
+   list` once more: the entry is gone and the tray log records it as `consumed`.
+
+It passes if steps 2-4 and 6 print what the same steps print in another harness on the
+same repository state — identical but for the id, the date and the repository path — and
+if nothing in the run needed a harness API, an MCP server, an environment variable or a
+forge CLI. It fails, and parity stays open, if any step needed something the shell alone
+could not provide.
+
 ## Promotion: the routing table
 
 Every promotion event evaluates **every** entry — the track selects the gate, not the

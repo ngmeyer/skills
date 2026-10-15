@@ -59,16 +59,23 @@ for k in "Promoted from the capture tray" "opened as a draft and is never merged
   rchk "pr-template: $k" pr-template.md "$k"
 done
 
-echo "== Portability (core is harness-agnostic) =="
+echo "== Hygiene: size, no harness tokens, no internal names (a lint — the portability PROOF is the differential at the end of this file) =="
 lines=$(wc -l < SKILL.md); [ "$lines" -le 250 ] && pass "SKILL.md $lines lines" || fail "SKILL.md $lines lines"
 bytes=$(wc -c < SKILL.md); [ "$bytes" -le 16000 ] && pass "SKILL.md $bytes bytes (<=16k)" || fail "SKILL.md $bytes bytes"
 body_dash=$(awk 'NR>1 && /^---$/{c++} END{print c+0}' SKILL.md)
 [ "$body_dash" -eq 1 ] && pass "no bare --- in body" || fail "bare --- lines in body: $((body_dash-1))"
-# The body is what every harness reads as instructions, so that is what must stay
-# harness-agnostic. Frontmatter is per-harness metadata each one parses or ignores:
+# THIS IS A HYGIENE LINT, NOT THE PORTABILITY PROOF. Searching the body for
+# harness-specific strings shows only that nothing NAMES a harness; it cannot show that a
+# verb RUNS anywhere, and a skill whose scripts were all broken would pass it unchanged.
+# R5 and R13 are proved at the end of this file instead — the same state produced by the
+# skill, by hand and by a stream editor, read by the same checks, and every verb run under
+# a bare shell with no harness environment and no forge CLI on PATH. The lint stays
+# because the repo's own hygiene rule forbids these tokens (and a user path) in a
+# published skill, which is a different claim worth keeping.
+# Frontmatter is exempt: it is per-harness metadata each one parses or ignores, and
 # `user-invocable`/`allowed-tools` is what makes this a slash command in Claude Code.
 body=$(awk 'NR>1 && /^---$/{f=1;next} f' SKILL.md)
-if grep -nE '~/\.claude|\.claude/|\.cursor/|allowed-tools|/Users/|/home/[a-z]|\bgh (pr|api)\b|Bash\(|AskUserQuestion' <<<"$body"; then fail "harness-specific token in core"; else pass "no harness-specific tokens in core"; fi
+if grep -nE '~/\.claude|\.claude/|\.cursor/|allowed-tools|/Users/|/home/[a-z]|\bgh (pr|api)\b|Bash\(|AskUserQuestion' <<<"$body"; then fail "hygiene lint: harness-specific token in core"; else pass "hygiene lint: no harness-specific tokens in the core body (not the portability proof — see the differential)"; fi
 grep -qE '^user-invocable: true' SKILL.md && pass "slash-invocable in Claude Code" || fail "no user-invocable: true"
 LEAK=0
 for term in signupspark swim-records ourgospelstudy voltron localcred superscore pithybyte gearu verowrite portolan ponytail /workspace; do
@@ -824,6 +831,253 @@ po6=$(bash "$TS" promote --event merge --confirms "$ibu" --budget 100000 2>/dev/
 [ $rc = 0 ] && grep -q "^promote id=$ibu .*dest=AGENTS.md reason=fits-the-instruction-file-budget(397w" <<<"$po6" \
   && pass "the same lesson under a budget it fits goes into the instruction file — the budget is what moved it" || { echo "  rc=$rc out='$po6'"; fail "the router does not read the budget"; }
 cd "$SKILL_DIR"
+
+echo "== Differential: one durable-store state, three producers (R5) =="
+# R5 says every check on the durable store's content validates FILE STATE ALONE: the same
+# state passes or fails identically whether a human, this skill, or another agent produced
+# it. The hygiene lint near the top of this file cannot test that — a search of SKILL.md
+# for harness-specific strings only shows that nothing NAMES a harness, never that a check
+# ignores who wrote the file, and a skill that ran nowhere at all would pass it. So the
+# proof is a differential: one state, built three ways, read by the same four checks, with
+# the exit codes and the output compared byte for byte.
+#
+# The three producers are independent paths, not three calls to one function:
+#   skill — `tray.sh capture` writes the entry; `tray.sh promote` prints the line and the
+#           session appends it, which is the documented flow.
+#   hand  — no verb is ever invoked in that repository: `mkdir` plus `printf` write the
+#           entry and a here-document appends the line. A human with an editor.
+#   sed   — a stream editor rewrites a DIFFERENT entry already on disk into the target and
+#           `mv`s it into place (a new inode), and inserts the line with `sed '$a\'`. An
+#           agent editing files it did not create and cannot call the verbs for.
+# The three states end up byte-identical on purpose, and that is asserted with `cmp`
+# before any check runs. What differs is everything AROUND the bytes: which process made
+# them, in what order, whether the tray was created by `capture` or by `mkdir`, mtimes,
+# inodes, and whether the verbs ever ran in that clone at all. That is exactly the
+# provenance R5 forbids a check from consulting, and the author-awareness mutant (a
+# sidecar `capture` writes and `list` reads) turns this section red when one does.
+DF=$(mktemp -d); trap 'rm -rf "$T" "$M" "$TR" "$CT" "$XP" "$LS" "$PM" "$DF"' EXIT
+DFDATE='2001-02-03T04:05:06+0000'
+DCLAIM='A scheduled-job route behind a bare header check rejects every caller that cannot set the header'
+DEV='the guard returns before the body is read'
+DSPEC='specs/feat/slices/01.md'
+# ONE origin, cloned three times, with the commit dates pinned: the three repositories
+# share a history byte for byte, so any difference in a check's output can only have come
+# from the producer.
+(set -e
+ git init -q --bare "$DF/origin.git"
+ git init -q "$DF/seed"; cd "$DF/seed"
+ git config user.email t@t; git config user.name t; git checkout -q -b main
+ mkdir -p docs/topics src/jobs "${DSPEC%/*}"
+ printf 'Read docs/topics/x.md\n' > AGENTS.md
+ printf 'topics\n' > docs/topics/x.md
+ printf 'export function handler(req){ return ok(req) }\n' > src/jobs/auth.ts
+ printf 'the slice spec\n' > "$DSPEC"
+ git add -A
+ GIT_AUTHOR_DATE=$DFDATE GIT_COMMITTER_DATE=$DFDATE git commit -qm init
+ git remote add origin "$DF/origin.git"; git push -q -u origin main) >/dev/null 2>&1 || fail "differential: origin fixture"
+# Each producer gets its OWN copy of that one origin. Sharing a remote made the second
+# clone start from the first producer's pushed line, which is how the first red run of
+# this section reported three states of 30, 58 and 86 words rather than three of 30.
+dclone() { cp -R "$DF/origin.git" "$1.git" && git clone -q "$1.git" "$1" >/dev/null 2>&1 \
+  && git -C "$1" config user.email t@t && git -C "$1" config user.name t; }
+# Applying the line, committing and pushing is the same for all three: the producer is who
+# writes the content, which is what R5 is about.
+dcommit() { git add -A >/dev/null 2>&1 \
+  && GIT_AUTHOR_DATE=$DFDATE GIT_COMMITTER_DATE=$DFDATE git commit -qm 'apply the promoted lesson' >/dev/null 2>&1 \
+  && git push -q origin main >/dev/null 2>&1 && git checkout -q -b learn/1 >/dev/null 2>&1; }
+dcheck() { local lbl=$1 o rc; shift; o=$("$@" 2>&1); rc=$?; printf '## %s rc=%s\n%s\n' "$lbl" "$rc" "$o"; }
+# Every check that reads the durable store, in one blob. The repository path and the merge
+# sha are the two things that are a property of the clone rather than of its content, so
+# they are the only things normalised — the path in both the plain and the /private form
+# macOS resolves a temp dir to.
+dblob() { # <repo> <verify budget> [retire path...] -> the whole check set, normalised
+  local r=$1 bud=$2 sha; shift 2
+  cd "$r" || return 1
+  sha=$(git rev-parse HEAD)
+  { dcheck list    /bin/bash "$TS" list
+    dcheck promote /bin/bash "$TS" promote --event merge --confirms "$DID"
+    dcheck redact  /bin/bash "$SKILL_DIR/scripts/redact-scan.sh" AGENTS.md docs/topics/x.md
+    dcheck verify  env BASE="$sha^1" /bin/bash "$SKILL_DIR/scripts/verify.sh" "$sha" main "$bud" "$@"
+  } | sed -e "s|/private$r|<REPO>|g" -e "s|$r|<REPO>|g" -e "s|$sha|<SHA>|g"
+}
+# PRODUCER 1 — the skill.
+dclone "$DF/skill" || fail "differential: skill clone"
+cd "$DF/skill"
+pA=$(bash "$TS" capture --track checkable --claim "$DCLAIM" --evidence "$DEV" --path src/jobs/auth.ts --path "$DSPEC" 2>&1) || fail "differential: capture ($pA)"
+DID=$(fm "${pA:-/nonexistent}" id)
+DLINE=$(bash "$TS" promote --event merge --confirms "${DID:-x}" 2>/dev/null | sed -n 's/^  line: //p' | head -1)
+[ -n "$DID" ] && [ -n "$DLINE" ] || fail "differential: no id or no line to apply (id='${DID:-}')"
+printf '%s\n' "$DLINE" >> AGENTS.md
+dcommit || fail "differential: skill commit"
+DBASE=${pA##*/}; DD=${DBASE#entry-}; DD=${DD%%-*}
+DCAP="${DD:0:4}-${DD:4:2}-${DD:6:2}"
+# PRODUCER 2 — a hand edit. No verb is invoked in this clone at all.
+dclone "$DF/hand" || fail "differential: hand clone"
+cd "$DF/hand"
+mkdir -p "$(bash "$TP")" || fail "differential: hand tray"
+pB=$(bash "$TP" entry "$DID")
+{ printf -- '---\n'; printf 'id: %s\n' "$DID"
+  printf 'claim: "%s"\n' "$DCLAIM"
+  printf 'evidence: "%s"\n' "$DEV"
+  printf 'paths:\n  - "src/jobs/auth.ts"\n  - "%s"\n' "$DSPEC"
+  printf 'captured_on: %s\n' "$DCAP"
+  printf 'track: checkable\nstate: captured\nverified: false\n'; printf -- '---\n'; } > "$pB"
+cat >> AGENTS.md <<DLEOF
+$DLINE
+DLEOF
+dcommit || fail "differential: hand commit"
+# PRODUCER 3 — a stream editor, transforming state already on disk.
+dclone "$DF/sed" || fail "differential: sed clone"
+cd "$DF/sed"
+mkdir -p "$(bash "$TP")" || fail "differential: sed tray"
+DEC=$(bash "$TP" entry 0decoy00)
+{ printf -- '---\n'; printf 'id: 0decoy00\n'
+  printf 'claim: "An abandoned exploration left the guard half-written"\n'
+  printf 'evidence: "nothing in the repository resolves this"\n'
+  printf 'paths:\n  - "src/jobs/auth.ts"\n  - "%s"\n' "$DSPEC"
+  printf 'captured_on: %s\n' "$DCAP"
+  printf 'track: standing\nstate: captured\nverified: false\n'; printf -- '---\n'; } > "$DEC"
+pC=$(bash "$TP" entry "$DID")
+sed -e "s|^id: .*|id: $DID|" -e "s|^claim: .*|claim: \"$DCLAIM\"|" \
+    -e "s|^evidence: .*|evidence: \"$DEV\"|" -e "s|^track: .*|track: checkable|" "$DEC" > "$DF/sed.entry" \
+  && mv "$DF/sed.entry" "$pC" && rm -f "$DEC" || fail "differential: sed entry producer"
+sed -e "\$a\\
+$DLINE" AGENTS.md > "$DF/sed.agents" && mv "$DF/sed.agents" AGENTS.md || fail "differential: sed line producer"
+dcommit || fail "differential: sed commit"
+cd "$SKILL_DIR"
+# The states are identical before any check runs, and non-trivially so: a non-empty entry
+# carrying the claim, and an instruction file carrying the promoted line. Three empty
+# files are also "identical", and that pair must not read as a pass.
+dsame() { [ -s "$1" ] && cmp -s "$1" "$2" && cmp -s "$1" "$3"; }
+dsame "$pA" "${pB:-/nonexistent}" "${pC:-/nonexistent}" && grep -qF "$DCLAIM" "$pA" \
+  && [ "${pA##*/}" = "${pB##*/}" ] && [ "${pA##*/}" = "${pC##*/}" ] \
+  && dsame "$DF/skill/AGENTS.md" "$DF/hand/AGENTS.md" "$DF/sed/AGENTS.md" && grep -qF -- "$DLINE" "$DF/skill/AGENTS.md" \
+  && pass "the skill, a hand edit and a stream editor leave byte-identical state — same entry filename, same entry bytes, same instruction file" \
+  || { for z in "$pA" "$pB" "$pC"; do echo "  $z"; done; diff "$pA" "${pB:-/dev/null}" | head -6; diff "$DF/skill/AGENTS.md" "$DF/sed/AGENTS.md" | head -6; fail "the three producers did not leave the same state"; }
+DVS=$(dblob "$DF/skill" 400); DVH=$(dblob "$DF/hand" 400); DVD=$(dblob "$DF/sed" 400)
+DFS=$(dblob "$DF/skill" 10 "$DSPEC"); DFH=$(dblob "$DF/hand" 10 "$DSPEC"); DFD=$(dblob "$DF/sed" 10 "$DSPEC")
+cd "$SKILL_DIR"
+# Anchored on what only a working implementation emits. Three blobs that are empty, or
+# three that died identically at `exit 127`, are also "identical output" — which is how a
+# differential passes while testing nothing.
+danchor() {
+  grep -q "^entry $DID  age=0d  track=checkable  state=captured\$" <<<"$1" \
+  && grep -qF "  claim: $DCLAIM" <<<"$1" \
+  && grep -q "^promote id=$DID track=checkable event=merge evidence=confirms dest=AGENTS.md " <<<"$1" \
+  && grep -qF "  line: $DLINE" <<<"$1" \
+  && grep -qx 'CLEAN' <<<"$1" \
+  && [ "$(grep -c '^## [a-z]* rc=' <<<"$1")" = 4 ]
+}
+dok()  { danchor "$1" && grep -qx 'PASS' <<<"$1" && [ "$(grep -c '^## [a-z]* rc=0$' <<<"$1")" = 4 ]; }
+dbad() { danchor "$1" && grep -qx '## verify rc=1' <<<"$1" \
+  && grep -qE "^FAIL  AGENTS\.md[[:space:]]+30 words > 10\$" <<<"$1" \
+  && grep -qx "FAIL  live link to retired $DSPEC:" <<<"$1" \
+  && grep -q "^AGENTS.md:2:- $DCLAIM " <<<"$1" && grep -qx 'VERIFY FAILED' <<<"$1"; }
+[ "$DVS" = "$DVH" ] && [ "$DVS" = "$DVD" ] && dok "$DVS" \
+  && pass "R5: one valid state, three producers — every check returns the same exit code and the same output" \
+  || { diff <(printf '%s\n' "$DVS") <(printf '%s\n' "$DVH") | head -10; diff <(printf '%s\n' "$DVS") <(printf '%s\n' "$DVD") | head -10; dok "$DVS" || printf '%s\n' "$DVS" | head -20; fail "R5: the valid state is not read identically across producers"; }
+# The must-fail arm. Without it the differential could pass with every producer green, and
+# a check that is author-aware only on the failure path — the path where it matters, since
+# that is the one that blocks a push — would never be touched.
+[ "$DFS" = "$DFH" ] && [ "$DFS" = "$DFD" ] && dbad "$DFS" \
+  && pass "R5: one INVALID state (over budget, live link to a retired spec), three producers — the same failure, the same message, the same exit code" \
+  || { diff <(printf '%s\n' "$DFS") <(printf '%s\n' "$DFH") | head -10; diff <(printf '%s\n' "$DFS") <(printf '%s\n' "$DFD") | head -10; dbad "$DFS" || printf '%s\n' "$DFS" | head -24; fail "R5: the invalid state is not refused identically across producers"; }
+# The two arms have to be telling the states apart, or both differentials are comparing one
+# blob with itself twice and neither says anything about valid versus invalid.
+[ "$DVS" != "$DFS" ] && dok "$DVS" && dbad "$DFS" \
+  && pass "the valid and invalid arms are distinguishable: the same producer's state passes one check set and fails the other" || fail "the valid and invalid blobs are indistinguishable"
+
+echo "== R13: every verb is a plain command (bare shell, no harness env, no forge CLI) =="
+# R13 says every capture and promotion step is invocable as a plain command, with a harness
+# hook as an optional accelerant. What that claims is testable only by taking the harness
+# away: the verbs run under `env -i` with nothing but PATH, HOME and TZ, and with no forge
+# CLI anywhere on PATH.
+#
+# The bare PATH is built by symlinking the real PATH MINUS the forge tools rather than by
+# listing what to include. A hand-written include list that forgot `od` or `tr` would make
+# every assertion below fail at exit 127, which is indistinguishable from a verb that needs
+# a harness — and "it failed" is not what this section is trying to show.
+DBIN="$DF/bin"; DHOME="$DF/home"; mkdir -p "$DBIN" "$DHOME"
+printf '%s\n' "$PATH" | tr ':' '\n' | while IFS= read -r d; do
+  [ -n "$d" ] && [ -d "$d" ] || continue
+  for f in "$d"/*; do
+    [ -f "$f" ] && [ -x "$f" ] || continue
+    case ${f##*/} in gh|glab|hub|tea|git-pr|forgejo) continue;; esac
+    [ -e "$DBIN/${f##*/}" ] || ln -s "$f" "$DBIN/${f##*/}" 2>/dev/null
+  done
+done
+# TZ is pinned in BOTH arms: it is not harness state, and an arm that disagreed with the
+# other about what day it is would report a different `age=` and fail for nothing.
+dbare() { env -i TZ=UTC PATH="$DBIN" HOME="$DHOME" /bin/bash "$@"; }
+dharn() { env TZ=UTC CLAUDECODE=1 CLAUDE_CODE_ENTRYPOINT=cli CLAUDE_PLUGIN_ROOT=plugins GROK_BOT_SESSION=1 CURSOR_TRACE_ID=x /bin/bash "$@"; }
+# Both halves demanded. "No harness variables are set" is true for free in a bare terminal,
+# so the harness arm has to be shown actually carrying them, or the comparison below is
+# between two identical environments.
+nh=$(dharn -c env | grep -cE '^(CLAUDECODE|CLAUDE_|GROK_|CURSOR_|ANTHROPIC_)')
+nb=$(dbare -c env | grep -cE '^(CLAUDECODE|CLAUDE_|GROK_|CURSOR_|ANTHROPIC_)')
+[ "$nh" -ge 5 ] && [ "$nb" = 0 ] && pass "the two arms really differ: $nh harness variables set in one, $nb in the other" || fail "the harness and bare arms did not differ in environment ($nh vs $nb)"
+bgit=$(dbare -c 'command -v git || true'); bgh=$(dbare -c 'command -v gh || true')
+[ -n "$bgit" ] && [ -z "$bgh" ] && pass "no forge CLI on PATH, and the PATH is not merely empty (git resolves)" || { echo "  git='$bgit' gh='$bgh'"; fail "the bare PATH is empty or still carries a forge CLI"; }
+dclone "$DF/bare" || fail "bare-shell clone"
+cd "$DF/bare"
+bp=$(dbare "$TS" capture --track checkable --claim "$DCLAIM" --evidence "$DEV" --path src/jobs/auth.ts 2>&1); rc=$?
+[ $rc = 0 ] && [ -f "${bp:-/nonexistent}" ] && grep -qF "$DCLAIM" "$bp" \
+  && pass "capture is a plain command: no harness environment, no forge CLI, and the entry it printed is on disk" || { echo "  rc=$rc out='$bp'"; fail "capture needs a harness or a forge CLI"; }
+bid=$(fm "${bp:-/nonexistent}" id)
+lh=$(dharn "$TS" list 2>&1); rch=$?
+lb=$(dbare "$TS" list 2>&1); rcb=$?
+[ $rch = 0 ] && [ "$rch" = "$rcb" ] && [ "$lh" = "$lb" ] && [ -n "$bid" ] && grep -q "^entry $bid  age=0d " <<<"$lb" \
+  && pass "Claude Code parity is machine-verified here: one state, listed under the harness and under a bare shell, identical exit code and output" || { echo "  rc=$rch/$rcb"; diff <(printf '%s\n' "$lh") <(printf '%s\n' "$lb") | head -8; fail "listing differs with and without the harness"; }
+ph=$(dharn "$TS" promote --event merge --confirms "$bid" 2>&1); rch=$?
+pb=$(dbare "$TS" promote --event merge --confirms "$bid" 2>&1); rcb=$?
+[ $rch = 0 ] && [ "$rch" = "$rcb" ] && [ "$ph" = "$pb" ] && grep -q "^promote id=$bid .*dest=AGENTS.md " <<<"$pb" && grep -qF '  line: - ' <<<"$pb" \
+  && pass "the promotion step is a plain command too: the same routing and the same line to apply, with no harness and no forge CLI" || { echo "  rc=$rch/$rcb"; diff <(printf '%s\n' "$ph") <(printf '%s\n' "$pb") | head -8; fail "promotion differs with and without the harness, or needs forge tooling"; }
+# `propose` is the step most likely to reach for a forge CLI — it records a pull request —
+# so it is the one worth running with no such tool on PATH at all.
+po=$(dbare "$TS" propose "$bid" --branch learn/bare-1 --pr '#7' 2>&1); rc=$?
+[ $rc = 0 ] && grep -q '^state: proposed$' "$bp" && grep -qF 'learn/bare-1' "$bp" \
+  && pass "recording the pull request needs no forge tooling either: propose marks the entry from a bare shell" || { echo "  rc=$rc out='$po'"; fail "propose needs forge tooling"; }
+cd "$SKILL_DIR"
+
+echo "== R13 / KTD12: the Grok Bot parity record =="
+# KTD12 keeps Grok Bot parity an OPEN item owned by Grok Bot, with a dated manual record
+# as the interim evidence. Three things have to hold of that record, each falsifiable on
+# its own:
+#   - it carries a real ISO date for when a human last reviewed it. Its absence fails;
+#   - it states when the procedure was last RUN BY HAND in one of exactly two shapes — an
+#     ISO date, or the literal NOT-YET-RUN. Prose ("recently", "see above", "n/a") fails,
+#     because an undated run claim is indistinguishable from an invented one, and KTD12's
+#     whole point is that the interim must be honest today;
+#   - the pair must agree: NOT-YET-RUN requires `status: open`, and a run date requires a
+#     status that is not open. It fails from either side, so it cannot be satisfied by
+#     dropping the harder half — writing a date without having run it still has to pass a
+#     status change a reader would see.
+HN=references/harness-notes.md
+ISO='^[0-9][0-9][0-9][0-9]-\(0[1-9]\|1[0-2]\)-\(0[1-9]\|[12][0-9]\|3[01]\)$'
+gsec=$(awk '/^### Grok Bot parity/{f=1;next} f&&/^##/{exit} f' "$HN")
+gval() { printf '%s\n' "$gsec" | sed -n "s/^- $1: //p" | head -1; }
+gdate=$(gval 'record last reviewed'); grun=$(gval 'procedure last run by hand'); gstat=$(gval status)
+[ -n "$gsec" ] && grep -q "$ISO" <<<"$gdate" \
+  && pass "the Grok Bot record carries a date it was last reviewed on ($gdate)" || { echo "  section=$([ -n "$gsec" ] && echo present || echo MISSING) date='$gdate'"; fail "the Grok Bot record carries no reviewed-on date"; }
+case $grun in
+  NOT-YET-RUN*) pass "the record says plainly that the manual procedure has not been run ('$grun')";;
+  *) grep -q "$ISO" <<<"$grun" && pass "the record dates the last hand-run of the procedure ($grun)" \
+       || { echo "  run field='$grun'"; fail "the hand-run field is neither an ISO date nor the literal NOT-YET-RUN"; };;
+esac
+case $grun in
+  NOT-YET-RUN*) [ "$gstat" = open ] && pass "KTD12: an unrun procedure leaves parity marked open (status: $gstat)" || { echo "  status='$gstat'"; fail "the procedure has never been run and parity is not marked open"; };;
+  '') fail "no hand-run field at all: there is nothing for the status to agree with";;
+  *) [ -n "$gstat" ] && [ "$gstat" != open ] && pass "a hand-run procedure carries a status a reader can see ($gstat)" || { echo "  status='$gstat'"; fail "a dated hand-run still marked open"; };;
+esac
+# The factual question the plan names and nobody here can answer. Recorded as open, not
+# resolved: if Grok Bot's shell does not share a git directory with the user's clone, the
+# tray resolves somewhere else entirely and the entries never meet.
+printf '%s\n' "$gsec" | grep -q '^- open question: .*git directory' \
+  && pass "the unanswered question (does Grok Bot's shell share the clone's git directory?) is recorded as open" || fail "the open git-directory question is not recorded"
+# The claim R13 makes about Claude Code is that parity is MACHINE-verified, so the record
+# has to say which check verifies it rather than asserting it in prose.
+printf '%s\n' "$gsec" | grep -qF 'tests/eval.sh' \
+  && pass "the record cites the check that machine-verifies the other harness, not prose" || fail "the record cites no machine check"
 
 echo ""; echo "PASS: $PASS  FAIL: $FAIL"
 [ $FAIL -eq 0 ]
