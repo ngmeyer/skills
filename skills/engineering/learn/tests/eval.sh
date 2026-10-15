@@ -27,7 +27,7 @@ for k in "Verify merged" "Harvest" "durable vs throwaway" "Dedupe + staleness" "
 for r in memory-import lesson-filter dedupe-staleness spec-retirement pr-template multi-agent harness-notes telemetry-followup sources; do
   [ -f references/$r.md ] && pass "reference $r.md" || fail "reference $r.md missing"
 done
-for x in verify redact-scan memory-triage; do [ -x scripts/$x.sh ] && pass "scripts/$x.sh executable" || fail "$x.sh not executable"; done
+for x in verify redact-scan memory-triage tray-path; do [ -x scripts/$x.sh ] && pass "scripts/$x.sh executable" || fail "$x.sh not executable"; done
 for k in "Mode: from-memories" "Redact gate" "Not for repo" "One draft PR per repo" "never prune them yourself" "Read-only"; do chk "from-memories: $k" "$k"; done
 
 echo "== Portability (core is harness-agnostic) =="
@@ -124,6 +124,45 @@ printf -- "- call %s\n" "415-555-""2671" | scripts/redact-scan.sh - >/dev/null &
 printf -- "- contact dev@example.com, 555-0123\n" | scripts/redact-scan.sh - >/dev/null && pass "redact: allowlisted example email/555-01xx pass" || fail "allowlist"
 scripts/redact-scan.sh tests/fixtures/memories/*.md tests/fixtures/repo/AGENTS.md >/dev/null && pass "committed fixtures are clean" || fail "fixtures contain secrets"
 diff -r "$M/home" "$M/home.before" >/dev/null && pass "source memories untouched (read-only)" || fail "source memories modified"
+
+echo "== Behavioral: tray path resolution =="
+# Every working tree sharing one git directory must resolve to ONE tray, byte-identically:
+# a main tree, a subdirectory of it, a linked worktree, and a symlinked path to it.
+cd "$SKILL_DIR"
+TR=$(mktemp -d); trap 'rm -rf "$T" "$M" "$TR"' EXIT
+TP="$SKILL_DIR/scripts/tray-path.sh"
+(
+  set -e
+  mkdir -p "$TR/main/deep/er"
+  cd "$TR/main"; git init -q .; git config user.email t@t; git config user.name t
+  echo x > a.txt; git add -A; git commit -qm init
+  git worktree add -q "$TR/wt" -b side
+  ln -s main "$TR/link"
+) >/dev/null 2>&1 || fail "tray fixture setup"
+p_main=$(cd "$TR/main"         && bash "$TP")
+p_sub=$(cd "$TR/main/deep/er"  && bash "$TP")
+p_wt=$(cd "$TR/wt"             && bash "$TP")
+p_link=$(cd "$TR/link"         && bash "$TP")
+case "$p_main" in /*/learn-tray) pass "tray path is absolute, under the git dir, named learn-tray";; *) fail "tray path shape: '$p_main'";; esac
+# Each comparison demands a non-empty absolute path as well as equality: two failed
+# resolutions are also "equal", and that pair must not read as a pass.
+eq() { [ -n "$2" ] && [ "${2#/}" != "$2" ] && [ "$2" = "$p_main" ] && pass "$1" || { echo "  got '$2' want '$p_main'"; fail "$1"; }; }
+eq "subdirectory resolves to the same tray" "$p_sub"
+eq "symlinked checkout resolves byte-identically (AE6)" "$p_link"
+eq "linked worktree resolves byte-identically (AE7)" "$p_wt"
+[ -n "$p_main" ] && [ ! -e "$p_main" ] && pass "resolution creates nothing (tray is lazy, made on first capture)" || fail "resolution created the tray"
+# Contract filenames: entry-<YYYYMMDD>-<id>.md and tray-log.md, one source of truth.
+e=$(cd "$TR/wt" && bash "$TP" entry abc123)
+[ "$e" = "$p_main/entry-$(date +%Y%m%d)-abc123.md" ] && pass "entry filename is entry-<YYYYMMDD>-<id>.md in the tray" || { echo "  $e"; fail "entry filename"; }
+[ "$(cd "$TR/wt" && bash "$TP" log)" = "$p_main/tray-log.md" ] && pass "tray log is <tray>/tray-log.md" || fail "tray log path"
+mkdir -p "$p_main"; printf 'lesson\n' > "$e"; printf 'log\n' > "$p_main/tray-log.md"
+[ "$(cd "$TR/main" && cat "$(bash "$TP")/$(basename "$e")")" = lesson ] && pass "entry written from the linked worktree is readable from the main tree" || fail "entry not readable from main tree"
+[ "$(ls "$p_main" | grep -c '^entry-')" = 1 ] && pass "entry- prefix counts 1 entry, never the log" || fail "entry count includes the log"
+(cd "$TR/main" && git worktree remove --force "$TR/wt" && git worktree prune) >/dev/null 2>&1 || fail "worktree prune setup"
+[ ! -d "$TR/wt" ] && [ -f "$e" ] && pass "entry survives the worktree being pruned (AE7)" || fail "entry lost with the worktree"
+so=$(cd "$TR" && bash "$TP" 2>/dev/null); rc=$?
+se=$(cd "$TR" && bash "$TP" 2>&1 >/dev/null)
+[ $rc -ne 0 ] && [ -z "$so" ] && grep -q '^learn: ' <<<"$se" && grep -qi 'not a git repositor' <<<"$se" && pass "outside a repository: fails naming the cause, prints no path (exit $rc)" || { echo "  rc=$rc out='$so' err='$se'"; fail "outside-repo resolution"; }
 
 echo ""; echo "PASS: $PASS  FAIL: $FAIL"
 [ $FAIL -eq 0 ]

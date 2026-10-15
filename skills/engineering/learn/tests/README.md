@@ -18,3 +18,17 @@ Fixtures: `tests/fixtures/repo` (AGENTS.md + docs/topics + one real path) and `t
 - redact: a runtime-built GitHub token + email file is BLOCKED, masked, contributes no candidates; AWS key, password assignment, phone block; example.com / 555-01xx allowed; committed fixtures are clean;
 - source memory tree is byte-identical afterwards (read-only).
 No token-shaped string is committed; the secret is assembled at test time.
+
+## Tray path resolution
+`scripts/tray-path.sh` against a scratch repo with a subdirectory, a linked worktree and a
+symlink to the main tree. Asserts one **byte-identical absolute** tray path from all four
+(equality alone would also hold for two empty strings, so each comparison demands a
+non-empty absolute path); the contract filenames `entry-<YYYYMMDD>-<id>.md` and
+`tray-log.md`; that resolution creates nothing; that an `entry-` prefix count ignores the
+log; that an entry written in a worktree is readable from the main tree and survives
+`git worktree remove` + `prune`; and that outside a repository it exits non-zero naming
+the cause with no path on stdout.
+
+Both ways of getting this wrong were run as mutants and seen red: resolving the common dir
+in relative form fails the subdir/symlink/worktree assertions, and prefix-matching the
+working-tree root fails the worktree one and prints a bogus path outside a repo.

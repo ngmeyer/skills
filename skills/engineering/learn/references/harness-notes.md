@@ -50,3 +50,37 @@ So **read `description` as the candidate**, not the bullets. `type:` sits at the
 
 ### One repo can have more than one namespace
 The namespace is an encoded *path*, not a repo identity, so a repo reachable by two absolute paths (a moved checkout, a mirror, a symlinked working dir) has two memory dirs, and a **parent** directory that is not itself a repo can hold a legitimate namespace full of repo-scoped lessons. Pass every path the repo is reachable by; files under the other paths map to `global` and their lessons are silently dropped. `ls ~/.claude/projects | grep <repo-basename>` finds the aliases. A genuine split is `session-recover`'s job, not this skill's — fix it there first, then import.
+
+## Where the capture tray lives (same answer in every harness)
+
+A session that produces no merge captures its lessons into a **tray in the repository's
+shared git directory** — outside the working tree and outside version control. Resolve it
+only through `scripts/tray-path.sh`; never build the path by hand.
+
+| what | where | how |
+|---|---|---|
+| tray dir | `<git-common-dir>/learn-tray/` | `tray-path.sh` |
+| one entry | `learn-tray/entry-<YYYYMMDD>-<id>.md` (date = capture date) | `tray-path.sh entry <id>` |
+| tray log | `learn-tray/tray-log.md` | `tray-path.sh log` |
+| counting entries | match the `entry-` prefix instead of listing the directory, so the log is never counted as an entry | |
+
+The script asks git for the common dir in **absolute** form. The relative form is `.git`
+in a main working tree, `../../.git` from a subdirectory of it, and a path into the main
+checkout from a linked worktree — three strings for one repository, so a relative answer
+splits the tray and each session sees only its own half. Prefix-matching the working-tree
+root (what `memory-triage.sh` does to map memory *files*, for different reasons) has that
+bug too, plus a symlink one: it is not the precedent to copy here.
+
+Consequences worth knowing: every working tree sharing the git directory — a
+subdirectory, a symlinked checkout, a linked worktree — reads and writes one tray, so an
+entry captured in a worktree is still there after `git worktree remove` and
+`git worktree prune`. The tray is created lazily by the first capture, never at install,
+so a repo that has never captured has no tray. It is untracked, so it never shows in
+`git status` and survives `git clean`. Deleting the clone deletes the tray with it —
+promotion, not the tray, is what makes a lesson durable. Outside a repository there is no
+tray and resolution fails rather than writing somewhere arbitrary.
+
+A per-project **agent memory directory** (the `from-memories` inputs above) is a different
+store with a different owner: it lives under the user's home agent directory, is keyed by
+an encoded absolute path, and is read-only to this skill. The tray is in the repo's git
+dir and is this skill's to write.
