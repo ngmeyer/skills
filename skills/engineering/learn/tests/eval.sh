@@ -27,7 +27,7 @@ for k in "Verify merged" "Harvest" "durable vs throwaway" "Dedupe + staleness" "
 for r in memory-import lesson-filter dedupe-staleness spec-retirement pr-template multi-agent harness-notes telemetry-followup sources; do
   [ -f references/$r.md ] && pass "reference $r.md" || fail "reference $r.md missing"
 done
-for x in verify redact-scan memory-triage tray-path; do [ -x scripts/$x.sh ] && pass "scripts/$x.sh executable" || fail "$x.sh not executable"; done
+for x in verify redact-scan memory-triage tray-path tray; do [ -x scripts/$x.sh ] && pass "scripts/$x.sh executable" || fail "$x.sh not executable"; done
 for k in "Mode: from-memories" "Redact gate" "Not for repo" "One draft PR per repo" "never prune them yourself" "Read-only"; do chk "from-memories: $k" "$k"; done
 
 echo "== Portability (core is harness-agnostic) =="
@@ -163,6 +163,97 @@ mkdir -p "$p_main"; printf 'lesson\n' > "$e"; printf 'log\n' > "$p_main/tray-log
 so=$(cd "$TR" && bash "$TP" 2>/dev/null); rc=$?
 se=$(cd "$TR" && bash "$TP" 2>&1 >/dev/null)
 [ $rc -ne 0 ] && [ -z "$so" ] && grep -q '^learn: ' <<<"$se" && grep -qi 'not a git repositor' <<<"$se" && pass "outside a repository: fails naming the cause, prints no path (exit $rc)" || { echo "  rc=$rc out='$so' err='$se'"; fail "outside-repo resolution"; }
+
+echo "== Behavioral: capture verb (entry schema) =="
+# A no-merge session stages a lesson that a session weeks later, in another worktree,
+# can select, read and judge. So the file has to be complete, honest about being
+# unverified, and readable with nothing but sed.
+cd "$SKILL_DIR"
+CT=$(mktemp -d); trap 'rm -rf "$T" "$M" "$TR" "$CT"' EXIT
+TS="$SKILL_DIR/scripts/tray.sh"
+newrepo() { # a repo with a durable store (AGENTS.md + docs/topics) and one real source path
+  mkdir -p "$1" && cd "$1" && git init -q . && git config user.email t@t && git config user.name t \
+    && printf 'Read docs/topics/x.md\n' > AGENTS.md && mkdir -p docs/topics src/jobs \
+    && echo x > docs/topics/x.md && echo code > src/jobs/auth.ts && git add -A && git commit -qm init
+}
+# A plain reader, the way a non-Claude agent would do it: strip the key, unquote, unescape.
+fm() { sed -n "s/^$2: //p" "$1" | sed 's/^"\(.*\)"$/\1/; s/\\\(.\)/\1/g'; }
+fmpaths() { awk '/^paths:/{f=1;next} f&&/^  - /{sub(/^  - /,"");print;next} f{exit}' "$1" | sed 's/^"\(.*\)"$/\1/'; }
+keys() { awk 'NR>1&&/^---$/{exit} /^[a-z_]+:/{sub(/:.*/,"");print}' "$1"; }
+ents() { ls "$1" 2>/dev/null | grep -c '^entry-'; }
+
+(newrepo "$CT/r1") >/dev/null 2>&1 || fail "capture fixture setup"
+cd "$CT/r1"; TRAY1=$(bash "$TP")
+[ ! -e "$TRAY1" ] || fail "fixture repo already has a tray"
+CLAIM='A scheduled-job route behind a bare header check rejects every caller that cannot set the header'
+cap() { bash "$TS" capture --track checkable --claim "$CLAIM" --evidence 'the guard runs before the body is read' --path src/jobs/auth.ts "$@"; }
+p=$(cap); rc=$?
+[ $rc = 0 ] && [ -f "$p" ] && pass "capture writes the entry whose path it prints" || { echo "  rc=$rc p='$p'"; fail "capture writes an entry"; }
+[ -d "$TRAY1" ] && pass "the first capture creates the tray (nothing else does)" || fail "tray not created"
+[ "$(ents "$TRAY1")" = 1 ] && pass "AE1: one no-merge capture leaves exactly one tray entry" || fail "AE1 entry count $(ents "$TRAY1")"
+grep -q '^verified: false$' "$p" && pass "AE1: the entry is marked unverified" || fail "AE1 unverified"
+grep -q '^state: captured$' "$p" && pass "capture writes state: captured" || fail "state: captured"
+# Both of these hold trivially when no capture happened at all, so each one demands the
+# entry exist first: "changed nothing" is only evidence next to "wrote the lesson".
+[ -f "${p:-/nonexistent}" ] && [ -z "$(git status --porcelain)" ] && pass "AE1: the working tree is untouched (the tray is outside it)" || { git status --porcelain; fail "AE1 working tree dirty"; }
+[ -f "${p:-/nonexistent}" ] && ! grep -rqF 'header check' AGENTS.md docs/ && pass "AE1: nothing in docs/topics/ or the instruction file" || fail "AE1: the lesson leaked into the durable store"
+i=$(fm "$p" id); case "$p" in *"-$i.md") pass "the filename carries the entry id";; *) fail "filename '$p' does not carry id '$i'";; esac
+
+# Rejected at write time, not at promotion: an incomplete entry never reaches the tray.
+bad() { local lbl=$1 n0 n1 o rc; shift
+  n0=$(ents "$TRAY1"); o=$(bash "$TS" capture "$@" 2>&1); rc=$?; n1=$(ents "$TRAY1")
+  [ $rc -ne 0 ] && [ "$n0" = "$n1" ] && grep -q '^learn: ' <<<"$o" && pass "rejected at write time: $lbl" || { echo "  rc=$rc n0=$n0 n1=$n1 out='$o'"; fail "not rejected: $lbl"; }
+}
+bad "no --claim"                     --track standing --evidence e --path src/jobs/auth.ts
+bad "no --evidence"                  --track standing --claim c --path src/jobs/auth.ts
+bad "no --path"                      --track standing --claim c --evidence e
+bad "no --track"                     --claim c --evidence e --path src/jobs/auth.ts
+bad "track outside the vocabulary"   --track lore --claim c --evidence e --path src/jobs/auth.ts
+bad "path carrying a line number (KTD3)" --track standing --claim c --evidence e --path src/jobs/auth.ts:42
+bad "absolute path"                  --track standing --claim c --evidence e --path /etc/hosts
+bad "--track decision with no --accepted (R8)" --track decision --claim c --evidence e --path src/jobs/auth.ts
+bad "--accepted on a track that cannot carry it" --track standing --accepted true --claim c --evidence e --path src/jobs/auth.ts
+pd=$(bash "$TS" capture --track decision --accepted false --claim 'Chose the queue over a cron route' --evidence 'the cron route cannot retry a failed run' --path src/jobs/auth.ts)
+[ -f "${pd:-/nonexistent}" ] && grep -q '^accepted: false$' "$pd" && pass "a decision entry records whether the decision was accepted (R8)" || fail "accepted not recorded"
+
+# Two captures in the same second: the id is what keeps them apart, so it cannot be time-derived.
+n0=$(ents "$TRAY1"); s1=$(date +%s); a=$(cap); b=$(cap); c=$(cap); s2=$(date +%s)
+u=$(printf '%s\n%s\n%s\n' "$a" "$b" "$c" | sort -u | grep -c .)
+[ "$u" = 3 ] && [ -f "$a" ] && [ -f "$b" ] && [ -f "$c" ] && [ "$(ents "$TRAY1")" = $((n0+3)) ] && pass "3 captures within $((s2-s1))s -> 3 distinct files, none overwritten" || { echo "  $a $b $c"; fail "same-second captures collide"; }
+
+# Round-trip: written in one invocation, read back whole in another.
+HARD='Do not trust "x-internal: 1" as auth: it is one #comment and a \ away from nothing'
+p2=$(bash "$TS" capture --track standing --claim "$HARD" --evidence 'the guard compares one header, then returns' --path src/jobs/auth.ts --path docs/topics/x.md)
+[ "$(fm "${p2:-/nonexistent}" claim)" = "$HARD" ] && pass "round-trip: a claim with quotes, a colon, a # and a backslash is byte-identical on read-back" || { echo "  got '$(fm "${p2:-/nonexistent}" claim)'"; fail "round-trip claim"; }
+[ "$(fmpaths "${p2:-/nonexistent}")" = "$(printf 'src/jobs/auth.ts\ndocs/topics/x.md')" ] && pass "round-trip: every path, in order" || { echo "  got '$(fmpaths "${p2:-/nonexistent}")'"; fail "round-trip paths"; }
+miss=""; for k in id claim evidence captured_on track state verified; do [ -n "$(fm "${p2:-/nonexistent}" "$k")" ] || miss="$miss $k"; done
+[ -z "$miss" ] && pass "round-trip: every required field reads back non-empty" || fail "missing on read-back:$miss"
+[ "$(fm "${p2:-/nonexistent}" captured_on)" = "$(date +%Y-%m-%d)" ] && pass "captured_on is the capture date" || fail "captured_on"
+
+# No harness API: another agent writes the entry with printf and it is the same artifact.
+h=$(bash "$TP" entry handwritten)
+{ printf -- '---\n'; printf 'id: handwritten\n'
+  printf 'claim: "A bare header check is not authentication"\n'
+  printf 'evidence: "the guard compares one header, then returns"\n'
+  printf 'paths:\n  - "src/jobs/auth.ts"\n'
+  printf 'captured_on: %s\n' "$(date +%Y-%m-%d)"
+  printf 'track: standing\nstate: captured\nverified: false\n'; printf -- '---\n'; } > "$h"
+[ "$(fm "$h" claim)" = "A bare header check is not authentication" ] && pass "a hand-written entry (printf only, no harness API) reads back through the same reader" || fail "hand-written entry unreadable"
+[ -n "$(keys "$h")" ] && [ "$(keys "$h")" = "$(keys "${p2:-/nonexistent}")" ] && pass "hand-written and captured entries carry the same field keys in the same order" || { diff <(keys "$h") <(keys "${p2:-/nonexistent}"); fail "hand-written schema differs from capture's"; }
+
+# AE12: a credential in the entry text aborts the capture. Fresh repo, so "no file was
+# written" is checkable as "no tray exists at all" — the scan runs before anything is made.
+(newrepo "$CT/r2") >/dev/null 2>&1 || fail "AE12 fixture setup"
+cd "$CT/r2"; TRAY2=$(bash "$TP")
+tok2="gh""p_$(printf 'Y%.0s' $(seq 1 36))"
+o=$(bash "$TS" capture --track standing --claim 'The callback rejects a valid session' --evidence "the request header carried $tok2" --path src/jobs/auth.ts 2>&1); rc=$?
+# Each assert demands the deliberate abort report, so a crash (or a missing script) can
+# never read as "aborted correctly" — exit 127 and silence satisfy a bare `rc -ne 0`.
+blocked() { grep -q '^BLOCK token' <<<"$o" && grep -q '^learn: ' <<<"$o"; }
+[ $rc -ne 0 ] && blocked && pass "AE12: capture aborts on a credential in the entry text (exit $rc)" || { echo "  rc=$rc out='$o'"; fail "AE12 capture did not abort by design"; }
+blocked && ! grep -qF "$tok2" <<<"$o" && pass "AE12: the finding is reported masked" || fail "AE12: the finding was echoed unmasked"
+blocked && [ ! -e "$TRAY2" ] && pass "AE12: nothing written — not even the tray (no redacted entry)" || { ls -a "$TRAY2" 2>/dev/null; fail "AE12 wrote to the tray"; }
+cd "$SKILL_DIR"
 
 echo ""; echo "PASS: $PASS  FAIL: $FAIL"
 [ $FAIL -eq 0 ]

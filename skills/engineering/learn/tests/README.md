@@ -32,3 +32,38 @@ the cause with no path on stdout.
 Both ways of getting this wrong were run as mutants and seen red: resolving the common dir
 in relative form fails the subdir/symlink/worktree assertions, and prefix-matching the
 working-tree root fails the worktree one and prints a bogus path outside a repo.
+
+## Capture verb and entry schema
+`scripts/tray.sh capture` against scratch repos that each have a durable store
+(`AGENTS.md` + `docs/topics/`) and one real source path. Asserts:
+- **AE1** — one no-merge capture leaves exactly one tray entry, marked `verified: false`
+  and `state: captured`, creates the tray lazily, and changes nothing durable: the working
+  tree stays clean and the lesson appears in neither `docs/topics/` nor the instruction
+  file. Each "changed nothing" assertion also demands the entry exist, because both hold
+  trivially when no capture happened at all;
+- **AE12** — a credential in the evidence text aborts the capture, reports the finding
+  masked, and leaves no tray at all (the scan runs before anything is created). Each of
+  the three asserts demands the deliberate abort report, so a crash or a missing script
+  cannot read as "aborted correctly" — exit 127 and silence satisfy a bare `rc -ne 0`, and
+  did, on the first red run;
+- rejected at **write** time, not at promotion: a missing `--claim`/`--evidence`/`--path`/
+  `--track`, a track outside `decision|checkable|standing`, a path with a line number
+  (KTD3) or an absolute one, `--track decision` without `--accepted`, and `--accepted` on
+  a track that cannot carry it;
+- 3 captures back to back produce 3 distinct files and 3 new entries, none overwriting
+  another, and each file's `id` matches its filename — so the id cannot come from the clock;
+- round-trip: a claim containing quotes, a colon, a `#` and a backslash reads back
+  byte-identical through a plain `sed` reader, with every path in order and every required
+  field non-empty;
+- a hand-written entry (`printf` only, no harness API) reads back through that same reader
+  and carries the same field keys in the same order as a captured one.
+
+Mutants run and seen red: a clock-derived id (same-second collisions), scanning only the
+claim instead of the whole entry text (AE12 x3), creating the tray before the scan (AE12's
+no-file assert), dropping the line-number rule, deferring the required-field checks to
+promotion, emitting the claim as a bare YAML scalar, taking `captured_on` from a second
+clock call, dropping `accepted` from a decision entry, keeping the tray in the working tree
+(AE1), writing `verified: true`, accepting any track, and regenerating the id for the body
+so filename and field disagree. **Not covered:** dropping the exclusive create
+(`set -C`) — nothing fails, because the id is random and there is no way to force a
+collision without an id-injection flag that was not built.

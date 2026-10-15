@@ -84,3 +84,45 @@ A per-project **agent memory directory** (the `from-memories` inputs above) is a
 store with a different owner: it lives under the user's home agent directory, is keyed by
 an encoded absolute path, and is read-only to this skill. The tray is in the repo's git
 dir and is this skill's to write.
+
+## What a tray entry contains
+
+One entry is one Markdown file with YAML frontmatter — the same frontmatter-plus-prose
+shape as a one-fact memory file. Capture it with
+`scripts/tray.sh capture --track <t> --claim "<one line>" --evidence "<one line>"
+--path <repo-relative path> [--path ...] [--accepted true|false]`, which prints the path
+it wrote. Every field below is required and is refused at **write** time if missing, not
+at promotion, where the capturing session is gone and the gap can no longer be filled.
+
+| field | what it holds |
+|---|---|
+| `id` | 8 hex chars, also in the filename — which is what makes two captures in the same second collision-free, so it is never derived from the clock |
+| `claim` | the lesson, one line |
+| `evidence` | the content citation behind the claim, one line. A commit identifier is never evidence on its own: a squash-merge leaves a branch commit unreachable from the default branch as a matter of routine |
+| `paths` | repo-relative paths the claim is about, in order, **with no line numbers** — paths are the match key and survive edits, line numbers are evidence and do not |
+| `captured_on` | the capture date, read back out of the filename so the two can never disagree |
+| `track` | `decision` \| `checkable` \| `standing` |
+| `state` | `captured` (what capture writes) \| `proposed` (a promoted entry) |
+| `verified` | always `false` at capture: nothing has re-checked the claim yet |
+| `accepted` | `decision` track only — whether the decision was accepted, because nothing else in the system records that |
+
+Free text is a double-quoted YAML scalar (backslash and quote escaped) and the rest is
+bare, so `sed -n 's/^claim: //p'` plus an unquote is a sufficient reader. Anything after
+the closing `---` is free prose a reader may ignore. **No harness API is involved:**
+another agent can produce a valid entry with `printf` and the filename from
+`tray-path.sh entry <id>`.
+
+**The track is a routing hint, not a verification claim.** It says where the lesson
+should go; it never asserts the lesson is true (that is what `verified: false` is for),
+and the promoting session may override it as long as it discloses the override. Pick
+`decision` when the lesson settles a choice against a rejected alternative; else
+`checkable` when the claim can be resolved against the default branch; else `standing`.
+The capturing session picks, so that two sessions filing one lesson do not file it two
+different ways and get opposite outcomes.
+
+**A secret blocks the write; it is never redacted into the entry.** A tray file is never
+in a pull request and never staged, so neither review nor a pre-commit scan would ever
+see it, and a transcript-borne credential would otherwise sit inside the repository,
+readable by every later agent, for the whole expiry window. `scripts/redact-scan.sh` runs
+on the entry text before anything is created — a finding is reported masked and nothing
+is written, not even the tray, because a redacted entry is evidence of nothing.
