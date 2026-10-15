@@ -255,5 +255,102 @@ blocked && ! grep -qF "$tok2" <<<"$o" && pass "AE12: the finding is reported mas
 blocked && [ ! -e "$TRAY2" ] && pass "AE12: nothing written — not even the tray (no redacted entry)" || { ls -a "$TRAY2" 2>/dev/null; fail "AE12 wrote to the tray"; }
 cd "$SKILL_DIR"
 
+echo "== Behavioral: lazy expiry and the tray log =="
+# R12 + AE5, under KTD5 and KTD4. The sweep is the only expiry runner there is — the
+# pilot's own lint forbids scheduled workflows and the hook may not be installed — so it
+# has to fire on ordinary verbs. And it must never reap the entry whose proof just
+# arrived: the set this invocation matched is an ARGUMENT the caller must state, which is
+# how "match, then filter, then prune" is expressed as something a test can falsify.
+XP=$(mktemp -d); trap 'rm -rf "$T" "$M" "$TR" "$CT" "$XP"' EXIT
+# Both date flavours: -v is BSD, -d is GNU. A host with neither makes no 8-digit day, and
+# then mkentry fails its assertion instead of quietly dating every entry today — which
+# would make every "expires" assertion pass for the wrong reason.
+daysago() { date -v-"$1"d +%Y%m%d 2>/dev/null || date -d "$1 days ago" +%Y%m%d; }
+mkentry() { # <tray> <days-ago> <id> <state> -> path. printf only, as any agent would write it.
+  local d p
+  d=$(daysago "$2") || return 1
+  case $d in [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]) ;; *) return 1;; esac
+  p="$1/entry-$d-$3.md"
+  { printf -- '---\n'; printf 'id: %s\n' "$3"
+    printf 'claim: "An abandoned exploration left the guard half-written"\n'
+    printf 'evidence: "the guard returns before the body is read"\n'
+    printf 'paths:\n  - "src/jobs/auth.ts"\n'
+    printf 'captured_on: %s-%s-%s\n' "${d:0:4}" "${d:4:2}" "${d:6:2}"
+    printf 'track: standing\nstate: %s\nverified: false\n' "$4"; printf -- '---\n'; } > "$p"
+  printf '%s\n' "$p"
+}
+
+(newrepo "$XP/r3") >/dev/null 2>&1 || fail "expiry fixture setup"
+cd "$XP/r3"; TRAY3=$(bash "$TP"); LOG3=$(bash "$TP" log); mkdir -p "$TRAY3"
+old=$(mkentry   "$TRAY3" 400 aaaaaaa1 captured) || fail "mkentry needs BSD date -v or GNU date -d"
+young=$(mkentry "$TRAY3"   3 aaaaaaa2 captured) || fail "mkentry 3d"
+edge=$(mkentry  "$TRAY3"  56 aaaaaaa3 captured) || fail "mkentry 56d"
+prop=$(mkentry  "$TRAY3" 400 aaaaaaa4 proposed) || fail "mkentry proposed"
+so=$(bash "$TS" sweep --no-matches 2>&1); rc=$?
+# Every assertion below would hold on an untouched tray ("still there", "not logged"), so
+# each one is anchored on the removal having actually happened. A missing sweep verb must
+# not be able to pass a single one of them.
+reaped() { [ $rc = 0 ] && [ ! -e "${old:-/nonexistent}" ] && [ -f "${LOG3:-/nonexistent}" ]; }
+reaped && pass "AE5: an unmatched entry past the window is removed" || { echo "  rc=$rc out='$so'"; fail "AE5: entry not expired"; }
+line=$(grep -F ' expired id=aaaaaaa1 ' "$LOG3" 2>/dev/null)
+reaped && grep -qE "^- [0-9]{4}-[0-9]{2}-[0-9]{2} expired id=aaaaaaa1 age=400d captured=[0-9]{4}-[0-9]{2}-[0-9]{2} reason=unmatched-for-more-than-56-days$" <<<"$line" \
+  && pass "AE5: the removal is logged naming id, age and reason" || { echo "  got '$line'"; fail "AE5: log line shape"; }
+reaped && [ "$(grep -c ' expired id=' "$LOG3")" = 1 ] && pass "AE5: one removal, one line (the other three entries are not logged)" || { cat "$LOG3" 2>/dev/null; fail "AE5: log line count"; }
+reaped && [ -f "$young" ] && [ -f "$edge" ] && pass "an entry inside the window is untouched (3d, and 56d = the window edge)" || fail "in-window entry removed"
+reaped && [ -f "$prop" ] && ! grep -q 'id=aaaaaaa4' "$LOG3" && pass "KTD4: a proposed entry past the window is not reaped" || fail "proposed entry reaped"
+reaped && [ -z "$(git status --porcelain)" ] && ! grep -rqF 'abandoned exploration' AGENTS.md docs/ \
+  && pass "AE5: the expired entry never reached the durable store" || { git status --porcelain; fail "AE5: durable store touched"; }
+
+# The ordering case (KTD5): same entry, same clock, one difference — the matched set.
+m1=$(mkentry "$TRAY3" 400 bbbbbbb1 captured) || fail "mkentry matched"
+o=$(bash "$TS" sweep --matched bbbbbbb1 2>&1); rc=$?
+[ $rc = 0 ] && [ -f "$m1" ] && ! grep -q 'id=bbbbbbb1' "$LOG3" \
+  && pass "KTD5 ordering: an over-age entry THIS invocation matched survives the sweep (it promotes, it is not pruned)" || { echo "  rc=$rc out='$o'"; fail "KTD5: matched entry pruned"; }
+o=$(bash "$TS" sweep --no-matches 2>&1); rc=$?
+[ $rc = 0 ] && [ ! -e "$m1" ] && grep -q 'id=bbbbbbb1' "$LOG3" \
+  && pass "KTD5 ordering: the same entry at the same age, unmatched, is reaped — so the matched set is what decides" || { echo "  rc=$rc out='$o'"; fail "KTD5: unmatched entry survived"; }
+# A caller that has not settled matching yet cannot sweep by accident.
+n0=$(ents "$TRAY3"); o=$(bash "$TS" sweep 2>&1); rc=$?
+[ $rc -ne 0 ] && [ "$(ents "$TRAY3")" = "$n0" ] && grep -q '^learn: ' <<<"$o" \
+  && pass "sweep refuses to run until the caller states the matched set (--matched/--no-matches)" || { echo "  rc=$rc n0=$n0 out='$o'"; fail "sweep ran with no matched set"; }
+
+# Capture is one of the three runners, and the sweep may not disturb what capture returns.
+(newrepo "$XP/r4") >/dev/null 2>&1 || fail "capture-runner fixture setup"
+cd "$XP/r4"; TRAY4=$(bash "$TP"); LOG4=$(bash "$TP" log); mkdir -p "$TRAY4"
+c1=$(mkentry "$TRAY4" 90 ccccccc1 captured) || fail "mkentry 90d"
+np=$(bash "$TS" capture --track checkable --claim "$CLAIM" --evidence 'the guard runs before the body is read' --path src/jobs/auth.ts); rc=$?
+swept() { [ ! -e "${c1:-/nonexistent}" ] && grep -q 'id=ccccccc1 age=90d' "$LOG4" 2>/dev/null; }
+swept && pass "KTD5: an ordinary capture is a runner — it expires the stale entry it found" || { ls "$TRAY4"; fail "capture did not sweep"; }
+# Anchored on the sweep having run: "capture printed one path" holds with no sweep at all.
+swept && [ $rc = 0 ] && [ "$(printf '%s' "$np" | grep -c .)" = 1 ] && [ -f "${np:-/nonexistent}" ] \
+  && pass "capture still prints exactly one path and exits 0 (the sweep writes nothing to stdout)" || { echo "  rc=$rc out='$np'"; fail "capture stdout disturbed by the sweep"; }
+# Likewise: with no log, `! grep` is true for free.
+swept && [ -f "${np:-/nonexistent}" ] && ! grep -q "id=$(fm "${np:-/nonexistent}" id)" "$LOG4" \
+  && pass "the entry this capture just wrote is not expired by its own sweep" || fail "capture reaped its own entry"
+
+# No tray at all: the sweep must create nothing, or AE12's "not even the tray" dies.
+(newrepo "$XP/r5") >/dev/null 2>&1 || fail "no-tray fixture setup"
+cd "$XP/r5"; TRAY5=$(bash "$TP")
+o=$(bash "$TS" sweep --no-matches 2>&1); rc=$?
+[ $rc = 0 ] && [ ! -e "$TRAY5" ] && pass "no tray yet: the sweep is a no-op and creates nothing, not even the log" || { echo "  rc=$rc out='$o'"; ls -a "$TRAY5" 2>/dev/null; fail "sweep created a tray"; }
+
+# Nobody swept for a long time. One invocation catches up, and the entries it keeps are
+# byte-identical afterwards: a sweep that corrupts the tray is worse than one never run.
+(newrepo "$XP/r6") >/dev/null 2>&1 || fail "catch-up fixture setup"
+cd "$XP/r6"; TRAY6=$(bash "$TP"); LOG6=$(bash "$TP" log); mkdir -p "$TRAY6"
+keep=""
+for spec in "400 ddddddd1 captured gone" "90 ddddddd2 captured gone" "57 ddddddd3 captured gone" \
+            "56 ddddddd4 captured keep" "3 ddddddd5 captured keep" "400 ddddddd6 proposed keep"; do
+  set -- $spec; e=$(mkentry "$TRAY6" "$1" "$2" "$3") || fail "mkentry catch-up $2"
+  [ "$4" = keep ] && keep="$keep $e"
+done
+cp -r "$TRAY6" "$TRAY6.before"
+o=$(bash "$TS" sweep --no-matches 2>&1); rc=$?
+intact=1; for e in $keep; do cmp -s "$e" "$TRAY6.before/$(basename "$e")" || intact=0; done
+[ $rc = 0 ] && [ "$(ents "$TRAY6")" = 3 ] && [ "$(grep -c ' expired id=' "$LOG6")" = 3 ] \
+  && pass "after a long silence one sweep catches up on every overdue entry (3 removed, 3 kept)" || { echo "  rc=$rc out='$o' entries=$(ents "$TRAY6")"; fail "catch-up sweep"; }
+[ "$(ents "$TRAY6")" = 3 ] && [ $intact = 1 ] && pass "the entries it keeps are byte-identical — the tray is intact, not corrupted" || fail "survivors modified"
+cd "$SKILL_DIR"
+
 echo ""; echo "PASS: $PASS  FAIL: $FAIL"
 [ $FAIL -eq 0 ]

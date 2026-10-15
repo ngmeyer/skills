@@ -67,3 +67,49 @@ clock call, dropping `accepted` from a decision entry, keeping the tray in the w
 so filename and field disagree. **Not covered:** dropping the exclusive create
 (`set -C`) — nothing fails, because the id is random and there is no way to force a
 collision without an id-injection flag that was not built.
+
+## Lazy expiry and the tray log
+`scripts/tray.sh sweep` and the sweep wired into `capture`, against scratch repos whose
+trays are built with `printf` at chosen ages (`date -v` on BSD, `date -d` on GNU; a host
+with neither fails `mkentry` instead of quietly dating every entry today, which would make
+every "expires" assertion pass for the wrong reason). Asserts:
+- **AE5** — an unmatched entry past the eight-week window is removed, and the removal is
+  logged as one line naming id, age and reason
+  (`- <swept> expired id=<id> age=<days>d captured=<date> reason=unmatched-for-more-than-56-days`);
+  one removal produces exactly one line; the lesson never reaches the durable store;
+- the **ordering** (KTD5), as a differential pair rather than prose: the same entry, at the
+  same age, on the same clock, survives `sweep --matched <id>` and is reaped by
+  `sweep --no-matches`. The matched set is what decides, so pruning is downstream of
+  matching. Stating it is mandatory — `sweep` with neither flag exits non-zero and removes
+  nothing, so a caller that has not settled matching cannot reap by accident;
+- an entry inside the window is untouched, including at **56 days exactly** (the edge is
+  inside: an entry survives the full eight weeks);
+- **KTD4** — a `proposed` entry past the window is not reaped and not logged;
+- `capture` is a runner: an ordinary capture expires the stale entry it found, still prints
+  exactly one path, exits 0, and does not reap the entry it just wrote;
+- with no tray, the sweep is a no-op that creates nothing — not the tray, not the log
+  (otherwise AE12's "nothing written, not even the tray" dies);
+- after a long silence one sweep catches up on every overdue entry at once (3 removed, 3
+  kept), the survivors are **byte-identical** afterwards, and the log is appended, not
+  rewritten.
+
+Each assertion that would hold on an untouched tray ("still there", "not logged", "printed
+one path") is anchored on the removal having actually happened, because a missing `sweep`
+verb satisfies all of them for free: two of these were written, run, and seen passing green
+against no implementation at all before being anchored.
+
+Mutants run and seen red, each caught by the assertion it was aimed at: prune ignoring the
+matched set, the matched-set declaration made optional, an inclusive boundary (`-ge`), a
+three-week window, no window at all, no `proposed` exemption, removal without logging,
+logging without removal, a sweep that creates the tray instead of returning early, 30-day
+months in the age arithmetic, `capture` not sweeping, a sweep that reports on stdout (it
+corrupts capture's one-line output), a log rewritten instead of appended, an id logged with
+the filename date still attached, and a sweep that annotates the entries it keeps (caught by
+byte-identity alone, with the kept count still correct). **Not independently covered:** the
+AE5 "never reaches the durable store" assertion — no plausible mutant of a sweep that only
+deletes tray files can write to `AGENTS.md` or `docs/topics/`, so it is killed by its anchor
+rather than on its own.
+
+The first green run also found a real bug: the log's header restated the line format, and a
+`grep` counting removals counted the header as one. The header no longer names the fields —
+the format is documented in the script's EXPIRY note instead.
