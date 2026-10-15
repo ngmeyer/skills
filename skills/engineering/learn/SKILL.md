@@ -1,25 +1,28 @@
 ---
 name: learn
 description: >
-  Post-merge learning pass. After a feature PR merges, distill durable lessons from the merged diff,
-  review threads and the feature's specs/slices into the repo's committed context (AGENTS.md and
-  docs/topics/*), propose each add/edit/delete as a reviewable PR, and retire the feature's throwaway
-  specs and slices. Never pushes to the default branch. Agent-agnostic.
-  Use when: 'learn', 'post-merge learn', 'what did this PR teach us', 'close the loop on PR #N',
-  'retire the specs', 'update AGENTS.md from this merge', or right after a feature PR merges.
-  Mode `from-memories` imports durable lessons from agent memory files into each repo the same way.
-  Not for: reconciling local/personal memory (use session-close) or auditing a whole context file (use claude-md).
+  Writes a session's durable lessons into the repo's committed context (AGENTS.md, docs/topics/*)
+  as a reviewable draft PR, and retires the specs behind them. After a feature PR merges it
+  distills the merged diff, review threads and that feature's specs. With nothing merged — a
+  debugging, planning or exploring session — it stages each lesson in the repo's capture tray for a
+  later merge or accepted decision to promote. Never pushes to the default branch. Agent-agnostic.
+  Use when: 'learn', 'what did this PR teach us', 'close the loop on PR #N', 'retire the specs',
+  'update AGENTS.md from this merge' — and, with nothing merged, 'capture this lesson', 'we just
+  learned something', 'what did this debugging session teach us', 'what lessons are staged'.
+  Mode `from-memories` imports lessons from agent memory files into repos the same way.
+  Not for: writing anything outside the repo — personal memory stays with session-close; auditing
+  a whole context file is claude-md's job.
 user-invocable: true
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep"]
 argument-hint: "<merged PR|SHA> [--specs <path>] [--dry-run] | from-memories <memory paths...> [--repos <roots...>] [--max-lessons 5]"
 metadata:
   owner: ngmeyer
-  version: 0.3.0
+  version: 0.4.0
 ---
 
-# learn — write durable lessons back into the repo after a merge
+# learn — write a session's durable lessons back into the repo
 
-**Why this exists:** specs are disposable; the repo's committed context is long-term memory. Lessons that stay in a chat or a local memory file are invisible to the next agent and teammate, and stale specs left in the tree get retrieved as if they were truth. One reviewable PR per merged feature fixes both. (Practices #11–13 in references/sources.md.)
+**Why this exists:** specs are disposable; the repo's committed context is long-term memory. Lessons that stay in a chat or a local memory file are invisible to the next agent and teammate, and stale specs left in the tree get retrieved as if they were truth. One reviewable PR per merged feature — or per batch a no-merge session staged — fixes both. (Practices #11–13 in references/sources.md.)
 
 ## Inputs
 | input | required | how to get it |
@@ -75,7 +78,7 @@ Run scripts/verify.sh or the equivalent checks:
 - Secrets/PII never enter a lesson: `scripts/redact-scan.sh` blocks, it does not warn. Memories are personal by default; import only what passes every gate.
 
 ## Relation to session-close
-session-close reconciles *local* memory at the end of a session and keeps its Phase 7 handoff for conventions. `learn` runs on a *merge event* and writes to the *repo* via PR. session-close should point here (soft dependency) when the session included a merge.
+Both can run on a session with nothing merged, so the boundary is not the domain — it is **which files each one writes**. session-close reconciles the agent's own *local* memory files and keeps its Phase 7 handoff for conventions. `learn` writes nothing outside the repository, and nothing inside it except through a PR a human merges; a tray entry is not a repo file either, since the tray sits outside the working tree and outside version control until promotion proposes it. session-close should point here (soft dependency) when the session produced a repo-level lesson — merge or no merge.
 
 ## References
 `references/`: memory-import.md · lesson-filter.md · dedupe-staleness.md · spec-retirement.md · pr-template.md · multi-agent.md · harness-notes.md · telemetry-followup.md · sources.md. `scripts/`: verify.sh (pre-PR checks) · redact-scan.sh (secret/PII block) · memory-triage.sh (map + triage) · tray-path.sh (the one tray path) · tray.sh (capture · list · reject · sweep · promote · propose).

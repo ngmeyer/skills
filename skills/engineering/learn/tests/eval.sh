@@ -7,9 +7,15 @@
 set -u
 cd "$(dirname "$0")/.."
 SKILL_DIR=$(pwd)
-PASS=0; FAIL=0
+PASS=0; FAIL=0; SKIP=0
 pass() { echo "PASS  $1"; PASS=$((PASS+1)); }
 fail() { echo "FAIL  $1"; FAIL=$((FAIL+1)); }
+# A third outcome, for exactly one check: the private-name scan of the real tree, whose
+# term list is deliberately never committed (KTD13). In a fresh clone that list is absent,
+# and the two honest answers there are "did not scan" and "failed" — never "clean". SKIP is
+# "did not scan", it prints no PASS line, and it is counted and restated in the summary so
+# a reader cannot mistake it for a clean result. Every other check either passes or fails.
+skip() { echo "SKIP  $1"; SKIP=$((SKIP+1)); }
 chk() { if grep -qF -- "$2" SKILL.md; then pass "$1"; else fail "$1"; fi; }
 
 echo "== Frontmatter =="
@@ -77,11 +83,259 @@ body_dash=$(awk 'NR>1 && /^---$/{c++} END{print c+0}' SKILL.md)
 body=$(awk 'NR>1 && /^---$/{f=1;next} f' SKILL.md)
 if grep -nE '~/\.claude|\.claude/|\.cursor/|allowed-tools|/Users/|/home/[a-z]|\bgh (pr|api)\b|Bash\(|AskUserQuestion' <<<"$body"; then fail "hygiene lint: harness-specific token in core"; else pass "hygiene lint: no harness-specific tokens in the core body (not the portability proof — see the differential)"; fi
 grep -qE '^user-invocable: true' SKILL.md && pass "slash-invocable in Claude Code" || fail "no user-invocable: true"
-LEAK=0
-for term in signupspark swim-records ourgospelstudy voltron localcred superscore pithybyte gearu verowrite portolan ponytail /workspace; do
-  grep -rqiF "$term" SKILL.md references/ scripts/ && { echo "  leak: $term"; LEAK=1; }
+
+# --- KTD13, half one: path SHAPES, not literal names -------------------------------------
+# A leak is a shape, and a shape needs no private name to match: an absolute path into
+# somebody's disk, an encoded agent-home namespace, or a container agent's home. The scan
+# set now includes tests/, which the literal denylist above excluded — so the file running
+# the scan was the one file exempt from it, and a name planted here was invisible.
+# CHANGELOG.md is in the set because the repo's own hygiene rule names a changelog as a
+# place a private name leaks from, and it is a published file like any other.
+SCAN_SET="SKILL.md CHANGELOG.md references/ scripts/ tests/"
+SHAPE=0
+# Every pattern below brackets one of its own letters (`[U]sers`, `[u]mes`). That is NOT a
+# file or line exclusion — nothing is skipped, and a real leak anywhere in this file is
+# still matched. It only stops each pattern's own spelling from matching itself, which it
+# otherwise does: written plainly, this loop reported itself and nothing else, and a
+# scanner that always finds exactly one hit in its own source cannot be read.
+# The trailing class deliberately excludes `.`, so this file's own `$M/home/.claude/...`
+# fixture tree and the hygiene regex's own alternations above do not match, while a real
+# absolute home path does. The encoded-namespace pattern matches an agent-home namespace
+# after encoding (every non-alphanumeric becomes `-`, so a real one always starts with
+# `-`), which is why the `<encoded-abs-path>` placeholder documented in
+# references/harness-notes.md stays legal and a planted real one does not.
+for shape in '/Vol[u]mes/[A-Za-z0-9_-]' '/[U]sers/[A-Za-z0-9_-]' '/ho[m]e/[A-Za-z0-9_-]' '\.claude/pro[j]ects/-' '/works[p]ace'; do
+  hits=$(grep -rnE -- "$shape" $SCAN_SET 2>/dev/null)
+  [ -n "$hits" ] && { echo "  path shape $shape:"; printf '%s\n' "$hits" | sed 's/^/    /'; SHAPE=1; }
 done
-[ $LEAK = 0 ] && pass "no internal names" || fail "internal names present"
+[ $SHAPE = 0 ] && pass "no leaked path shapes (absolute user or volume path, encoded agent-home namespace, container agent home)" || fail "leaked path shape present"
+
+# --- KTD13, half two: the private-NAME detector ------------------------------------------
+# Shapes cannot catch a bare name, and the eleven literal names that used to sit in the
+# denylist above were themselves the leak they searched for: a denylist of real private
+# names is a published list of real private names. Deleting them without replacement would
+# have left the "no internal names" check green by having nothing to find — so the names
+# move to a file that is never committed and the detector stays.
+#   term file: $LEARN_PRIVATE_TERMS, else tests/private-terms.local (tests/.gitignore)
+#   one term per line; `#` comments and blank lines stripped; fixed-string, case-insensitive
+# Exit codes are three, not two, because "cannot scan" is not "clean":
+#   0 nothing found   1 a term is present   2 cannot scan (no term file, or it holds none)
+# A match is reported MASKED — the file that matched, never the term, or this eval's own
+# output would republish the name the detector exists to keep out of the tree.
+NAME_TERMS_DEFAULT=tests/private-terms.local
+terms_path() { echo "${LEARN_PRIVATE_TERMS:-$NAME_TERMS_DEFAULT}"; }
+scan_names() {
+  tf=$1; shift
+  [ -f "$tf" ] || { echo "  CANNOT SCAN: no term file at $tf"; return 2; }
+  sn_terms=$(sed -e 's/#.*//' "$tf" | tr -d '\r' | awk 'NF')
+  [ -n "$sn_terms" ] || { echo "  CANNOT SCAN: term file $tf holds no terms"; return 2; }
+  sn_found=0
+  # The term list matches itself — it is a file full of the terms, and when it sits at the
+  # default path it sits inside the scanned tests/ directory. Excluding it by filename is
+  # not a hole: it is gitignored, so it is not one of the published files this check is
+  # about. Nothing else is excluded, this eval file least of all.
+  sn_self=$(basename "$tf")
+  while IFS= read -r sn_t; do
+    sn_hit=$(grep -rliF --exclude="$sn_self" -- "$sn_t" "$@" 2>/dev/null)
+    [ -n "$sn_hit" ] && { echo "  private name (masked) present in: $(printf '%s' "$sn_hit" | tr '\n' ' ')"; sn_found=1; }
+  done <<<"$sn_terms"
+  [ $sn_found = 0 ] && return 0 || return 1
+}
+
+echo "== KTD13: the name detector's own mechanism, proved on a fixture tree =="
+# Proved on a fixture, because the real tree is (and should be) clean: a detector asserted
+# only against clean state is indistinguishable from a detector that cannot find anything.
+# `acme-widgets` is a placeholder, not anybody's project.
+NT=$(mktemp -d)
+# The fixture tree is built FROM $SCAN_SET — the same variable the real scan uses — so the
+# locations proved below are the locations actually scanned. A hard-coded fixture would
+# stay green with every entry but one dropped from $SCAN_SET.
+NTLOCS=
+for p in $SCAN_SET; do
+  case $p in
+    */) mkdir -p "$NT/tree/$p"; NTLOCS="$NTLOCS ${p}f.txt";;
+    *)  NTLOCS="$NTLOCS $p";;
+  esac
+done
+mkdir -p "$NT/tree"
+for loc in $NTLOCS; do printf 'generic placeholder content\n' > "$NT/tree/$loc"; done
+printf '# a comment line\n\nacme-widgets\n' > "$NT/terms"
+printf '# only comments\n\n\n'              > "$NT/terms-blank"
+printf 'a-term-in-no-file\n'                > "$NT/terms-other"
+# `|| exit 9`, not `&&`: a failed `cd` would make the subshell exit 1, which is exactly the
+# code that means "a planted name was caught". A wrapper whose error path collides with a
+# meaningful result is how a check passes for the wrong reason, so the error path gets a
+# code nothing else uses.
+sn() { (cd "$NT/tree" || exit 9; scan_names "$1" $SCAN_SET >/dev/null 2>&1); echo $?; }
+nloc=$(printf '%s\n' $NTLOCS | grep -c .)
+[ "$nloc" -ge 5 ] && pass "the fixture covers all $nloc entries of the real scan set" || fail "the fixture covers only $nloc scan-set entries"
+[ "$(sn "$NT/terms")" = 0 ] && pass "a clean tree reports clean (0)" || fail "clean tree not reported clean"
+# One planted name per scanned location. A single planted file would stay green with every
+# other path dropped from the scan set, and tests/ is the path the old denylist omitted.
+for loc in $NTLOCS; do
+  printf 'we hit this in acme-widgets last week\n' >> "$NT/tree/$loc"
+  [ "$(sn "$NT/terms")" = 1 ] && pass "a name planted in $loc is caught (1)" || fail "a name planted in $loc is NOT caught"
+  sed -i.bak '$d' "$NT/tree/$loc"; rm -f "$NT/tree/$loc.bak"
+  [ "$(sn "$NT/terms")" = 0 ] && pass "…and the tree is clean again once $loc is restored" || fail "$loc restore left the planted name behind"
+done
+# "Cannot scan" must never read as "clean". Both arms: no file at all, and a file that
+# exists but yields no terms after stripping — the shape that would otherwise match every
+# file in the tree against the empty string, or none of them, and call it a pass.
+[ "$(sn "$NT/no-such-file")" = 2 ] && pass "a missing term file fails loudly (2), it does not report clean" || fail "a missing term file does not return the cannot-scan code"
+[ "$(sn "$NT/no-such-file")" != 0 ] && pass "a missing term file is specifically not the clean code (0)" || fail "a missing term file reported clean"
+[ "$(sn "$NT/terms-blank")" = 2 ] && pass "a comment-only term file fails loudly (2), it does not report clean" || fail "a comment-only term file does not return the cannot-scan code"
+# The environment override, proved in both directions on a tree where the two term files
+# disagree — otherwise reading the wrong one is undetectable. The default-path file names a
+# term the tree contains; the override names one it does not.
+printf 'we hit this in acme-widgets last week\n' >> "$NT/tree/SKILL.md"
+printf 'acme-widgets\n' > "$NT/tree/$NAME_TERMS_DEFAULT"
+snr() { (cd "$NT/tree" || exit 9; scan_names "$(terms_path)" $SCAN_SET >/dev/null 2>&1); echo $?; }
+# And prove that error path is reachable and distinguishable, or the guard above is a
+# comment rather than a check.
+sn_bad() { (cd "$NT/no-such-tree" || exit 9; scan_names "$1" $SCAN_SET >/dev/null 2>&1); echo $?; }
+[ "$(sn_bad "$NT/terms")" = 9 ] && pass "the fixture wrapper's own failure is code 9, distinct from both clean (0) and caught (1)" || fail "the fixture wrapper's failure path is indistinguishable from a result"
+# `unset` so an operator who happens to have the override exported does not turn the
+# no-override arm into a second copy of the override arm — it did, and the arm passed
+# anyway because the subshell's own error exit also happened to be 1.
+[ "$(unset LEARN_PRIVATE_TERMS; snr)" = 1 ] && pass "with no override, the default term file is the one read" || fail "the default term file was not read"
+[ "$(LEARN_PRIVATE_TERMS=$NT/terms-other snr)" = 0 ] && pass "an override is read INSTEAD of the default (its term is absent, so the default's present term is not reported)" || fail "the override did not replace the default"
+[ "$(LEARN_PRIVATE_TERMS=$NT/no-such-file snr)" = 2 ] && pass "an override pointing at nothing fails loudly rather than falling back to the default" || fail "a missing override fell back instead of failing"
+rm -rf "$NT"
+
+# And now the real tree, with the same scan set the shapes use (tests/ included).
+NAME_TERMS=$(terms_path)
+scan_names "$NAME_TERMS" $SCAN_SET; name_rc=$?
+case $name_rc in
+  0) pass "no private project name in the skill's published files, this eval file included (terms: $NAME_TERMS)";;
+  1) fail "private project name present in the skill's published files";;
+  # Two different situations, and conflating them is how "cannot scan" starts reading as
+  # "clean". An override was ASKED FOR and could not be honoured: that is a failure, the
+  # scan someone requested did not happen. Nothing configured at all is a fresh clone,
+  # where the term list is absent by construction because it is never committed: that is a
+  # SKIP — loud, counted, restated in the summary, and emphatically not a PASS.
+  *) if [ -n "${LEARN_PRIVATE_TERMS:-}" ]; then
+       fail "LEARN_PRIVATE_TERMS=$LEARN_PRIVATE_TERMS was set and could not be read: the private-name scan you asked for did not run"
+     else
+       skip "private-name scan of the real tree DID NOT RUN: no term list at $NAME_TERMS. NOT a clean result — put one term per line there (it is gitignored, see tests/.gitignore) or set LEARN_PRIVATE_TERMS, then re-run. The detector's mechanism is proved above and the path shapes were scanned regardless."
+     fi;;
+esac
+
+echo "== The framing a harness actually reads (U10 step 4) =="
+# A harness decides whether to load this skill from `description` alone. While that field
+# opened "Post-merge learning pass. After a feature PR merges, …" and every one of its
+# triggers named a merge, the no-merge capture mode was implemented and unreachable: no
+# session without a merge would ever say anything that loads the skill. Nothing asserted
+# any of this before, in any of the three places the framing is written down.
+desc_block=$(awk '/^description:/{f=1;next} f&&/^[a-z-]+:/{exit} f' SKILL.md)
+# Guard first. Three of the checks below are NEGATIVE — they assert a string is gone — and
+# a negative grep against an empty extraction passes for the worst possible reason. So
+# prove the extraction found something, and found the part the negatives are about.
+{ [ -n "$desc_block" ] && printf '%s' "$desc_block" | grep -qF 'Use when:'; } \
+  && pass "the description block extracted non-empty and contains its trigger list (so the negative pins below are not matching an empty string)" \
+  || fail "the description block could not be extracted — every negative pin below is vacuous"
+printf '%s' "$desc_block" | grep -qF 'Post-merge learning pass' \
+  && fail "the description still opens on the merge-only framing" \
+  || pass "the description no longer frames the whole skill as a post-merge pass"
+printf '%s' "$desc_block" | grep -qF 'nothing merged' \
+  && pass "the description names the no-merge case, so a harness can route to it" \
+  || fail "the description never mentions a session with nothing merged"
+# Pinned as a set, not as one phrase: any single wording is fair game to edit, and the
+# claim worth holding is that the no-merge half is represented among the triggers at all.
+nm=0
+for t in "capture this lesson" "we just learned something" "what did this debugging session teach us" "what lessons are staged"; do
+  printf '%s' "$desc_block" | grep -qF "$t" && nm=$((nm+1))
+done
+[ "$nm" -ge 1 ] && pass "the trigger list carries $nm phrase(s) a debugging/planning/exploring session would actually utter" \
+  || fail "every trigger in the description is merge-dependent: the no-merge mode is unreachable from the instructions"
+# The other two copies of the framing: the repository README and the installer blurb. Both
+# live outside the skill, so both are skipped — never passed — in a standalone install.
+ROOT=$(cd "$SKILL_DIR/../../.." 2>/dev/null && pwd || true)
+if [ -n "$ROOT" ] && [ -f "$ROOT/README.md" ]; then
+  lrn=$(grep -F 'skills/engineering/learn/SKILL.md' "$ROOT/README.md")
+  lrn_n=$(printf '%s\n' "$lrn" | grep -c . )
+  [ "$lrn_n" -ge 2 ] && pass "the README's learn entries were found ($lrn_n of them) — the negative pins below have something to read" \
+    || fail "fewer than two learn entries found in the README: the pins below would be vacuous"
+  printf '%s' "$lrn" | grep -qF 'runs after a PR merges' \
+    && fail "README still tells a reader learn runs after a PR merges" \
+    || pass "README no longer scopes learn to after a PR merges"
+  printf '%s' "$lrn" | grep -qF 'Post-merge learning pass' \
+    && fail "README's reference entry still calls learn a post-merge learning pass" \
+    || pass "README's reference entry no longer calls learn a post-merge pass"
+  printf '%s' "$lrn" | grep -qiF 'capture tray' \
+    && pass "the README's learn entries name the no-merge half (the capture tray)" \
+    || fail "the README describes only the merge half of the skill"
+else
+  skip "README framing not checked: no repository README at $SKILL_DIR/../../.. (standalone install)"
+fi
+if [ -n "$ROOT" ] && [ -f "$ROOT/.claude-plugin/plugin.json" ]; then
+  PJ=$ROOT/.claude-plugin/plugin.json
+  pjd=$(grep -F '"description"' "$PJ")
+  [ -n "$pjd" ] && pass "the installer blurb was found in plugin.json" || fail "no description field in plugin.json: the pins below are vacuous"
+  printf '%s' "$pjd" | grep -qF 'post-merge learning PRs' \
+    && fail "the installer blurb still sells learn as post-merge learning PRs" \
+    || pass "the installer blurb no longer sells learn as post-merge only"
+  printf '%s' "$pjd" | grep -qF 'no-merge' \
+    && pass "the installer blurb names the no-merge half" \
+    || fail "the installer blurb never mentions the no-merge half"
+  # Two independently-written statements of the same count, which is the only reason
+  # checking them is worth anything: the prose word and the array length can disagree.
+  pj_n=$(grep -c -E '^[[:space:]]*"\./skills/' "$PJ")
+  grep -qF '"./skills/engineering/learn"' "$PJ" && pass "learn is listed in plugin.json" || fail "learn is not listed in plugin.json"
+  [ "$pj_n" -eq 11 ] && pass "plugin.json lists 11 skills" || fail "plugin.json lists $pj_n skills, not 11"
+  printf '%s' "$pjd" | grep -qF 'Eleven composable' && pass "and its prose says Eleven, agreeing with the array it sits next to" \
+    || fail "the blurb's stated count no longer agrees with the $pj_n entries in the array"
+else
+  skip "installer blurb not checked: no .claude-plugin/plugin.json above the skill (standalone install)"
+fi
+# A FOURTH location the plan's step 4 does not name, found while implementing it: the body's
+# own H1 and the "Why this exists" line, both of which still scoped the skill to a merge.
+# The description routes a harness here; these two are the first things the agent then reads,
+# and an agent that has just been told the skill is for merges will not look for the no-merge
+# mode five sections down.
+h1=$(grep -m1 '^# ' SKILL.md)
+[ -n "$h1" ] && pass "the body's H1 was found (the negative pin below is not matching an empty string)" || fail "no H1 in SKILL.md"
+printf '%s' "$h1" | grep -qF 'after a merge' \
+  && fail "the H1 still scopes the whole skill to after a merge" \
+  || pass "the H1 no longer scopes the whole skill to after a merge"
+chk "the why-line covers the no-merge batch too" "or per batch a no-merge session staged"
+
+echo "== The session-close boundary is file-level, not domain-level (U10 step 5) =="
+# "Local memory vs committed context" stopped separating these two skills the moment this
+# one grew a no-merge mode: both now capture from a session with nothing to merge. The line
+# that still holds is which FILES each one writes, and a boundary drawn at the domain sends
+# an agent to the wrong skill in exactly the case where both appear to apply.
+chk "the not-for line draws the boundary at files" "writing anything outside the repo"
+for k in "Both can run on a session with nothing merged" "which files each one writes"; do
+  chk "boundary: $k" "$k"
+done
+rchk "multi-agent.md draws the same boundary at the file set" multi-agent.md "which files each one writes"
+
+echo "== Version and changelog (U10 step 6) =="
+[ -f CHANGELOG.md ] && pass "a sibling CHANGELOG.md exists" || fail "no sibling CHANGELOG.md"
+grep -qE '^## Changelog' SKILL.md \
+  && fail "version history is back in the always-loaded body" \
+  || pass "no ## Changelog section in the always-loaded body (the repo lint warns on one)"
+# Guard before the cross-check: an awk that returns nothing would make the next line
+# `grep -qF ""`, which matches every file ever written. Demand a semver shape first.
+skill_ver=$(awk '/^metadata:/{f=1} f&&/^[[:space:]]+version:[[:space:]]*/{print $2; exit}' SKILL.md)
+printf '%s' "$skill_ver" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$' \
+  && pass "SKILL.md declares a semver skill version ($skill_ver)" \
+  || fail "no semver metadata.version in SKILL.md — the cross-check below would grep for the empty string"
+# An ENTRY, not a mention: a heading. `grep -F "$skill_ver"` anywhere in the file would be
+# satisfied by the version appearing in a sentence of prose about some other release.
+{ [ -n "$skill_ver" ] && [ -f CHANGELOG.md ] && grep -qE "^## +$(printf '%s' "$skill_ver" | sed 's/\./\\./g')( |$)" CHANGELOG.md; } \
+  && pass "the changelog carries a heading entry for the version SKILL.md declares ($skill_ver)" \
+  || fail "CHANGELOG.md has no heading entry for the declared version"
+# The ONLY version in this repository that is not this skill's own is the plugin's, and it
+# covers all eleven skills. Bumping it is a release decision for the other ten, so this
+# unit does not touch it, and that restraint is pinned rather than remembered.
+if [ -n "${ROOT:-}" ] && [ -f "$ROOT/.claude-plugin/plugin.json" ]; then
+  grep -qF '"version": "1.0.0"' "$ROOT/.claude-plugin/plugin.json" \
+    && pass "the shared plugin version is untouched at 1.0.0 — a release decision for eleven skills, not this skill's to make" \
+    || fail "the shared plugin version moved: that is a release decision affecting ten other skills"
+else
+  skip "shared plugin version not checked: no .claude-plugin/plugin.json above the skill"
+fi
 
 echo "== Behavioral: verify.sh on scratch repo =="
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
@@ -1079,5 +1333,7 @@ printf '%s\n' "$gsec" | grep -q '^- open question: .*git directory' \
 printf '%s\n' "$gsec" | grep -qF 'tests/eval.sh' \
   && pass "the record cites the check that machine-verifies the other harness, not prose" || fail "the record cites no machine check"
 
-echo ""; echo "PASS: $PASS  FAIL: $FAIL"
+echo ""
+[ $SKIP -gt 0 ] && echo "NOT A CLEAN RESULT: $SKIP check(s) did not run — see the SKIP line(s) above"
+echo "PASS: $PASS  FAIL: $FAIL  SKIP: $SKIP"
 [ $FAIL -eq 0 ]

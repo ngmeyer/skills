@@ -1,6 +1,6 @@
 {
   "name": "ngmeyer-skills",
-  "description": "Eleven composable Claude Code skills for engineering and productivity: red-teaming, behavior-preserving hardening audits, multi-advisor decisions, CLAUDE.md hygiene, six-pager memos, voice-aware writing, session memory, post-merge learning PRs, weekly self-improvement audits, and a skill-forge for writing/optimizing your own.",
+  "description": "Eleven composable Claude Code skills for engineering and productivity: red-teaming, behavior-preserving hardening audits, multi-advisor decisions, CLAUDE.md hygiene, six-pager memos, voice-aware writing, session memory, repo learning PRs from a merge or from a no-merge session's staged lessons, weekly self-improvement audits, and a skill-forge for writing/optimizing your own.",
   "version": "1.0.0",
   "author": {
     "name": "Neal Meyer"
