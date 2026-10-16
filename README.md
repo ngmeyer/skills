@@ -2,7 +2,7 @@
 
 [![skills.sh](https://skills.sh/b/ngmeyer/skills)](https://skills.sh/ngmeyer/skills)
 
-Ten agent skills I use every day, for deciding, writing, remembering, and improving, not just generating code. Small, composable, model-agnostic. Built for Claude Code, Codex, Cursor, and any agent that reads a `SKILL.md`.
+Ten agent skills I use every day, for deciding, writing, remembering, and improving, not just generating code. Small, composable, model-agnostic. Agent-agnostic: they work in Claude Code, Codex, Cursor, Grok, and any agent that reads a `SKILL.md`.
 
 Most of an agent's failures aren't coding failures. The agent agrees when it should push back. The big decision gets made in a chat window. The setup quietly rots. The session ends and the context is gone. The prose comes out sounding like a machine. These skills are built for exactly those moments.
 
@@ -10,15 +10,25 @@ They aren't a framework. Each skill is a single self-contained directory you can
 
 ## Quickstart (30-second setup)
 
-1. Run the [skills.sh](https://skills.sh) installer. It auto-detects which coding agents you have (Claude Code, Codex, Cursor, …), prompts you to pick which skills to install, and copies them into the right place. Works with any public GitHub repo, no registration needed.
+1. Run the [skills.sh](https://skills.sh) installer. It auto-detects which coding agents you have (it supports 75+, including Claude Code, Codex, Cursor and Grok), prompts you to pick which skills to install, and copies them into the right place. Works with any public GitHub repo, no registration needed.
 
 ```bash
 npx skills@latest add ngmeyer/skills
 ```
 
-2. Pick the skills and agents you want.
+2. Pick the skills and agents you want, or name the agent with `-a`:
 
-3. That's it. Each skill is self-contained, with no per-repo setup step. Invoke them directly:
+| Agent | Command | Project path | Global path (`-g`) |
+|---|---|---|---|
+| Claude Code | `npx skills add ngmeyer/skills -a claude-code` | `.claude/skills/` | `~/.claude/skills/` |
+| Cursor | `npx skills add ngmeyer/skills -a cursor` | `.agents/skills/` | `~/.cursor/skills/` |
+| Codex | `npx skills add ngmeyer/skills -a codex` | `.agents/skills/` | `~/.agents/skills/` |
+| Grok Build | `npx skills add ngmeyer/skills -a grok` | `.grok/skills/` | `~/.grok/skills/` |
+| Grok Bot / anything else | `npx skills add ngmeyer/skills -a universal` | `.agents/skills/` | `~/.config/agents/skills/` |
+
+Paths are from the installer's [supported-agents table](https://github.com/vercel-labs/skills#supported-agents). Grok Bot is not a named installer target; install into the repo's `.agents/skills/` (universal) or the `grok` path, whichever your Grok Bot setup reads.
+
+3. That's it. Each skill is self-contained, with no per-repo setup step. In agents with slash commands, invoke them directly; elsewhere, name the skill in your prompt:
 
 ```text
 /six-pager        /council-review     /adversarial-review
@@ -29,9 +39,9 @@ npx skills@latest add ngmeyer/skills
 <details>
 <summary>Other install methods (Claude Code plugin marketplace, manual)</summary>
 
-### Claude Code plugin marketplace
+### Claude Code plugin marketplace (Claude Code only)
 
-For the official Claude Code plugin flow. Two steps:
+An optional Claude Code-specific channel; the installer above is the agent-agnostic path. Two steps:
 
 ```text
 # 1. Register this repo as a plugin marketplace
@@ -49,15 +59,16 @@ Then `/reload-plugins` to activate. Marketplace-installed skills are namespaced,
 
 ```bash
 git clone https://github.com/ngmeyer/skills.git ~/ngmeyer-skills
-# Symlink the ones you want into your agent's skills dir
-ln -s ~/ngmeyer-skills/skills/productivity/six-pager ~/.claude/skills/six-pager
+# Symlink the ones you want into your agent's skills dir, e.g.
+ln -s ~/ngmeyer-skills/skills/productivity/six-pager ~/.agents/skills/six-pager   # Codex, universal
+# Claude Code: ~/.claude/skills/   Cursor: ~/.cursor/skills/   Grok: ~/.grok/skills/
 ```
 
 </details>
 
 ## Why These Skills Exist
 
-I built these to fix the failure modes I kept hitting with Claude Code and other agents, the ones that have nothing to do with whether the code compiles.
+I built these to fix the failure modes I kept hitting with coding agents (Claude Code, Codex, Cursor and others), the ones that have nothing to do with whether the code compiles.
 
 ### #1: The Agent Just Agrees With Me
 
@@ -167,7 +178,7 @@ Thinking and process skills, not code-specific.
 
 Every skill is one directory with a `SKILL.md` (YAML frontmatter: `name`, `description`) plus optional `references/` (progressive-disclosure depth) and `scripts/` (deterministic helpers). Skills live under `skills/<category>/<name>/`.
 
-See [CONTEXT.md](./CONTEXT.md) for the design philosophy and [CLAUDE.md](./CLAUDE.md) for how to add or evolve one.
+See [CONTEXT.md](./CONTEXT.md) for the design philosophy and [AGENTS.md](./AGENTS.md) for how to add or evolve one (`CLAUDE.md` just imports it).
 
 ## License
 

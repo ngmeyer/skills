@@ -1,6 +1,6 @@
 ---
 name: skillforge
-description: Forge new Claude Code skills or optimize existing ones to V2. Two modes — `forge` scaffolds a new skill (frontmatter, progressive disclosure, helper scripts, mandatory Gotchas, iterate-then-extract); `optimize` makes an existing skill measurably better at its OUTCOME, not just its packaging (quality audit + domain outcome-research + changelog + V1-vs-V2 verification). Use when the user wants to create, write, build, scaffold, improve, upgrade, or optimize a skill.
+description: Forge new agent skills (SKILL.md; Claude Code, Codex, Cursor, Grok, etc.) or optimize existing ones to V2. Two modes — `forge` scaffolds a new skill (frontmatter, progressive disclosure, helper scripts, mandatory Gotchas, iterate-then-extract); `optimize` makes an existing skill measurably better at its OUTCOME, not just its packaging (quality audit + domain outcome-research + changelog + V1-vs-V2 verification). Use when the user wants to create, write, build, scaffold, improve, upgrade, or optimize a skill.
 license: MIT
 ---
 
