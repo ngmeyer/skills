@@ -424,7 +424,7 @@ TP="$SKILL_DIR/scripts/tray-path.sh"
 (
   set -e
   mkdir -p "$TR/main/deep/er"
-  cd "$TR/main"; git init -q .; git config user.email t@t; git config user.name t
+  cd "$TR/main"; git init -q -b main .; git config user.email t@t; git config user.name t
   echo x > a.txt; git add -A; git commit -qm init
   git worktree add -q "$TR/wt" -b side
   ln -s main "$TR/link"
@@ -450,8 +450,16 @@ mkdir -p "$p_main"; printf 'lesson\n' > "$e"; printf 'log\n' > "$p_main/tray-log
 [ "$(ls "$p_main" | grep -c '^entry-')" = 1 ] && pass "entry- prefix counts 1 entry, never the log" || fail "entry count includes the log"
 (cd "$TR/main" && git worktree remove --force "$TR/wt" && git worktree prune) >/dev/null 2>&1 || fail "worktree prune setup"
 [ ! -d "$TR/wt" ] && [ -f "$e" ] && pass "entry survives the worktree being pruned (AE7)" || fail "entry lost with the worktree"
-so=$(cd "$TR" && bash "$TP" 2>/dev/null); rc=$?
-se=$(cd "$TR" && bash "$TP" 2>&1 >/dev/null)
+# Prefer a temp dir whose ancestors are not a git repo. A leftover `/tmp/.git` (empty,
+# no commits) makes every path under /tmp look "inside a repository" and turns this check
+# green-or-red for the wrong reason. /var/tmp is usually clean; fall back to $TR.
+OUT_TR=$TR
+if git -C "${TMPDIR:-/tmp}" rev-parse --git-dir >/dev/null 2>&1; then
+  OUT_TR=$(mktemp -d /var/tmp/learn-outside-XXXXXX 2>/dev/null || mktemp -d "$HOME/learn-outside-XXXXXX")
+fi
+so=$(cd "$OUT_TR" && bash "$TP" 2>/dev/null); rc=$?
+se=$(cd "$OUT_TR" && bash "$TP" 2>&1 >/dev/null)
+[ "$OUT_TR" != "$TR" ] && rm -rf "$OUT_TR"
 [ $rc -ne 0 ] && [ -z "$so" ] && grep -q '^learn: ' <<<"$se" && grep -qi 'not a git repositor' <<<"$se" && pass "outside a repository: fails naming the cause, prints no path (exit $rc)" || { echo "  rc=$rc out='$so' err='$se'"; fail "outside-repo resolution"; }
 
 echo "== Behavioral: capture verb (entry schema) =="
@@ -462,7 +470,10 @@ cd "$SKILL_DIR"
 CT=$(mktemp -d); trap 'rm -rf "$T" "$M" "$TR" "$CT"' EXIT
 TS="$SKILL_DIR/scripts/tray.sh"
 newrepo() { # a repo with a durable store (AGENTS.md + docs/topics) and one real source path
-  mkdir -p "$1" && cd "$1" && git init -q . && git config user.email t@t && git config user.name t \
+  # `git init -b main` so fixtures do not depend on the host's init.defaultBranch (often
+  # master). A bare origin whose HEAD still points at a missing master leaves clones empty
+  # and every later push/commit assertion fails for an environmental reason.
+  mkdir -p "$1" && cd "$1" && git init -q -b main . && git config user.email t@t && git config user.name t \
     && printf 'Read docs/topics/x.md\n' > AGENTS.md && mkdir -p docs/topics src/jobs \
     && echo x > docs/topics/x.md && echo code > src/jobs/auth.ts && git add -A && git commit -qm init
 }
@@ -797,10 +808,11 @@ echo "== Behavioral: the proposed state and reconciliation (KTD4, AE8) =="
 # forge tooling): the recorded head branch is either still on the remote or it is gone.
 PM=$(mktemp -d); trap 'rm -rf "$T" "$M" "$TR" "$CT" "$XP" "$LS" "$PM"' EXIT
 pmrepo() { # <dir> -> <dir>/w: a clone, on main, of a real <dir>/origin.git
-  git init -q --bare "$1/origin.git"
-  git init -q "$1/seed"
+  # Bare HEAD must be main before the first clone: init --bare defaults to master, and a
+  # clone of an origin that only has main then lands on an empty master (no HEAD commit).
+  git init -q -b main --bare "$1/origin.git"
+  git init -q -b main "$1/seed"
   git -C "$1/seed" config user.email t@t; git -C "$1/seed" config user.name t
-  git -C "$1/seed" checkout -q -b main
   mkdir -p "$1/seed/docs/topics" "$1/seed/src/jobs"
   printf 'Read docs/topics/x.md\n' > "$1/seed/AGENTS.md"
   printf 'topics\n' > "$1/seed/docs/topics/x.md"
@@ -1118,9 +1130,9 @@ DSPEC='specs/feat/slices/01.md'
 # share a history byte for byte, so any difference in a check's output can only have come
 # from the producer.
 (set -e
- git init -q --bare "$DF/origin.git"
- git init -q "$DF/seed"; cd "$DF/seed"
- git config user.email t@t; git config user.name t; git checkout -q -b main
+ git init -q -b main --bare "$DF/origin.git"
+ git init -q -b main "$DF/seed"; cd "$DF/seed"
+ git config user.email t@t; git config user.name t
  mkdir -p docs/topics src/jobs "${DSPEC%/*}"
  printf 'Read docs/topics/x.md\n' > AGENTS.md
  printf 'topics\n' > docs/topics/x.md
@@ -1323,11 +1335,16 @@ case $grun in
   '') fail "no hand-run field at all: there is nothing for the status to agree with";;
   *) [ -n "$gstat" ] && [ "$gstat" != open ] && pass "a hand-run procedure carries a status a reader can see ($gstat)" || { echo "  status='$gstat'"; fail "a dated hand-run still marked open"; };;
 esac
-# The factual question the plan names and nobody here can answer. Recorded as open, not
-# resolved: if Grok Bot's shell does not share a git directory with the user's clone, the
-# tray resolves somewhere else entirely and the entries never meet.
-printf '%s\n' "$gsec" | grep -q '^- open question: .*git directory' \
-  && pass "the unanswered question (does Grok Bot's shell share the clone's git directory?) is recorded as open" || fail "the open git-directory question is not recorded"
+# The factual question: does Grok Bot's shell share a git directory with the user's clone?
+# Once answered, the record must keep the answer (machineId yes / box-only no), not pretend
+# it is still open.
+printf '%s\n' "$gsec" | grep -qE '^- (open|answered) question: .*git directory' \
+  && pass "the git-directory share question is recorded (open or answered)" || fail "the git-directory question is not recorded"
+if printf '%s\n' "$gsec" | grep -q '^- answered question:'; then
+  printf '%s\n' "$gsec" | grep -qi 'machineId' \
+    && pass "the answered git-directory question names machineId as the share path" \
+    || fail "answered question does not name machineId"
+fi
 # The claim R13 makes about Claude Code is that parity is MACHINE-verified, so the record
 # has to say which check verifies it rather than asserting it in prose.
 printf '%s\n' "$gsec" | grep -qF 'tests/eval.sh' \

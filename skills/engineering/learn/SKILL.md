@@ -70,6 +70,7 @@ Run scripts/verify.sh or the equivalent checks:
 - branch ≠ default branch; nothing pushed to default.
 
 ## Gotchas
+- **Grok Bot tray:** capture/list/promote must run via local-execution Shell (`machineId`) against the user's working clone — a box-only clone has a different tray Cursor/Claude will never see. Cursor shares Claude's tray when both use the same clone/`git-common-dir`. Detail: references/harness-notes.md.
 - The diff shows *what*; lessons live in *why* — mine review comments and reverted commits, not only the final diff.
 - One PR per merged feature. Batching multiple features hides which lesson came from where.
 - Do not rewrite AGENTS.md wholesale (never regenerate with an init command); surgical lines only.

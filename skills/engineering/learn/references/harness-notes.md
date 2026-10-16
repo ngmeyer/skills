@@ -1,11 +1,12 @@
 # Harness notes (keep harness specifics here, not in SKILL.md)
 | need | Claude Code | Cursor | Grok Bot | any |
 |---|---|---|---|---|
-| install | `.claude/skills/learn/` or plugin | `.cursor/skills/learn/` or rule pointing at SKILL.md | box skill dir / Skills | read SKILL.md as a prompt |
-| PR metadata + comments | `gh pr view <n> --json body,comments,reviews,files` | same via terminal, or GitHub MCP | GitHub MCP (`get_pull_request`, `list_pull_request_comments`) | REST `GET /repos/{o}/{r}/pulls/{n}` |
+| install | `.claude/skills/learn/` or plugin | `.cursor/skills/learn/` or rule pointing at SKILL.md | skill on the box is fine to *read*; tray verbs must target the user clone (below) | read SKILL.md as a prompt |
+| PR metadata + comments | `gh pr view <n> --json body,comments,reviews,files` | same via terminal, or GitHub MCP | GitHub MCP: `get_pull_request`; review comments `list_pull_request_comments`; issue-level PR comments `list_issue_comments` | REST `GET /repos/{o}/{r}/pulls/{n}` |
 | open draft PR | `gh pr create --draft` | `gh` or GitHub MCP | GitHub MCP `create_pull_request` (draft) — needs user approval | push branch, open in UI |
-| run verify.sh | Bash | terminal | Shell on box | bash |
-| trigger post-merge | hook/manual `/learn` | manual or background agent | routine on merge or manual | GitHub Action on `pull_request: closed && merged` that posts "run learn" comment |
+| run verify.sh | Bash | terminal | Shell on box (tests) or machineId Shell on user clone (tray) | bash |
+| trigger post-merge | hook/manual `/learn` | manual or background agent | manual (no verified merge routine yet) | GitHub Action on `pull_request: closed && merged` that posts "run learn" comment |
+| capture tray | same clone's `.git/learn-tray` | same clone/git-common-dir as Claude → **same tray** | **MUST** run capture/list/promote via local-execution Shell (`machineId`) against the user's working clone — never against a box-only checkout | `tray-path.sh` |
 Claude Code: CLAUDE.md should `@AGENTS.md`-import so lessons load deterministically.
 Cursor: rules in `.cursor/rules/*.mdc` that point to topics count as context — grep them in dedupe.
 
@@ -23,15 +24,19 @@ no header and no envelope. So there is nothing to parse and no project scoping t
 pasted Grok memory is **global** until the user says which repo a line belongs to, and
 the agent may only *suggest* a repo for a line, never assign one.
 
+For `from-memories` on Grok Bot there is still **no file export**. The agent uses
+RecallMemory / UpdateMemory facts the user (or the agent, with approval) pastes as plain
+text. Those facts are user-scoped and stay **global until the user names a repo**.
+
 The `project: <repo root>` first line this skill accepts is **this skill's own
 convention**, not any harness's output. It works on any plain-text file because a human
 typed it there. Do not tell a user to "export with the project header" — there is no such
 export.
 
 **Verification status.** The Claude Code shapes above were checked by sampling real memory
-dirs. The Cursor and Grok Bot rows were checked by reading files and documentation only —
-neither skill has been loaded in a live Cursor or Grok session. Treat those two rows as
-untested until someone runs them.
+dirs. Cursor and Grok Bot memory *locations* were checked by reading files and
+documentation; Grok Bot tray sharing with the user clone was hand-verified 2026-10-15
+(see *Grok Bot parity* below).
 
 ### Claude Code: one fact per file, not a bullet list
 A memory dir there is usually **one fact per file** with YAML frontmatter and a prose body — no bullets at all:
@@ -80,6 +85,19 @@ so a repo that has never captured has no tray. It is untracked, so it never show
 promotion, not the tray, is what makes a lesson durable. Outside a repository there is no
 tray and resolution fails rather than writing somewhere arbitrary.
 
+### Grok Bot: tray verbs must hit the user clone
+Grok Bot's default Shell runs on a **box** with its own filesystem. A box-only clone of
+the repo has a different `.git` (and therefore a different `learn-tray`) from the clone
+Cursor or Claude uses on the user's machine. Captures written only on the box are
+**invisible** to those agents and disappear when the box is reset.
+
+So for Grok Bot, `capture` / `list` / `reject` / `promote` / `propose` **MUST** run
+through local-execution Shell with the user's `machineId`, `cd`'d into the user's working
+clone (the same path Cursor opens). Never treat a box checkout as the tray host.
+
+Cursor and Claude share one tray when they share one clone / `git-common-dir` (e.g. both
+on ALIEN-NEAL at `~/src/<repo>`).
+
 A per-project **agent memory directory** (the `from-memories` inputs above) is a different
 store with a different owner: it lives under the user's home agent directory, is keyed by
 an encoded absolute path, and is read-only to this skill. The tray is in the repo's git
@@ -125,40 +143,54 @@ but resolve the directory through `scripts/tray-path.sh`, never by hand.
   match. The one field a caller controls — a rejection's reason, a consumption's pull
   request reference — is checked against the other verbs' greps before the line is written.
 
-### Grok Bot parity — open (KTD12)
+### Grok Bot parity — hand-verified tray share (KTD12)
 
 Claude Code parity is **machine-verified**: `tests/eval.sh` produces one tray-and-
 instruction-file state three ways — by the verbs, by hand, and with a stream editor — and
 fails unless every check on it returns an identical exit code and identical output; it
 then runs the verbs a second time under `env -i` with only `PATH`, `HOME` and `TZ`, with
 no forge CLI on `PATH`, and fails unless that output matches the run made with harness
-environment variables set. Grok Bot has no such runner here, so its parity is an **open
-item owned by Grok Bot**. The interim evidence is the manual procedure below and the date
-a human last ran it — not a claim that it works.
+environment variables set. Grok Bot has no such runner here; tray-share evidence is the
+manual procedure and checklist below.
 
-- status: open
-- procedure last run by hand: NOT-YET-RUN — nobody has run steps 1-6 in a Grok Bot session
-  yet. The date below is when this record was written and reviewed, which is not a run.
-- record last reviewed: 2026-10-14
-- open question: does Grok Bot's shell share a git directory with the user's clone? Still
-  unanswered, and step 1 is what answers it. If the shell is a separate box or container
-  with its own checkout, the tray resolves into *that* git directory: entries captured
-  there are invisible from the user's clone and go away with the container. That is not a
-  defect in the verbs — it is a different repository — but it decides whether one person
-  can run steps 2-6 end to end at all, so nothing below should be read as assuming it.
+- status: hand-verified
+- procedure last run by hand: 2026-10-15
+- record last reviewed: 2026-10-15
+- answered question: does Grok Bot's shell share a git directory with the user's clone?
+  **Only when Shell targets that clone via `machineId`.** A box-only checkout is a
+  different repository (box checkout `.git` ≠ user-clone `.git`); its tray is
+  invisible to Cursor/Claude on the user machine and dies with the box. Local-execution
+  Shell against the user clone shares `git-common-dir` / `learn-tray` with Cursor on the
+  same clone.
 
-The procedure. Run it in a Grok Bot session against a repository that has a lesson worth
-capturing, then replace `NOT-YET-RUN` with the ISO date of the run and change `status:` to
-`hand-verified`. Do not fill the date in from anywhere but a run you performed.
+#### Manual parity checklist (actually run) — 2026-10-15 PT
+Repo: ALIEN-NEAL WSL `nealme` `~/src/skills` (WSL user clone) on `forge/learn-skill`.
+Throwaway claims only; both entries rejected before leaving.
 
-1. In the shell, `cd` into the repository and record the output of
-   `git rev-parse --path-format=absolute --git-common-dir`. Compare it with the same
-   command in the user's own clone: that comparison is the answer to the open question.
+| step | where | result |
+|---|---|---|
+| 1. `git rev-parse --path-format=absolute --git-common-dir` | ALIEN-NEAL clone | `~/src/skills/.git` |
+| 1b. same via Grok `machineId` Shell into that clone | box → ALIEN-NEAL | **identical** common-dir |
+| 1c. box-only clone contrast | separate box checkout of the same GitHub repo | its own `.git/learn-tray` — **different tray** |
+| 2. `tray.sh capture` (checkable throwaway) | ALIEN-NEAL | wrote `entry-20261015-0ee299ce.md`; frontmatter matched schema |
+| 3. `tray.sh list` | ALIEN-NEAL | showed id, age=0d, track, state, claim, path |
+| 3b. capture + list via `machineId` (standing throwaway) | box → ALIEN-NEAL | id `9db4bd75` listed in the **same** tray Cursor would see |
+| 4. `tray.sh reject` both ids | ALIEN-NEAL | removed; tray-log recorded reasons; list empty |
+| 5–6. promote → draft PR → propose → merge/consume | — | **not run** this pass (throwaway reject path only) |
+
+Full promote/PR/consume path remains optional follow-up; tray **share** with Cursor is
+confirmed for capture/list/reject when Grok uses machineId against the user clone.
+
+The longer procedure (for a real lesson you intend to keep):
+
+1. Via `machineId` Shell, `cd` into the **user** clone and record
+   `git rev-parse --path-format=absolute --git-common-dir`. Compare with a local Cursor
+   terminal in the same clone — they must match. A box-only path must not be used.
 2. `scripts/tray.sh capture --track checkable --claim "<one line>" --evidence "<one line>"
    --path <repo-relative path>` — it prints one path. `cat` that path and check the
    frontmatter against *What a tray entry contains* below.
 3. `scripts/tray.sh list` — the entry appears with its id, age, track, state, claim and
-   match paths.
+   match paths. Confirm the same `list` from a Cursor/Claude session on that clone.
 4. `scripts/tray.sh promote --event merge --confirms <id>` — one routing line, with the
    `line:` it would add and where.
 5. Apply that line **verbatim**, commit, push the branch, open **one draft pull request**
@@ -167,11 +199,11 @@ capturing, then replace `NOT-YET-RUN` with the ISO date of the run and change `s
 6. After the pull request merges and its head branch is deleted, run `scripts/tray.sh
    list` once more: the entry is gone and the tray log records it as `consumed`.
 
-It passes if steps 2-4 and 6 print what the same steps print in another harness on the
-same repository state — identical but for the id, the date and the repository path — and
-if nothing in the run needed a harness API, an MCP server, an environment variable or a
-forge CLI. It fails, and parity stays open, if any step needed something the shell alone
-could not provide.
+It passes if steps 2–3 (and 4/6 when run) print what the same steps print in another
+harness on the same repository state — identical but for the id, the date and the
+repository path — and if nothing in the run needed a harness API, an MCP server, an
+environment variable or a forge CLI beyond plain Shell. It fails if capture was aimed at
+a box-only clone.
 
 ## Promotion: the routing table
 
@@ -188,6 +220,12 @@ trigger — and **evidence resolves before the track routes**.
 | `standing` | skipped entirely | promote to `docs/topics/`, flagged **asserted** | same |
 | any | `state: proposed`, head branch still on the remote | leave proposed, clock frozen | same |
 | any | `state: proposed`, head branch gone | claim in the default branch → consumed; absent → back to `captured`, clock untouched | same |
+
+**TODO 0.4.1 — proposed-entry expiry:** docs say the clock is frozen while `proposed`, but
+age is still derived from the capture-date filename. A promotion PR open longer than the
+8-week window that then returns to `captured` (reviewer trim) can be reaped in the same
+`list`/`sweep` run. Fix by preserving age-at-propose on demotion (or equivalent); do not
+half-fix. Not addressed in 0.4.0.
 
 - **Why that order.** `standing` skips the evidence step and `decision` is exempt from it.
   Route first and an entry whose evidence just failed can be re-routed onto one of them

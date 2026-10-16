@@ -5,6 +5,13 @@ no behavior. The version it tracks is `metadata.version` in `SKILL.md`, which is
 skill's own; `.claude-plugin/plugin.json` carries a separate version covering every skill
 in the repo and is not this file's business.
 
+## 0.4.1 (planned)
+
+- **TODO:** freeze age for `state: proposed` so a long-open promotion PR that returns to
+  `captured` (reviewer trim) is not reaped in the same `list`/`sweep` by the original
+  capture-date clock. Preserve age-at-propose on demotion; do not half-fix. Tracked from
+  the 0.4.0 known bug.
+
 ## 0.4.0 (2026-10-14)
 
 **A session with nothing to merge now has somewhere to put a lesson.** Until this version
