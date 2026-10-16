@@ -1,0 +1,4 @@
+# The private-name detector's term list is a list of real private names, so it is the one
+# thing in this skill that must never be committed. tests/eval.sh reads it from here by
+# default and from $LEARN_PRIVATE_TERMS if that is set. See the KTD13 block in eval.sh.
+private-terms.local

@@ -111,6 +111,7 @@ Decide with `/council-review`, stress-test one artifact with `/adversarial-revie
 **The Fix** is to write memory down, and to repair it when it splits:
 
 - [`/session-close`](./skills/productivity/session-close/SKILL.md) reconciles a session's outcomes into persistent project-memory files with section-aware merges. Not a session dump; an update.
+- [`/learn`](./skills/engineering/learn/SKILL.md) writes the durable lessons into the repo's `AGENTS.md`/`docs/topics` as a reviewable draft PR and retires that feature's throwaway specs, so the next agent (any harness) inherits them. On a merge it mines the diff and the review threads. With nothing to merge — a debugging or planning session — it stages each lesson in the repo's capture tray instead, for a later merge or accepted decision to promote.
 - [`/session-recover`](./skills/engineering/session-recover/SKILL.md) finds duplicate project directories that point at the same logical project from different paths, unifies the memory into the canonical one, and captures the lesson so the split doesn't repeat.
 
 ### #5: My Skills Don't Get Better
@@ -149,6 +150,7 @@ Code-facing skills.
 
 - **[adversarial-review](./skills/engineering/adversarial-review/SKILL.md)** — Single-critic red-team of a finished artifact: edge cases, hidden assumptions, failure modes. Actively tries to break it before it ships.
 - **[claude-md](./skills/engineering/claude-md/SKILL.md)** — Two modes for `CLAUDE.md` files: `audit` finds drift, leaked secrets, and bloat across your projects; `improve` rewrites one against Anthropic's best-practice rubric.
+- **[learn](./skills/engineering/learn/SKILL.md)** — Durable lessons into `AGENTS.md`/topics and spec retirement, proposed as a draft PR. After a merge, or from a capture tray a session with nothing to merge staged them in. Agent-agnostic.
 - **[rigorous-review](./skills/engineering/rigorous-review/SKILL.md)** — Whole-codebase audit (security · performance · correctness · refactoring) that never changes outward-facing behavior: scores every finding on severity × confidence, suppresses predictable noise, validates survivors with an independent agent, and reports before it touches anything.
 - **[session-recover](./skills/engineering/session-recover/SKILL.md)** — Recover lost context by merging duplicate project-memory directories that a folder move split into two namespaces.
 

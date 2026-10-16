@@ -12,7 +12,7 @@
 - **Portability:** no `/Users/<name>/` or `/home/<name>/` hardcoded paths
 - **Cross-platform:** uses `--since=` git flag; `date -v` only ever mentioned as banned, never used as a command
 - Canonical output filename (`weekly-setup-improvements.md`) and archive-by-date pattern present
-- Sibling skill awareness (`/vault-audit`, `/claude-md-audit` referenced)
+- Sibling skill awareness (`/vault-audit`, `/claude-md` referenced; stale `/claude-md-audit` name rejected)
 - Anti-diary rule ("Do not write a session log") present
 - README, LICENSE, CLAUDE.md all shipped
 

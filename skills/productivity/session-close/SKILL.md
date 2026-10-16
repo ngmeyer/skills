@@ -9,6 +9,8 @@ description: >
 user-invocable: true
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent"]
 argument-hint: "[optional: project name if not obvious from cwd/context]"
+metadata:
+  harness: claude-code
 ---
 
 # /session-close -- Session-to-Memory Reconciliation
@@ -68,6 +70,7 @@ For each identified project:
 Also read:
 - `MEMORY.md` index (to check whether index updates are needed)
 - The project's CLAUDE.md if you need stack/architecture context
+- **The repo's committed knowledge base** -- `AGENTS.md`, `docs/topics/*`, `docs/decisions/*` (whichever exist). Phase 3.5 routes durable items *into* these; once something is there, writing it to local memory too recreates the split this skill exists to close. A fact already committed is already in every agent's context: cite it, don't copy it. If a `learn` PR has merged for this repo, its lessons live here -- and the memory lines it listed as "safe to prune after merge" are now yours to prune in Phase 4.
 
 ### Phase 3: EXTRACT -- Classify and filter session events
 
@@ -208,6 +211,8 @@ For each touched project that has (or should have) a `CLAUDE.md` / `AGENTS.md`:
 3. **If `claude-md` is absent, degrade gracefully:** print the items -- *"N convention(s) from this session may belong in CLAUDE.md; install `claude-md` or add them by hand"* -- so nothing is lost. Never block on it.
 
 **Never run `/init` to update an existing CLAUDE.md.** `/init` *regenerates* the file wholesale: it invents architecture sections and discards the curated, hard-won lessons that were never written into it. This phase is **surgical promotion** (add the few lines that earned their place, leave the rest byte-for-byte), not regeneration. If a project has no `CLAUDE.md` yet, *suggest* a minimal one -- don't auto-generate a large one.
+
+If this session **merged a PR**, also run `learn <pr>` (sibling skill, if installed) to write durable lessons into the repo as a draft PR and retire that feature's specs; skip silently if absent.
 
 This is a **soft dependency by design** -- it degrades to a printed list when `claude-md` is absent, so session-close stays self-contained for a cherry-picked install.
 

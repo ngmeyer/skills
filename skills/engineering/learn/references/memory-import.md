@@ -1,0 +1,51 @@
+# from-memories: importing agent memory into repos
+
+## Inputs (read-only)
+Any mix of: Claude Code global/project instruction files and per-project memory dirs, Cursor rules/memories, Grok Bot memory the user pastes in as plain text (no export format exists — it stays global until the user names a repo), or any `.md`/`.txt` the user names. Paths per harness: harness-notes.md. Memories are **never** edited, moved, or deleted by this mode.
+
+## 1. Redact gate (blocking)
+`scripts/redact-scan.sh <files>` flags: provider tokens (GitHub, OpenAI-style `sk-`, Slack, AWS `AKIA`, Google `AIza`, JWTs, PEM private keys), `key|secret|token|password = value` assignments, credentials in URLs, emails (except example.com/noreply), phone numbers (except 555-01xx).
+- Any hit → the **whole file** is excluded from this run, reported masked (`BLOCK <kind> <file>:<line>`), and the user is told to clean or rotate. Why whole file: a memory that held one secret often holds context around it.
+- Re-run on the staged diff before every commit (`git diff --cached | scripts/redact-scan.sh -`). A hit aborts the commit.
+- False positive? The user edits the memory or the lesson text; do not add a bypass flag. One exception is built into the scanner rather than left to a flag: a url-credential match containing `*` is a documented regex, not a credential. Why: the memory most likely to quote credential *patterns* is the one teaching secret hygiene, and blocking it taught nobody anything.
+
+## 2. Map to repo or global
+`scripts/memory-triage.sh map <repo roots...> -- <files...>` assigns a file to a repo when:
+- it lives inside the repo (project instruction file, `.cursor/rules/*`, an export saved in the repo), or
+- its directory name is the repo's absolute path with every non-alphanumeric char replaced by `-` (Claude Code project memory), or
+- a plain-text file starts with `project: <repo root>` (or `repo:`/`path:`) — this skill's own convention for pasted text, present only because a human typed it. No harness emits it; never tell a user to "export with the header".
+Otherwise → `global`. Global files are never committed; the agent may *suggest* a repo for a specific line, but only the user can move it.
+
+**Pass every path the repo is reachable by.** The encoded dir encodes a *path*, not a repo identity, so a moved checkout, a mirror, or a symlinked working dir gives one repo two namespaces — only the path you passed matches, and the rest map to `global` and are dropped without a word. A non-repo parent (a portfolio root above many repos) is also a real namespace whose lessons are repo-scoped. List the aliases before you start; treat a true split as `session-recover`'s job first.
+
+## 3. Triage per fact
+| class | rule | destination |
+|---|---|---|
+| BLOCKED-SECRET | redact hit | blocked list (masked) |
+| NOT-FOR-REPO | file is global, or line is personal (`I prefer`, `my editor/shell/machine`, home paths) | Not-for-repo list |
+| STALE | names a repo-relative path in backticks that no longer exists | dropped; listed as "prune after merge" |
+| DUPLICATE | ≥80% of its significant words appear on one line of AGENTS.md/CLAUDE.md/docs/topics/.cursor/rules/docs/decisions | dropped; cite the existing line |
+| CANDIDATE | none of the above | apply lesson-filter.md (recurs, non-obvious, actionable, verified) |
+The script is a conservative pre-pass. The agent must still (a) confirm each STALE against the code (a path may have moved, not died), (b) read each DUPLICATE match (same words ≠ same rule; a contradiction becomes an EDIT, not a skip), and (c) reject candidates that are status, history, or one-off facts.
+
+**A fact is a bullet (`- `/`* `) or a whole file.** Memories written one-fact-per-file put the lesson in frontmatter `description` with a prose body and no bullets, so a bullet-only read sees nothing. The script emits one record from `description` and tags it `[type:<t>]` when frontmatter declares one; weight the lesson filter by type — `feedback`/`reference` are the durable ones, `project` is usually status that fails *recurs*, and `user` takes the whole file out. Shape per harness: harness-notes.md.
+
+## 4. Batching
+- One branch + draft PR per repo; ≤ `--max-lessons` lessons per PR. **Default 5 — a chosen default, not a measured limit:** it exists to keep a review small enough that a human actually reads every lesson. Raise or lower it per repo; nothing breaks either way. Overflow → `learn/memories-<YYYY-MM-DD>-2`, `-3`, … each a separate draft PR, ordered by cross-cutting impact (AGENTS.md landmines first).
+- Before opening batch n+1, rebase on default and re-run dedupe: batch n may already cover it.
+
+## 5. PR body additions (on top of pr-template.md)
+```
+## Source memories
+| file (path shown relative to $HOME, never absolute) | harness | lines used |
+## Not for repo (not committed; shown here only as counts)
+global: N · personal: M
+## Safe to prune after merge (user action; not done by this PR)
+| memory file:line | reason (imported as lesson #k / stale / duplicate of AGENTS.md:L) |
+## Redaction
+redact-scan on staged diff: CLEAN
+```
+Never paste Not-for-repo content or blocked lines into the PR body — counts only.
+
+## 6. Prune report
+After the PR merges, list memory lines that are now redundant (imported, duplicate, stale) so the user (or session-close) can prune them. This mode never deletes them.
