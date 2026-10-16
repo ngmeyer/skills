@@ -1,0 +1,3 @@
+# Writing skills (six-pager, write-well)
+
+- Cite Strunk & White by the 4th-edition rule numbers (R13 paragraph/topic sentence, R18 sentence variety, R19 parallel form) in every skill, and keep six-pager and write-well in step: an earlier write-well draft used the 1918 numbers and had to be corrected. "Begin with a topic sentence" is Strunk's 1918 Rule 9, folded into 4th-ed Rule 13, so name it rather than cite it as a 4th-ed rule (learn: 21ed77d "Numbering already matched the 4th edition; consistent with write-well"; c803620 V2.3 notes; skills/productivity/six-pager/SKILL.md, skills/productivity/write-well/SKILL.md)
