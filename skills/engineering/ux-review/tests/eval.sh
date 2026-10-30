@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Structural + arithmetic eval for ux-review (1.0).
+# Structural + arithmetic eval for ux-review (1.0), including the slop pass.
 #
 # The skill's runtime output is model-written, so this eval pins two things a model cannot
 # be trusted to hold by itself: the design contract in SKILL.md and references/, and the
 # scoring arithmetic, by recomputing every derived number in the worked example (ids,
-# priority scores, tiers, item scores, section %, overall %, grade caps, summary, order).
+# priority scores, tiers, item scores, section %, overall %, grade caps, slop score and band,
+# summary, order).
 # If the example and the rules ever disagree, one of them is wrong and this fails.
 #
 # Usage: bash tests/eval.sh   (PYTHON=/path/to/python to pick an interpreter with jsonschema)
@@ -27,6 +28,7 @@ grep -qE '^  owner: ' <<<"$fm" && pass "metadata.owner" || fail "metadata.owner"
 dlen=$(awk '/^description:/{f=1;next} f&&/^[a-z-]+:/{exit} f{printf "%s ", $0}' <<<"$fm" | wc -c)
 [ "$dlen" -gt 100 ] && [ "$dlen" -le 1024 ] && pass "description $dlen chars (<=1024)" || fail "description $dlen chars"
 grep -qi 'use when' <<<"$fm" && pass "description has triggers" || fail "description has triggers"
+for t in 'does this look' 'AI-generated' 'de-slop' 'anti-slop review'; do grep -qF -- "$t" <<<"$fm" && pass "trigger: $t" || fail "trigger: $t"; done
 n=$(wc -l < SKILL.md); [ "$n" -le 250 ] && pass "SKILL.md $n lines (<=250)" || fail "SKILL.md $n lines (>250)"
 
 echo "== Contract in SKILL.md =="
@@ -45,10 +47,18 @@ chk "plateau rule" '**Plateau:**'
 chk "stuck rule" '**Stuck:**'
 chk "stable id recipe" 'sha1("ux-review|<rule>|<screen>|<element_key>")'
 chk "raw selector is never hashed" 'It is never hashed'
-chk "unsourced-claim guard" 'found none. If you could not check it, cap it at P1 and severity 3'
+for m in '`source checked, none found`: you checked' '`source not checked`: a missing' '`source found`: the source exists'; do chk "unsourced-claim guard marker: ${m%%:*}" "$m"; done
+chk "signs, not proof" 'Tells are **signs, not proof**'
+chk "slop: per-tell cap" 'contributes its weight **once**'
+chk "slop: score formula" 'slop_score = round(100 x sum(weights of tells found) / sum(weights of applicable tells))'
+chk "slop: bands" '0 `none`, 1-2 `isolated`, 3-6 `pattern`, 7+ `template-grade`'
+chk "slop: band only, no gate" 'gate nothing on the score except the loop'"'"'s regression rule'
+chk "slop: regression rule" '`slop_score` rising 10 or more'
+chk "slop: craft credit before tiering" 'Run craft credit before tiering'
+chk "slop: token tell key" 'key `token|<token name>`'
 chk "1.3.5 autocomplete is a WCAG item" '| 1.3.5 | Identify input purpose' references/platform-targets.md
 chk "Gotchas section" '## Gotchas'
-for r in laws.md heuristics.md platform-targets.md findings-schema.json example-page.json sources.md; do
+for r in laws.md heuristics.md platform-targets.md slop-tells.md findings-schema.json example-page.json sources.md; do
   grep -qF "references/$r" SKILL.md && [ -f "references/$r" ] && pass "reference $r linked and present" || fail "reference $r"
 done
 
@@ -59,6 +69,10 @@ c=0; for l in $LAWS; do grep -qE "^\| $l \|" references/laws.md && c=$((c+1)) ||
 c=0; for i in 1 2 3 4 5 6 7 8 9 10; do grep -qE "^\| H$i \|" references/heuristics.md && c=$((c+1)); done
 [ "$c" -eq 10 ] && pass "H1-H10 in heuristics.md" || fail "heuristics.md has $c/10"
 for s in Apache-2.0 MIT 'Next Level Builder'; do chk "sources.md credits: $s" "$s" references/sources.md; done
+c=0; for i in $(seq -w 1 23); do grep -qE "^\| T$i \|" references/slop-tells.md && c=$((c+1)) || echo "  missing T$i"; done
+[ "$c" -eq 23 ] && pass "T01-T23 in slop-tells.md" || fail "slop-tells.md has $c/23"
+chk "slop weights labelled uncalibrated" 'Weights are a starting point, calibrate.' references/slop-tells.md
+for s in 'Han Kim / IOV Labs' 'Gesso Build, Inc.' 'Hallmark contributors' 'Feranmi' 'Miqdad Badjuber' 'cited, not copied'; do chk "slop attribution: $s" "$s" references/slop-tells.md; done
 
 echo "== Schema and worked example =="
 LAWS="$LAWS" "$PY" - <<'PYEOF'
@@ -87,6 +101,11 @@ except ImportError:
     print("SKIP  jsonschema not installed: schema checked as JSON only (set PYTHON= to an interpreter with jsonschema)")
     skipped = True
 laws = os.environ["LAWS"].split(); H = [f"H{i}" for i in range(1, 11)]
+W = {}; proof = set()
+for line in open("references/slop-tells.md"):
+    m = re.match(r"\| (T\d\d) \|(?:[^|]*\|){3} ([^|]+) \|", line)
+    if m: (proof.add(m.group(1)) if m.group(2).strip() == "P0" else W.__setitem__(m.group(1), int(m.group(2))))
+res(sum(W.values()) == 99 and proof == {"T14", "T15", "T16", "T21"}, f"slop style weights sum {sum(W.values())}, proof tells {sorted(proof)}")
 sc = ex["scores"]
 res(sorted(sc["laws"]) == sorted(laws), "example scores all 30 laws")
 res(sorted(sc["heuristics"]) == sorted(H), "example scores H1-H10")
@@ -102,7 +121,13 @@ for f in F:
     res(L["screen"] == norm_screen(L["screen"]) and (k.startswith("region:") or k == norm_key(*k.split("|", 1))), f"{f['id']}: screen and element_key are normalized")
     want = "uxr_" + hashlib.sha1(f"ux-review|{f['rule']}|{L['screen']}|{k}".encode()).hexdigest()[:10]
     res(f["id"] == want, f"{f['id']}: id recomputes from skill|rule|screen|element_key")
-    res(not (re.search(r"unsourced|fabricat", f["evidence"], re.I) and "source not checked" in f["evidence"]) or (f["tier"] != "P0" and f["severity"] <= 3 and f["confidence"] <= 0.5), f"{f['id']}: unchecked-source claim is capped at P1")
+    ev = f["evidence"]; mk = [m for m in ("source checked, none found", "source not checked", "source found") if m in ev]
+    if f["rule"] in ("T14", "T15", "T16") or re.search(r"unsourced|fabricat", ev, re.I):
+        res(len(mk) == 1 and {"source checked, none found": True, "source not checked": f["tier"] != "P0" and f["severity"] <= 3 and f["confidence"] <= 0.5, "source found": f["severity"] == 1}.get(mk[0], False), f"{f['id']}: claim guard: one marker {mk} and its cap")
+    if f["rule"] in W:
+        res(f["tell_weight"] == (0 if f["craft_credit"] else W[f["rule"]]) and (not f["craft_credit"] or f["severity"] == 0), f"{f['id']}: tell_weight matches catalog, craft credit zeroes it")
+        res(f["severity"] == (0 if f["craft_credit"] else 2 if sc["slop_band"] == "template-grade" else 1), f"{f['id']}: style tell severity follows band and craft credit")
+    if f["rule"] in proof: res(f.get("tell_weight") is None, f"{f['id']}: proof tell carries no weight")
     res(abs(f["priority_score"] - round(f["severity"] ** 2 * f["reach"] * f["confidence"] / f["effort"], 2)) < 1e-9, f"{f['id']}: priority_score recomputes")
     base = {4: "P0", 3: "P1", 2: "P2"}.get(f["severity"], "P3")
     wc = any(x in sc["wcag"] for x in [f["rule"]] + f["also"])
@@ -131,6 +156,12 @@ res(all(s[t.lower()] == sum(f["tier"] == t for f in live) for t in ("P0", "P1", 
 res(all(s[d] == sum(f["diff"] == d for f in F) for d in ("new", "persisting", "resolved", "regressed")), "summary diff counts match")
 key = [(f["diff"] == "resolved", f["tier"], -f["priority_score"], f["id"]) for f in F]
 res(key == sorted(key), "findings in canonical order (live first, tier, score desc, id)")
+found = {t for f in live if not f.get("craft_credit") for t in [f["rule"]] + f["also"] if t in W}
+app = [t for t in W if t not in sc["na_reasons"]]
+slop = round(100 * sum(W[t] for t in found) / sum(W[t] for t in app)) if app else None
+res(slop == sc["slop_score"], f"slop_score recomputes {slop}")
+n = len(found); band = None if slop is None else "none" if n == 0 else "isolated" if n <= 2 else "pattern" if n <= 6 else "template-grade"
+res(band == sc["slop_band"], f"slop_band recomputes {band} ({n} tells)")
 sys.exit(1 if not ok else 3 if skipped else 0)
 PYEOF
 r=$?; case $r in 0) pass "example arithmetic block";; 3) pass "example arithmetic block"; skip "schema validation (no jsonschema)";; *) fail "example arithmetic block";; esac

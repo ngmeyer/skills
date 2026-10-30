@@ -150,7 +150,7 @@ Code-facing skills.
 - **[adversarial-review](./skills/engineering/adversarial-review/SKILL.md)** — Single-critic red-team of a finished artifact: edge cases, hidden assumptions, failure modes. Actively tries to break it before it ships.
 - **[claude-md](./skills/engineering/claude-md/SKILL.md)** — Two modes for `CLAUDE.md` files: `audit` finds drift, leaked secrets, and bloat across your projects; `improve` rewrites one against Anthropic's best-practice rubric.
 - **[rigorous-review](./skills/engineering/rigorous-review/SKILL.md)** — Whole-codebase audit (security · performance · correctness · refactoring) that never changes outward-facing behavior: scores every finding on severity × confidence, suppresses predictable noise, validates survivors with an independent agent, and reports before it touches anything.
-- **[ux-review](./skills/engineering/ux-review/SKILL.md)** — Score a page, flow, or app against 30 Laws of UX, Nielsen's 10 heuristics, WCAG 2.2 AA, and platform targets; emit ranked, stable-id JSON findings that a fix loop can diff run to run.
+- **[ux-review](./skills/engineering/ux-review/SKILL.md)** — Score a page, flow, or app against 30 Laws of UX, Nielsen's 10 heuristics, WCAG 2.2 AA, and platform targets, plus an anti-slop pass for generic-AI tells and fabricated proof; emit ranked, stable-id JSON findings that a fix loop can diff run to run.
 - **[session-recover](./skills/engineering/session-recover/SKILL.md)** — Recover lost context by merging duplicate project-memory directories that a folder move split into two namespaces.
 
 ### Productivity

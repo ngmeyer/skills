@@ -14,4 +14,6 @@ Rules here are our own words. Where an idea came from another project, it is cre
 | [RICE prioritization (Intercom)](https://www.intercom.com/blog/rice-simple-prioritization-for-product-managers/) | cited | Effort as the divisor in `priority_score`. |
 | W3C WCAG 2.2, Apple HIG, Material 3, Android, Flutter docs | cited | Thresholds in [platform-targets.md](platform-targets.md). |
 
+The slop pass credits its own sources in [slop-tells.md](slop-tells.md#sources-and-attribution).
+
 impeccable's Apache-2.0 license asks that a NOTICE travel with copied text. Nothing is copied, so no NOTICE is shipped; if you later quote it, add one.

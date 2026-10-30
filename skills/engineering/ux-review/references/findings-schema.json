@@ -1,14 +1,14 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/ngmeyer/skills/blob/main/skills/engineering/ux-review/references/findings-schema.json",
-  "title": "UI findings artifact (ux-review and anti-ai-slop-ui)",
-  "description": "One run of one skill on one target. Concatenate the findings arrays of both skills to rank them together.",
+  "title": "UI findings artifact (ux-review)",
+  "description": "One run on one target: the UX grade, the slop score and band, and one findings list for both.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "skill", "run_id", "previous_run_id", "target", "config", "tools", "scores", "findings", "summary", "loop"],
   "properties": {
     "schema_version": {"const": "1.0"},
-    "skill": {"enum": ["ux-review", "anti-ai-slop-ui"]},
+    "skill": {"const": "ux-review"},
     "run_id": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([+-]\\d{2}:\\d{2}|Z)_[0-9a-f]{4}$"},
     "previous_run_id": {"type": ["string", "null"]},
     "target": {
@@ -56,14 +56,13 @@
           }
         },
         "target_pct": {"type": "number", "minimum": 0, "maximum": 100},
-        "slop_target": {"type": "number", "minimum": 0, "maximum": 100},
         "iteration_budget": {"type": "integer", "minimum": 1}
       }
     },
     "tools": {"type": "object", "additionalProperties": {"type": ["string", "null"]}},
     "scores": {
       "type": "object",
-      "required": ["laws", "heuristics", "wcag", "platform", "na_reasons", "sections_pct", "overall_pct", "grade", "grade_cap_reason", "slop_score"],
+      "required": ["laws", "heuristics", "wcag", "platform", "na_reasons", "sections_pct", "overall_pct", "grade", "grade_cap_reason", "slop_score", "slop_band"],
       "properties": {
         "laws": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/scoreMap"}]},
         "heuristics": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/scoreMap"}]},
@@ -90,19 +89,6 @@
       }
     }
   },
-  "allOf": [
-    {
-      "if": {"properties": {"skill": {"const": "anti-ai-slop-ui"}}},
-      "then": {
-        "properties": {
-          "scores": {
-            "properties": {"laws": {"type": "null"}, "heuristics": {"type": "null"}, "wcag": {"type": "null"}, "platform": {"type": "null"}, "slop_score": {"type": "number"}}
-          }
-        }
-      },
-      "else": {"properties": {"scores": {"properties": {"slop_score": {"type": "null"}}}}}
-    }
-  ],
   "$defs": {
     "score": {"oneOf": [{"type": "number", "minimum": 0, "maximum": 4}, {"const": "n/a"}]},
     "scoreMap": {"type": "object", "additionalProperties": {"$ref": "#/$defs/score"}},
@@ -120,7 +106,7 @@
       "additionalProperties": false,
       "required": ["id", "rule", "also", "category", "location", "evidence", "severity", "reach", "reach_source", "effort", "confidence", "priority_score", "tier", "fix", "refs", "delegate_to", "status", "diff"],
       "properties": {
-        "id": {"type": "string", "pattern": "^(uxr|slop)_[0-9a-f]{10}$"},
+        "id": {"type": "string", "pattern": "^uxr_[0-9a-f]{10}$"},
         "rule": {"type": "string", "description": "Law id, H1-H10, WCAG SC number, platform item id, or tell id T01-T23."},
         "also": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
         "category": {"type": "string"},
@@ -128,9 +114,9 @@
           "type": "object",
           "required": ["screen", "viewport"],
           "properties": {
-            "screen": {"type": "string", "description": "Normalized: URL path only, lowercased, no trailing slash, id segments as :id; or the manifest screen name."},
+            "screen": {"type": "string", "description": "Normalized: URL path only, lowercased, no trailing slash, id segments as :id; the manifest screen name; or * for a site-wide token tell."},
             "viewport": {"type": "string", "pattern": "^\\d+x\\d+$"},
-            "element_key": {"type": "string", "pattern": "^(region:r[1-4]c[1-4]|[a-z][a-z0-9-]*(\\|\\S.{0,59})?)$", "description": "Hashed into the id: <role>|<name>, NFKC, lowercased, whitespace collapsed, digit runs as #, first 60 chars; <role> alone if unnamed; region:rNcM if screenshot-only and no role is evident."},
+            "element_key": {"type": "string", "pattern": "^(region:r[1-4]c[1-4]|[a-z][a-z0-9-]*(\\|\\S.{0,59})?)$", "description": "Hashed into the id: <role>|<name>, NFKC, lowercased, whitespace collapsed, digit runs as #, first 60 chars; <role> alone if unnamed; region:rNcM if screenshot-only and no role is evident; token|<name> for a token tell."},
             "selector": {"type": ["string", "null"], "description": "Raw selector for locating the element. Never hashed."},
             "region": {"type": ["string", "null"], "description": "Coarse grid cell for screenshot-only runs, e.g. r3c2 on a 4x4 grid."},
             "screenshot": {"type": ["string", "null"]},
