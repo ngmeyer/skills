@@ -34,7 +34,8 @@
     "overall_pct": 82.9,
     "grade": "C",
     "grade_cap_reason": "live WCAG 2.2 AA failure",
-    "slop_score": null
+    "slop_score": 15,
+    "slop_band": "isolated"
   },
   "findings": [
     {
@@ -44,6 +45,14 @@
       "severity": 3, "reach": 5, "reach_source": "funnel_weight", "effort": 1, "confidence": 1.0, "priority_score": 45.0, "tier": "P1", "tier_reason": null,
       "fix": "Make submit a full-width 48 px primary button; move 'Back' above the form as a text link (fittss-law, von-restorff-effect).",
       "refs": ["https://lawsofux.com/fittss-law/"], "delegate_to": null, "status": "open", "diff": "persisting"
+    },
+    {
+      "id": "uxr_8d57d3740c", "rule": "T15", "also": [], "category": "proof",
+      "location": {"screen": "/signup", "viewport": "375x812", "element_key": "list|trusted by", "selector": "main ul.logos", "region": null, "screenshot": "shots/signup-375.png", "bbox": null},
+      "evidence": "Six customer logos in a 'Trusted by' strip under the form; no proof.json entry and no repo access this run (source not checked).",
+      "severity": 3, "reach": 5, "reach_source": "funnel_weight", "effort": 1, "confidence": 0.5, "priority_score": 22.5, "tier": "P1", "tier_reason": null,
+      "fix": "Ask for the customer list with permission on file; render the strip only from sourced proof.json entries, else remove it.",
+      "refs": [], "delegate_to": null, "status": "open", "diff": "new", "tell_weight": null, "craft_credit": null
     },
     {
       "id": "uxr_33f6669b5a", "rule": "1.4.3", "also": ["1.3.1", "H6"], "category": "accessibility",
@@ -70,12 +79,44 @@
       "refs": ["https://lawsofux.com/hicks-law/"], "delegate_to": null, "status": "open", "diff": "new"
     },
     {
+      "id": "uxr_07105c0be5", "rule": "T01", "also": [], "category": "slop",
+      "location": {"screen": "*", "viewport": "375x812", "element_key": "token|--color-primary", "selector": "--color-primary", "region": null, "screenshot": null, "bbox": null},
+      "evidence": "Primary and accent are indigo-500 (#6366F1); no brand document names it, and it is the only hue besides grays.",
+      "severity": 1, "reach": 5, "reach_source": "funnel_weight", "effort": 1, "confidence": 1.0, "priority_score": 5.0, "tier": "P3", "tier_reason": null,
+      "fix": "Choose the primary from the product's own brand, document it as a token, and use it on one action per screen.",
+      "refs": [], "delegate_to": null, "status": "open", "diff": "new", "tell_weight": 9, "craft_credit": null
+    },
+    {
+      "id": "uxr_3a5b0d2585", "rule": "T16", "also": [], "category": "proof",
+      "location": {"screen": "/signup", "viewport": "375x812", "element_key": "paragraph|#,# teams signed up this month", "selector": "main p.social-count", "region": null, "screenshot": "shots/signup-375.png", "bbox": null},
+      "evidence": "'1,204 teams signed up this month' is read from a live signups query in the page code (source found), but shows no date.",
+      "severity": 1, "reach": 5, "reach_source": "funnel_weight", "effort": 1, "confidence": 0.8, "priority_score": 4.0, "tier": "P3", "tier_reason": null,
+      "fix": "Keep the live number and add an 'as of' date beside it.",
+      "refs": [], "delegate_to": null, "status": "open", "diff": "new", "tell_weight": null, "craft_credit": null
+    },
+    {
+      "id": "uxr_5a4e30c23b", "rule": "T12", "also": [], "category": "copy",
+      "location": {"screen": "/signup", "viewport": "375x812", "element_key": "heading|unlock the power of seamless collaboration", "selector": "main h1", "region": null, "screenshot": "shots/signup-375.png", "bbox": null},
+      "evidence": "Hero heading reads 'Unlock the power of seamless collaboration' and names no specific outcome.",
+      "severity": 1, "reach": 5, "reach_source": "funnel_weight", "effort": 1, "confidence": 0.8, "priority_score": 4.0, "tier": "P3", "tier_reason": null,
+      "fix": "Replace with one specific claim about what the account gets; wording goes to the copy skill.",
+      "refs": [], "delegate_to": "write-well", "status": "open", "diff": "new", "tell_weight": 6, "craft_credit": null
+    },
+    {
       "id": "uxr_845e3c4a09", "rule": "occams-razor", "also": [], "category": "layout",
       "location": {"screen": "/signup", "viewport": "375x812", "element_key": "figure", "selector": "main figure.hero-illustration", "region": null, "screenshot": "shots/signup-375.png", "bbox": [0, 64, 375, 260]},
       "evidence": "Decorative illustration pushes the first field below the fold at 375 px.",
       "severity": 1, "reach": 5, "reach_source": "funnel_weight", "effort": 1, "confidence": 0.5, "priority_score": 2.5, "tier": "P3", "tier_reason": null,
       "fix": "Hide the illustration below 768 px so the first field is visible on load.",
       "refs": ["https://lawsofux.com/occams-razor/"], "delegate_to": null, "status": "open", "diff": "new"
+    },
+    {
+      "id": "uxr_ff6501e050", "rule": "T03", "also": [], "category": "slop",
+      "location": {"screen": "*", "viewport": "375x812", "element_key": "token|--font-sans", "selector": "--font-sans", "region": null, "screenshot": null, "bbox": null},
+      "evidence": "Inter is the only face, but the tokens define a 5-step scale with distinct weights and tracking, used consistently.",
+      "severity": 0, "reach": 5, "reach_source": "funnel_weight", "effort": 1, "confidence": 1.0, "priority_score": 0.0, "tier": "P3", "tier_reason": null,
+      "fix": "No change; the scale is deliberate.",
+      "refs": [], "delegate_to": null, "status": "open", "diff": "new", "tell_weight": 0, "craft_credit": "documented type scale with distinct weights and spacing"
     },
     {
       "id": "uxr_d927b6c503", "rule": "2.4.11", "also": ["H1"], "category": "accessibility",
@@ -86,6 +127,6 @@
       "refs": ["https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html"], "delegate_to": null, "status": "verified", "diff": "resolved"
     }
   ],
-  "summary": {"p0": 0, "p1": 3, "p2": 1, "p3": 1, "new": 3, "persisting": 2, "resolved": 1, "regressed": 0},
+  "summary": {"p0": 0, "p1": 4, "p2": 1, "p3": 5, "new": 8, "persisting": 2, "resolved": 1, "regressed": 0},
   "loop": {"iteration": 3, "decision": "continue", "reason": "3 live P1 remain; 1 resolved since last run"}
 }
