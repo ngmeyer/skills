@@ -38,48 +38,48 @@
   },
   "findings": [
     {
-      "id": "uxr_a39e00ed28", "rule": "fittss-law", "also": ["touch-target-44"], "category": "interaction",
-      "location": {"screen": "/signup", "viewport": "375x812", "selector": "form button[type=submit]", "region": null, "screenshot": "shots/signup-375.png", "bbox": [16, 702, 120, 32]},
+      "id": "uxr_fecfeacb78", "rule": "fittss-law", "also": ["touch-target-44"], "category": "interaction",
+      "location": {"screen": "/signup", "viewport": "375x812", "element_key": "button|create account", "selector": "form button[type=submit]", "region": null, "screenshot": "shots/signup-375.png", "bbox": [16, 702, 120, 32]},
       "evidence": "Submit button is 120x32 CSS px, 4 px from a 32 px 'Back' link, and sits at the right edge, outside the thumb arc.",
       "severity": 3, "reach": 5, "reach_source": "funnel_weight", "effort": 1, "confidence": 1.0, "priority_score": 45.0, "tier": "P1", "tier_reason": null,
       "fix": "Make submit a full-width 48 px primary button; move 'Back' above the form as a text link (fittss-law, von-restorff-effect).",
       "refs": ["https://lawsofux.com/fittss-law/"], "delegate_to": null, "status": "open", "diff": "persisting"
     },
     {
-      "id": "uxr_b037364d86", "rule": "1.4.3", "also": ["1.3.1", "H6"], "category": "accessibility",
-      "location": {"screen": "/signup", "viewport": "375x812", "selector": "form input[type=email]", "region": null, "screenshot": "shots/signup-375.png", "bbox": [16, 420, 343, 44]},
+      "id": "uxr_33f6669b5a", "rule": "1.4.3", "also": ["1.3.1", "H6"], "category": "accessibility",
+      "location": {"screen": "/signup", "viewport": "375x812", "element_key": "textbox|email", "selector": "form input[type=email]", "region": null, "screenshot": "shots/signup-375.png", "bbox": [16, 420, 343, 44]},
       "evidence": "axe color-contrast: placeholder used as the only label, #9CA3AF on #FFFFFF, ratio 2.54:1.",
       "severity": 2, "reach": 5, "reach_source": "funnel_weight", "effort": 1, "confidence": 1.0, "priority_score": 20.0, "tier": "P1", "tier_reason": "WCAG 2.2 AA failure",
       "fix": "Add a visible <label> above each field and darken hint text to at least 4.5:1.",
       "refs": ["https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html"], "delegate_to": null, "status": "open", "diff": "new"
     },
     {
-      "id": "uxr_426623e0dc", "rule": "H9", "also": ["peak-end-rule", "3.3.1"], "category": "feedback",
-      "location": {"screen": "/signup", "viewport": "375x812", "selector": "[role=alert]", "region": null, "screenshot": "shots/signup-375-error.png", "bbox": [16, 380, 343, 40]},
+      "id": "uxr_5b35891026", "rule": "H9", "also": ["peak-end-rule", "3.3.1"], "category": "feedback",
+      "location": {"screen": "/signup", "viewport": "375x812", "element_key": "alert|something went wrong", "selector": "[role=alert]", "region": null, "screenshot": "shots/signup-375-error.png", "bbox": [16, 380, 343, 40]},
       "evidence": "Invalid email shows a toast 'Something went wrong' at the top and clears the form.",
       "severity": 3, "reach": 5, "reach_source": "funnel_weight", "effort": 2, "confidence": 0.8, "priority_score": 18.0, "tier": "P1", "tier_reason": null,
       "fix": "Show the error inline under the email field, keep what was typed, focus the field. Wording goes to the copy skill.",
       "refs": ["https://www.nngroup.com/articles/ten-usability-heuristics/"], "delegate_to": "write-well", "status": "open", "diff": "persisting"
     },
     {
-      "id": "uxr_791e745d74", "rule": "hicks-law", "also": ["choice-overload", "von-restorff-effect"], "category": "layout",
-      "location": {"screen": "/signup", "viewport": "1280x800", "selector": "main .auth-options", "region": null, "screenshot": "shots/signup-1280.png", "bbox": [480, 240, 320, 200]},
+      "id": "uxr_0f3b1d1890", "rule": "hicks-law", "also": ["choice-overload", "von-restorff-effect"], "category": "layout",
+      "location": {"screen": "/signup", "viewport": "1280x800", "element_key": "group|sign-up options", "selector": "main .auth-options", "region": null, "screenshot": "shots/signup-1280.png", "bbox": [480, 240, 320, 200]},
       "evidence": "Four equal-weight buttons (two providers, email, 'Book a demo') before the form; none is marked as recommended.",
       "severity": 2, "reach": 5, "reach_source": "funnel_weight", "effort": 2, "confidence": 0.8, "priority_score": 8.0, "tier": "P2", "tier_reason": null,
       "fix": "Lead with the email form as the one primary action; collapse providers into a single 'Other ways to sign up' row; move 'Book a demo' to the footer.",
       "refs": ["https://lawsofux.com/hicks-law/"], "delegate_to": null, "status": "open", "diff": "new"
     },
     {
-      "id": "uxr_59977c3b18", "rule": "occams-razor", "also": [], "category": "layout",
-      "location": {"screen": "/signup", "viewport": "375x812", "selector": "main figure.hero-illustration", "region": null, "screenshot": "shots/signup-375.png", "bbox": [0, 64, 375, 260]},
+      "id": "uxr_845e3c4a09", "rule": "occams-razor", "also": [], "category": "layout",
+      "location": {"screen": "/signup", "viewport": "375x812", "element_key": "figure", "selector": "main figure.hero-illustration", "region": null, "screenshot": "shots/signup-375.png", "bbox": [0, 64, 375, 260]},
       "evidence": "Decorative illustration pushes the first field below the fold at 375 px.",
       "severity": 1, "reach": 5, "reach_source": "funnel_weight", "effort": 1, "confidence": 0.5, "priority_score": 2.5, "tier": "P3", "tier_reason": null,
       "fix": "Hide the illustration below 768 px so the first field is visible on load.",
       "refs": ["https://lawsofux.com/occams-razor/"], "delegate_to": null, "status": "open", "diff": "new"
     },
     {
-      "id": "uxr_63a99d6c8f", "rule": "2.4.11", "also": ["H1"], "category": "accessibility",
-      "location": {"screen": "/signup", "viewport": "375x812", "selector": "body .cookie-banner", "region": null, "screenshot": "shots/signup-375.png", "bbox": [0, 700, 375, 112]},
+      "id": "uxr_d927b6c503", "rule": "2.4.11", "also": ["H1"], "category": "accessibility",
+      "location": {"screen": "/signup", "viewport": "375x812", "element_key": "dialog|cookie consent", "selector": "body .cookie-banner", "region": null, "screenshot": "shots/signup-375.png", "bbox": [0, 700, 375, 112]},
       "evidence": "Last run: cookie banner covered the focused submit button. Not reproduced this run.",
       "severity": 3, "reach": 5, "reach_source": "funnel_weight", "effort": 2, "confidence": 1.0, "priority_score": 22.5, "tier": "P1", "tier_reason": "WCAG 2.2 AA failure",
       "fix": "Offset sticky UI with scroll-padding-bottom equal to the banner height.",

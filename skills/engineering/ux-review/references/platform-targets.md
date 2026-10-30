@@ -10,6 +10,7 @@ Deterministic tools supply most of these: an axe-core scan per route via `@axe-c
 |---|---|---|
 | 1.1.1 | Non-text content has a text alternative | Icon-only buttons need a name |
 | 1.3.1 | Info and relationships: labels tied to inputs, headings are headings | Placeholder is not a label |
+| 1.3.5 | Identify input purpose: inputs collecting the user's own data (name, email, tel, address, username, password, cc-*) carry the matching `autocomplete` token | Missing or wrong `autocomplete` is a failure; needs DOM |
 | 1.4.3 | Contrast at least 4.5:1 body, 3:1 large text | Measure; do not eyeball |
 | 1.4.10 | Reflow at 320 CSS px with no two-way scroll | Capture a 320 wide shot |
 | 1.4.11 | Non-text contrast 3:1 for controls and focus rings | |

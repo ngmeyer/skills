@@ -41,7 +41,7 @@ It is an expert heuristic review with evidence, and it says so in its output. Re
 2. **Name the primary task per screen.** Use the caller's, or infer one and mark `primary_task_source: "inferred"`. Every check is judged against it.
 3. **Walk the 30 laws** in [laws.md](references/laws.md). Each law gets findings with evidence (screenshot plus bbox, or a selector), or `n/a` with a reason.
 4. **Walk H1-H10** in [heuristics.md](references/heuristics.md). If one problem touches a law and a heuristic, file one finding and list the rest in `also`.
-5. **Check WCAG 2.2 AA basics and platform items** in [platform-targets.md](references/platform-targets.md).
+5. **Check WCAG 2.2 AA basics and platform items** in [platform-targets.md](references/platform-targets.md). A personal-data input (name, email, tel, address) with no valid `autocomplete` token fails SC 1.3.5: file it as rule `1.3.5`, not as a Postel's-law nit.
 6. **Refute P0s before scoring.** For each would-be P0 (severity 4 or a P0 override in Ranking), a fresh-context agent that sees only the screenshots and the finding tries to refute it. Drop or demote a refuted P0 before it moves a score or reaches a loop.
 7. **Score** (below). Per screen first, then roll up to the target.
 8. **Rank** (below) and write each fix: the element, the change, the expected effect, and the laws it serves. Copy problems get a structural fix plus `delegate_to: "write-well"` (or the caller's product-copy skill, e.g. `product-writing`). Never rewrite copy here.
@@ -82,10 +82,12 @@ Each finding carries:
 
 | Tier | Rule |
 |---|---|
-| P0 Blocking | severity 4, OR blocks the primary task, OR fabricated proof (from anti-ai-slop-ui), OR data-loss risk |
+| P0 Blocking | severity 4, OR blocks the primary task, OR confirmed fabricated proof (see the guard below), OR data-loss risk |
 | P1 Major | severity 3, OR any WCAG 2.2 AA failure, OR "would a user contact support over this?" |
 | P2 Minor | severity 2 |
 | P3 Polish | severity 0-1 |
+
+**Unsourced-claim guard.** A finding that a claim, stat, testimonial, or logo is unsourced or fabricated may be P0 or severity 4 only if you checked the code or data source behind it and found none. If you could not check it, cap it at P1 and severity 3, set `confidence: 0.5`, and write `source not checked` in `evidence`. If the source exists and is real (a number read from a live query counts), it is not a fabrication: file at most a severity-1 presentation note, such as adding an "as of" date.
 
 Sort live findings by tier, then `priority_score` descending, then `id`, with resolved ones last, so two runs print the same order.
 
@@ -94,7 +96,10 @@ Sort live findings by tier, then `priority_score` descending, then `id`, with re
 - **Human summary:** grade and overall %, the cap if any, the top 5 fixes (tier, rule, one-line fix), and any regressions.
 - **JSON** validating against [findings-schema.json](references/findings-schema.json), written to `<out>/ux-review-<target-slug>-YYYY-MM-DD.json` (default `<out>` is the working directory). Worked example: [example-page.json](references/example-page.json).
 
-**Stable id.** `id = "uxr_" + first 10 hex of sha1("ux-review|<rule>|<screen>|<locator>")`, where `<locator>` is `location.selector` normalized (no nth-child indices, no hashed class names) or, for screenshot-only runs, `location.region` (a cell on a 4x4 grid, `r1c1` to `r4c4`). The same problem on the next run gets the same id, which is what the diff keys on.
+**Stable id.** `id = "uxr_" + first 10 hex of sha1("ux-review|<rule>|<screen>|<element_key>")`. Both inputs are normalized so two runners, or two models, filing the same problem get the same id, which is what the diff keys on:
+- `<screen>` (`location.screen`): the URL path only (no scheme, host, query, or fragment, except a `#/` hash route, which counts as the path), lowercased, trailing slash dropped (`/` stays `/`), each all-digit or UUID segment replaced by `:id`. A non-URL screen uses its manifest `screen` name, lowercased, whitespace runs as `-`.
+- `<element_key>` (`location.element_key`): `<role>|<name>`. Role is the computed ARIA role (explicit `role`, else the tag's implicit role: `button`, `link`, `textbox`, `checkbox`, `heading`, `img`, ...), else the lowercase tag. Name is the accessible name, else the visible text: Unicode NFKC, lowercased, whitespace runs collapsed to one space, trimmed, digit runs as `#` (live counts and dates do not churn the id), first 60 characters. No name, or a name holding user data: `<role>` alone. Several elements: key their nearest shared `form` or landmark. Screenshot-only: the evident role and visible text, else `region:<cell>` on a 4x4 grid (`r1c1` to `r4c4`).
+- `location.selector` keeps the raw selector for finding the element again. It is never hashed, so runners may write it however they like. A `--previous` artifact without `element_key` predates this recipe: set `loop.decision: "baseline-reset"`.
 
 **Diff values:** `new`; `persisting`; `resolved` (in the previous run, gone now; carried for one run, never scored); `regressed` (resolved earlier, back now). **Status** uses ledger states: `open | investigating | pr_open | shipped | verified | wontfix`.
 
@@ -124,7 +129,7 @@ For auto-improve loops. Where the loop runs is the caller's choice: **default is
 - **Do not double-file.** One problem that violates Fitts and H8 and a platform target is one finding with `also`, not three. Three findings triple its rank and break the diff when the fix lands.
 - **n/a is not "looks fine".** n/a means the item cannot apply or could not be checked, with a reason. An unchecked item scored 4 inflates the grade.
 - **The same element at two viewports is one finding.** The id has no viewport in it on purpose. Put the worst viewport in `location.viewport` and the others in `evidence`.
-- **Locators must be normalized before hashing.** `div:nth-child(3) > .css-1x9f2a` changes between builds; the id churns and every finding looks `new`. Hash the semantic selector (`form button[type=submit]`).
+- **Hash the element, not the selector.** `form button[type=submit]` and `button:has-text('Create account')` are one button; both are `button|create account`. Hashing the selector makes every finding look `new` to a different runner.
 - **Do not average away a blocker.** The min-for-P0/P1 rollup exists because a broken signup screen is not fixed by a fine pricing page.
 - **Screenshot-only runs cannot see focus order, labels, or token contrast.** Mark them n/a; a guessed WCAG pass is worse than an honest gap.
 - **`also` escalates.** Listing a WCAG SC in `also` makes the finding a WCAG failure: P1 at least, and the grade caps at C. List an SC only when it actually fails.

@@ -43,7 +43,10 @@ chk "loop location is a caller choice, default PR previews" 'default is on PR pr
 chk "regression rules" '**Regression: block the merge'
 chk "plateau rule" '**Plateau:**'
 chk "stuck rule" '**Stuck:**'
-chk "stable id recipe" 'sha1("ux-review|<rule>|<screen>|<locator>")'
+chk "stable id recipe" 'sha1("ux-review|<rule>|<screen>|<element_key>")'
+chk "raw selector is never hashed" 'It is never hashed'
+chk "unsourced-claim guard" 'found none. If you could not check it, cap it at P1 and severity 3'
+chk "1.3.5 autocomplete is a WCAG item" '| 1.3.5 | Identify input purpose' references/platform-targets.md
 chk "Gotchas section" '## Gotchas'
 for r in laws.md heuristics.md platform-targets.md findings-schema.json example-page.json sources.md; do
   grep -qF "references/$r" SKILL.md && [ -f "references/$r" ] && pass "reference $r linked and present" || fail "reference $r"
@@ -59,7 +62,16 @@ for s in Apache-2.0 MIT 'Next Level Builder'; do chk "sources.md credits: $s" "$
 
 echo "== Schema and worked example =="
 LAWS="$LAWS" "$PY" - <<'PYEOF'
-import json, hashlib, os, sys
+import json, hashlib, os, re, sys, unicodedata
+from urllib.parse import urlsplit
+def norm_screen(s):
+    if not s.startswith("/") and "://" not in s: return re.sub(r"\s+", "-", s.strip().lower())
+    u = urlsplit(s); p = (u.fragment if u.fragment.startswith("/") else u.path).lower().rstrip("/") or "/"
+    return "/".join(":id" if re.fullmatch(r"\d+|[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}", g) else g for g in p.split("/"))
+def norm_key(role, name=""):
+    n = re.sub(r"\s+", " ", unicodedata.normalize("NFKC", name).lower()).strip()
+    n = re.sub(r"\d+", "#", n)[:60]
+    return f"{role.lower()}|{n}" if n else role.lower()
 ok = True; skipped = False; bad = 0
 def res(cond, msg):
     global ok
@@ -81,12 +93,16 @@ res(sorted(sc["heuristics"]) == sorted(H), "example scores H1-H10")
 plat = open("references/platform-targets.md").read()
 res(all(f"| {k} |" in plat for k in list(sc["wcag"]) + list(sc["platform"])), "every example wcag/platform key is defined in platform-targets.md")
 res(all(k in sc["na_reasons"] for sec in ("laws", "heuristics", "wcag", "platform") for k, v in sc[sec].items() if v == "n/a"), "every n/a has a reason")
+res(norm_screen("https://x.example/Signup/?a=1#f") == "/signup" and norm_screen("/e/42/edit/") == "/e/:id/edit" and norm_screen("/") == "/" and norm_screen("Home Screen") == "home-screen" and norm_screen("https://x.example/#/Settings") == "/settings", "screen normalization")
+res(norm_key("button", "  Create\n  ACCOUNT ") == "button|create account" and norm_key("img") == "img" and norm_key("heading", "1,204 signups") == "heading|#,# signups", "element_key normalization")
 F = ex["findings"]; live = [f for f in F if f["diff"] != "resolved"]
 res(len({f["id"] for f in F}) == len(F), "finding ids are unique")
 for f in F:
-    loc = f["location"]["selector"] or f["location"]["region"]
-    want = "uxr_" + hashlib.sha1(f"ux-review|{f['rule']}|{f['location']['screen']}|{loc}".encode()).hexdigest()[:10]
-    res(f["id"] == want, f"{f['id']}: id recomputes from skill|rule|screen|locator")
+    L = f["location"]; k = L.get("element_key", "")
+    res(L["screen"] == norm_screen(L["screen"]) and (k.startswith("region:") or k == norm_key(*k.split("|", 1))), f"{f['id']}: screen and element_key are normalized")
+    want = "uxr_" + hashlib.sha1(f"ux-review|{f['rule']}|{L['screen']}|{k}".encode()).hexdigest()[:10]
+    res(f["id"] == want, f"{f['id']}: id recomputes from skill|rule|screen|element_key")
+    res(not (re.search(r"unsourced|fabricat", f["evidence"], re.I) and "source not checked" in f["evidence"]) or (f["tier"] != "P0" and f["severity"] <= 3 and f["confidence"] <= 0.5), f"{f['id']}: unchecked-source claim is capped at P1")
     res(abs(f["priority_score"] - round(f["severity"] ** 2 * f["reach"] * f["confidence"] / f["effort"], 2)) < 1e-9, f"{f['id']}: priority_score recomputes")
     base = {4: "P0", 3: "P1", 2: "P2"}.get(f["severity"], "P3")
     wc = any(x in sc["wcag"] for x in [f["rule"]] + f["also"])
