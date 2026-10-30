@@ -1,6 +1,6 @@
 # Tell catalog (T01-T23)
 
-**Weights are a starting point, calibrate.** They are adapted from the IOV Labs tell weights (hankimis/ai-design-tells), where higher is a stronger signal; tells with no IOV weight got a proposed one. Style weights sum to 99. Proof tells (marked P0) carry no weight: they gate, they do not score. Detect: `tokens` = CSS and design tokens, `styles` = computed styles, `DOM`, `visual` = screenshots, `copy` = visible text, `ask` = a source from the caller or `proof.json`.
+**Weights are a starting point, calibrate.** They are adapted from the IOV Labs tell weights (hankimis/ai-design-tells), where higher is a stronger signal; tells with no IOV weight got a proposed one. Style weights sum to 99. Proof tells (marked P0) carry no weight: they gate, they do not score, and T14-T16 reach P0 only under the proof guard in SKILL.md. Detect: `tokens` = CSS and design tokens, `styles` = computed styles, `DOM`, `visual` = screenshots, `copy` = visible text, `ask` = a source from the caller or `proof.json`.
 
 | id | Tell | Family | Detect | Wt | False-positive guard (craft credit) |
 |---|---|---|---|---|---|

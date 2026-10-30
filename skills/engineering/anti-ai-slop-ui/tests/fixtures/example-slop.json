@@ -35,54 +35,62 @@
   },
   "findings": [
     {
-      "id": "slop_b33e3d3cfa", "rule": "T16", "also": [], "category": "proof",
-      "location": {"screen": "/", "viewport": "1280x800", "selector": "main .stats", "region": null, "screenshot": "shots/home-1280.png", "bbox": null},
-      "evidence": "Hero counter animates to '10,000+ teams'; no entry in proof.json and the caller had no source.",
+      "id": "slop_b04f8edd88", "rule": "T16", "also": [], "category": "proof",
+      "location": {"screen": "/", "viewport": "1280x800", "element_key": "paragraph|#,#+ teams", "selector": "main .stats", "region": null, "screenshot": "shots/home-1280.png", "bbox": null},
+      "evidence": "Hero counter animates to '10,000+ teams'; no entry in proof.json, the caller had no source, and the code hardcodes the string with no query or record behind it (source checked, none found).",
       "severity": 4, "reach": 2, "reach_source": "funnel_weight", "effort": 1, "confidence": 1.0, "priority_score": 32.0, "tier": "P0", "tier_reason": "fabricated proof: no source on file",
       "fix": "Render the stat only from a sourced proof.json entry with a date, or remove it.",
       "refs": ["https://www.ecfr.gov/current/title-16/chapter-I/subchapter-D/part-465"], "delegate_to": null, "status": "open", "diff": "new", "tell_weight": null, "craft_credit": null
     },
     {
-      "id": "slop_a1c8735051", "rule": "T19", "also": ["2.4.7"], "category": "states",
-      "location": {"screen": "/", "viewport": "1280x800", "selector": "main a.button", "region": null, "screenshot": "shots/home-1280.png", "bbox": null},
+      "id": "slop_1bbd3abb62", "rule": "T15", "also": [], "category": "proof",
+      "location": {"screen": "/", "viewport": "1280x800", "element_key": "list|trusted by", "selector": "main ul.logos", "region": null, "screenshot": "shots/home-1280.png", "bbox": null},
+      "evidence": "'Trusted by' strip of six customer logos; no entry in proof.json and no repo access (source not checked).",
+      "severity": 3, "reach": 2, "reach_source": "funnel_weight", "effort": 1, "confidence": 0.5, "priority_score": 9.0, "tier": "P1", "tier_reason": "proof tell, source not checked",
+      "fix": "Ask the caller for the customer list with permission on file; render only logos backed by a proof.json entry.",
+      "refs": ["https://www.ecfr.gov/current/title-16/chapter-I/subchapter-D/part-465"], "delegate_to": null, "status": "open", "diff": "new", "tell_weight": null, "craft_credit": null
+    },
+    {
+      "id": "slop_9b4f661164", "rule": "T19", "also": ["2.4.7"], "category": "states",
+      "location": {"screen": "/", "viewport": "1280x800", "element_key": "main", "selector": "main a.button", "region": null, "screenshot": "shots/home-1280.png", "bbox": null},
       "evidence": "Tabbing through the hero shows no visible focus on any button; hover state is the kit default.",
       "severity": 3, "reach": 2, "reach_source": "funnel_weight", "effort": 2, "confidence": 1.0, "priority_score": 9.0, "tier": "P1", "tier_reason": "tell also fails WCAG 2.4.7",
       "fix": "Add a visible focus ring and a hover state built from the brand tokens.",
       "refs": ["https://github.com/hankimis/ai-design-tells"], "delegate_to": null, "status": "open", "diff": "new", "tell_weight": 7, "craft_credit": null
     },
     {
-      "id": "slop_e643673c63", "rule": "T01", "also": [], "category": "color",
-      "location": {"screen": "*", "viewport": "1280x800", "selector": "--color-primary", "region": null, "screenshot": null, "bbox": null},
+      "id": "slop_619c26a7d3", "rule": "T01", "also": [], "category": "color",
+      "location": {"screen": "*", "viewport": "1280x800", "element_key": "token|--color-primary", "selector": "--color-primary", "region": null, "screenshot": null, "bbox": null},
       "evidence": "--color-primary is #6366F1 (Tailwind indigo-500) and no brand doc names it.",
       "severity": 1, "reach": 2, "reach_source": "funnel_weight", "effort": 1, "confidence": 1.0, "priority_score": 2.0, "tier": "P3", "tier_reason": null,
       "fix": "Set --color-primary from the product's own brand color in the tokens file.",
       "refs": ["https://github.com/hankimis/ai-design-tells"], "delegate_to": null, "status": "open", "diff": "new", "tell_weight": 9, "craft_credit": null
     },
     {
-      "id": "slop_ec4454ed03", "rule": "T12", "also": [], "category": "copy",
-      "location": {"screen": "/", "viewport": "1280x800", "selector": "main h1", "region": null, "screenshot": "shots/home-1280.png", "bbox": null},
+      "id": "slop_a77d489ab2", "rule": "T12", "also": [], "category": "copy",
+      "location": {"screen": "/", "viewport": "1280x800", "element_key": "heading|unlock the power of seamless collaboration", "selector": "main h1", "region": null, "screenshot": "shots/home-1280.png", "bbox": null},
       "evidence": "Hero reads 'Unlock the power of seamless collaboration' with no specific claim.",
       "severity": 1, "reach": 2, "reach_source": "funnel_weight", "effort": 1, "confidence": 0.8, "priority_score": 1.6, "tier": "P3", "tier_reason": null,
       "fix": "Replace with one specific claim about what the product does; wording goes to the copy skill.",
       "refs": ["https://github.com/hankimis/ai-design-tells"], "delegate_to": "write-well", "status": "open", "diff": "new", "tell_weight": 6, "craft_credit": null
     },
     {
-      "id": "slop_276b101aae", "rule": "T04", "also": [], "category": "layout",
-      "location": {"screen": "/", "viewport": "1280x800", "selector": "main section.features", "region": null, "screenshot": "shots/home-1280.png", "bbox": null},
+      "id": "slop_86424a976e", "rule": "T04", "also": [], "category": "layout",
+      "location": {"screen": "/", "viewport": "1280x800", "element_key": "region|features", "selector": "main section.features", "region": null, "screenshot": "shots/home-1280.png", "bbox": null},
       "evidence": "Three identical cards: icon tile, two-word heading, two lines each.",
       "severity": 1, "reach": 2, "reach_source": "funnel_weight", "effort": 2, "confidence": 0.8, "priority_score": 0.8, "tier": "P3", "tier_reason": null,
       "fix": "Replace the cards with one real product screenshot and the two features that differ from competitors.",
       "refs": ["https://github.com/hankimis/ai-design-tells"], "delegate_to": null, "status": "open", "diff": "new", "tell_weight": 8, "craft_credit": null
     },
     {
-      "id": "slop_09faa5bc2d", "rule": "T03", "also": [], "category": "type",
-      "location": {"screen": "*", "viewport": "1280x800", "selector": "--font-sans", "region": null, "screenshot": null, "bbox": null},
+      "id": "slop_80b3aae042", "rule": "T03", "also": [], "category": "type",
+      "location": {"screen": "*", "viewport": "1280x800", "element_key": "token|--font-sans", "selector": "--font-sans", "region": null, "screenshot": null, "bbox": null},
       "evidence": "Inter is the only family.",
       "severity": 0, "reach": 2, "reach_source": "funnel_weight", "effort": 1, "confidence": 0.8, "priority_score": 0.0, "tier": "P3", "tier_reason": "craft credit",
       "fix": "None needed; the type system is deliberate.",
       "refs": ["https://github.com/hankimis/ai-design-tells"], "delegate_to": null, "status": "open", "diff": "new", "tell_weight": 0, "craft_credit": "Documented four-step type scale with tight tracking on display sizes and tabular figures in tables."
     }
   ],
-  "summary": {"p0": 1, "p1": 1, "p2": 0, "p3": 4, "new": 6, "persisting": 0, "resolved": 0, "regressed": 0},
+  "summary": {"p0": 1, "p1": 2, "p2": 0, "p3": 4, "new": 7, "persisting": 0, "resolved": 0, "regressed": 0},
   "loop": null
 }

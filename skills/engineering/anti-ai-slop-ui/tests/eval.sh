@@ -33,14 +33,17 @@ chk "signs, not proof" '**signs, not proof.**'
 chk "shared schema by path" '../ux-review/references/findings-schema.json'
 chk "deterministic pre-pass is optional" 'Neither tool is required.'
 chk "copy is delegated" 'Never rewrite copy here'
-chk "fabrication is P0" 'No source: P0'
+chk "proof guard: P0 needs a checked source" 'is P0 only after you checked the code or data source'
+chk "proof guard: unchecked caps at P1" 'it is P1, severity 3, confidence 0.5, with `source not checked`'
 chk "craft credit keeps an auditable finding" '`severity: 0`, `tell_weight: 0`'
 chk "per-tell cap" 'contributes its weight **once**'
 chk "score formula" 'slop_score = round(100 x sum(weights of tells found) / sum(weights of applicable tells))'
 chk "bands" '0 `none`, 1-2 `isolated`, 3-6 `pattern`, 7+ `template-grade`'
 chk "weights labelled uncalibrated" 'starting point'
 chk "over-correction warning" '**Over-correction warning.**'
-chk "stable id recipe" 'sha1("anti-ai-slop-ui|<rule>|<screen>|<locator>")'
+chk "stable id recipe" 'sha1("anti-ai-slop-ui|<rule>|<screen>|<element_key>")'
+chk "id normalization reuses ux-review" 'normalized exactly as in [ux-review'"'"'s Stable id](../ux-review/SKILL.md)'
+chk "raw selector never hashed" 'the raw `location.selector` is never hashed'
 chk "Gotchas section" '## Gotchas'
 chk "weights labelled in catalog" 'Weights are a starting point, calibrate.' references/tells.md
 [ -f "$SCHEMA" ] && pass "shared schema present at $SCHEMA" || fail "shared schema missing at $SCHEMA"
@@ -77,8 +80,9 @@ sc = ex["scores"]; F = ex["findings"]; live = [f for f in F if f["diff"] != "res
 res(all(sc[k] is None for k in ("laws", "heuristics", "wcag", "platform", "overall_pct", "grade")), "ux-review sections are null")
 res(len({f["id"] for f in F}) == len(F), "finding ids are unique")
 for f in F:
-    loc = f["location"]["selector"] or f["location"]["region"]
-    res(f["id"] == "slop_" + hashlib.sha1(f"anti-ai-slop-ui|{f['rule']}|{f['location']['screen']}|{loc}".encode()).hexdigest()[:10], f"{f['rule']}: id recomputes")
+    L = f["location"]; k = L.get("element_key", ""); r, _, n = k.partition("|")
+    res(L["screen"] in ("*", L["screen"].lower().rstrip("/") or "/") and k == (r + "|" + re.sub(r"\d+", "#", " ".join(n.lower().split()))[:60] if n else r) and bool(r), f"{f['rule']}: screen and element_key are normalized")
+    res(f["id"] == "slop_" + hashlib.sha1(f"anti-ai-slop-ui|{f['rule']}|{L['screen']}|{k}".encode()).hexdigest()[:10], f"{f['rule']}: id recomputes from rule|screen|element_key")
     res(abs(f["priority_score"] - round(f["severity"] ** 2 * f["reach"] * f["confidence"] / f["effort"], 2)) < 1e-9, f"{f['rule']}: priority_score recomputes")
     if f["craft_credit"]: res(f["severity"] == 0 and f["tell_weight"] == 0, f"{f['rule']}: craft credit zeroes severity and weight")
     elif f["rule"] in W: res(f["tell_weight"] == W[f["rule"]], f"{f['rule']}: tell_weight matches catalog")
@@ -90,7 +94,12 @@ n = len(found); band = "none" if n == 0 else "isolated" if n <= 2 else "pattern"
 res(band == sc["slop_band"], f"band recomputes {band} ({n} tells)")
 wc = re.compile(r"^\d\.\d+\.\d+$")
 for f in live:
-    if f["rule"] in proof: want = "P0"
+    ev = f["evidence"]
+    if f["rule"] in ("T14", "T15", "T16"):
+        if "source checked, none found" in ev: want = "P0"; res(f["severity"] == 4, f"{f['rule']}: checked, unsourced proof is severity 4")
+        elif "source found" in ev: want = "P3"; res(f["severity"] == 1, f"{f['rule']}: sourced proof is a severity-1 note")
+        else: want = "P1"; res("source not checked" in ev and f["severity"] == 3 and f["confidence"] <= 0.5, f"{f['rule']}: unchecked proof is P1, sev 3, conf 0.5, 'source not checked'")
+    elif f["rule"] in proof: want = "P0"
     elif any(wc.match(a) for a in f["also"]): want = "P1"
     elif band == "template-grade" and not f["craft_credit"]: want = "P2"
     else: want = "P3"

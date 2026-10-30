@@ -35,7 +35,7 @@ Same capture as [ux-review](../ux-review/SKILL.md); reuse its screenshots and DO
 2. **Deterministic pass.** From CSS, computed styles, and the DOM: indigo/violet hues, gradient text, font stacks, the radius and shadow set, `backdrop-filter`, emoji in icon positions, em-dash count in visible copy, fade-in-on-scroll. Optional pre-pass: if impeccable (`detect --json`) or Gesso (`check --json`) is already installed, run it; never fetch or install a tool mid-review and map its hits to T-ids. Our tells are canonical; a tool hit with no T-id is noted in `evidence`, not scored. Neither tool is required.
 3. **Visual pass.** On screenshots: three-card rows, centered everything, the stock section order, logo soup, testimonial walls, the fake terminal hero, template chrome.
 4. **Copy pass.** Extract visible copy and check it for T12 and T13. File a finding with `delegate_to: "write-well"` (or the caller's product-copy skill). Never rewrite copy here; the copy skill owns the banned-word list and the fix.
-5. **Fabrication pass.** For every testimonial, customer logo, stat, rating, or "trusted by" claim, look it up in `proof.json`; if there is none, ask the caller for a source. No source: P0 (T14, T15, T16). Submit each email or contact form once, only on a preview or staging deploy and only with a test address the caller supplied (never production, never a real person's address; no preview means skip and note it). A fake success that stores nothing is T21, P0. Recommend the fix pattern: a `SOCIAL_PROOF_SLOT` placeholder rendered only from a sourced `proof.json` entry, with the build failing on an unsourced slot.
+5. **Fabrication pass.** For every testimonial, customer logo, stat, rating, or "trusted by" claim, look it up in `proof.json`; if there is none, ask the caller for a source, then check the code or data behind it when you can. Tier it with the proof guard below (T14, T15, T16). Submit each email or contact form once, only on a preview or staging deploy and only with a test address the caller supplied (never production, never a real person's address; no preview means skip and note it). A fake success that stores nothing is T21, P0. Recommend the fix pattern: a `SOCIAL_PROOF_SLOT` placeholder rendered only from a sourced `proof.json` entry, with the build failing on an unsourced slot.
 6. **Craft-credit pass.** For each tell found, check its false-positive guard in [tells.md](references/tells.md). Real craft is a documented brand color used with restraint, a deliberate type scale, custom illustration, real product screenshots, and real hover and focus states. When the guard holds, keep the finding with `severity: 0`, `tell_weight: 0`, and the reason in `craft_credit`, so the run shows the guard fired. Have a fresh-context agent that sees only the screenshots and the brand doc confirm each credit, and each P0.
 7. **Score** (below).
 8. **Tier, rank, emit** (below). Diff against `--previous` as ux-review does.
@@ -60,13 +60,16 @@ First matching row wins.
 
 | Tier | Which tells | Severity |
 |---|---|---|
-| P0 | Fabrication: T14, T15, T16 without a source; T21 when the form drops data | 4 |
+| P0 | Fabrication: T14, T15, T16 whose code or data source was checked and none found; T21 when the form drops data | 4 |
+| P1 | T14, T15, T16 with no `proof.json` entry and the source not checked: `confidence: 0.5` | 3 |
 | P1 | A tell that also breaks UX or accessibility: no focus state (T19), failing contrast (T22), emoji-only icons with no label (T05). List the ux-review item in `also` (`2.4.7`, `1.4.3`, `1.1.1`) and set `tier_reason`. | 3 |
 | P2 | Any style tell when the band is `template-grade` | 2 |
-| P3 | Isolated or pattern-band style tells | 1 |
+| P3 | Isolated or pattern-band style tells; a proof tell whose source is real | 1 |
 | none | Craft-credited | 0, tier P3 |
 
-**Stable id:** `"slop_" + first 10 hex of sha1("anti-ai-slop-ui|<rule>|<screen>|<locator>")`. A token-level tell (color, type, radius) is site-wide: use `screen: "*"` and the token or CSS custom property as the locator, so it does not churn as routes change.
+**Proof guard.** A proof tell (T14, T15, T16) is P0 only after you checked the code or data source behind the claim and found none; write `source checked, none found` in `evidence`. A missing `proof.json` entry alone is not enough: if you could not check, it is P1, severity 3, confidence 0.5, with `source not checked` in `evidence`. If the source exists and is real (a number read from a live query counts), file a severity-1 presentation note with `source found` in `evidence`, such as adding an "as of" date.
+
+**Stable id:** `"slop_" + first 10 hex of sha1("anti-ai-slop-ui|<rule>|<screen>|<element_key>")`, with `<screen>` and `<element_key>` normalized exactly as in [ux-review's Stable id](../ux-review/SKILL.md); the raw `location.selector` is never hashed. A token-level tell (color, type, radius) is site-wide: use `screen: "*"` and `element_key: "token|<token or custom property, lowercased>"`, so it does not churn as routes change.
 
 ## Fixes
 
