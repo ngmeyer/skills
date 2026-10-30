@@ -2,7 +2,7 @@
 
 [![skills.sh](https://skills.sh/b/ngmeyer/skills)](https://skills.sh/ngmeyer/skills)
 
-Ten agent skills I use every day, for deciding, writing, remembering, and improving, not just generating code. Small, composable, model-agnostic. Built for Claude Code, Codex, Cursor, and any agent that reads a `SKILL.md`.
+Eleven agent skills I use every day, for deciding, writing, remembering, and improving, not just generating code. Small, composable, model-agnostic. Built for Claude Code, Codex, Cursor, and any agent that reads a `SKILL.md`.
 
 Most of an agent's failures aren't coding failures. The agent agrees when it should push back. The big decision gets made in a chat window. The setup quietly rots. The session ends and the context is gone. The prose comes out sounding like a machine. These skills are built for exactly those moments.
 
@@ -150,6 +150,7 @@ Code-facing skills.
 - **[adversarial-review](./skills/engineering/adversarial-review/SKILL.md)** — Single-critic red-team of a finished artifact: edge cases, hidden assumptions, failure modes. Actively tries to break it before it ships.
 - **[claude-md](./skills/engineering/claude-md/SKILL.md)** — Two modes for `CLAUDE.md` files: `audit` finds drift, leaked secrets, and bloat across your projects; `improve` rewrites one against Anthropic's best-practice rubric.
 - **[rigorous-review](./skills/engineering/rigorous-review/SKILL.md)** — Whole-codebase audit (security · performance · correctness · refactoring) that never changes outward-facing behavior: scores every finding on severity × confidence, suppresses predictable noise, validates survivors with an independent agent, and reports before it touches anything.
+- **[ux-review](./skills/engineering/ux-review/SKILL.md)** — Score a page, flow, or app against 30 Laws of UX, Nielsen's 10 heuristics, WCAG 2.2 AA, and platform targets; emit ranked, stable-id JSON findings that a fix loop can diff run to run.
 - **[session-recover](./skills/engineering/session-recover/SKILL.md)** — Recover lost context by merging duplicate project-memory directories that a folder move split into two namespaces.
 
 ### Productivity
