@@ -107,7 +107,7 @@
       "required": ["id", "rule", "also", "category", "location", "evidence", "severity", "reach", "reach_source", "effort", "confidence", "priority_score", "tier", "fix", "refs", "delegate_to", "status", "diff"],
       "properties": {
         "id": {"type": "string", "pattern": "^uxr_[0-9a-f]{10}$"},
-        "rule": {"type": "string", "description": "Law id, H1-H10, WCAG SC number, platform item id, or tell id T01-T23."},
+        "rule": {"type": "string", "description": "Law id, H1-H10, WCAG SC number, platform item id, or tell id T01-T23. Never a keyhole id K01-K04; those go only in also."},
         "also": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
         "category": {"type": "string"},
         "location": {
