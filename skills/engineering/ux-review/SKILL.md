@@ -1,15 +1,15 @@
 ---
 name: ux-review
 description: >
-  Grades a website, a single page, a mobile web view, or a native or Flutter app (from screenshots)
+  Grades a website, a page, a mobile web view, or a native or Flutter app (from screenshots)
   against all 30 Laws of UX, Nielsen's 10 heuristics, WCAG 2.2 AA basics, and platform touch-target
   rules, plus a slop pass for generic-AI tells (house indigo, Inter-only type, three-card rows) and
   fabricated proof. Produces a % and letter grade plus a slop_score and band, ranks every finding by
   severity x reach x confidence / effort into P0-P3 with a concrete fix, and writes one diffable
   findings JSON with stable ids for loops. Use when: 'ux review', 'grade this page',
-  'audit the UX', 'what should we fix first on this screen', 'usability review', 'heuristic
+  'audit the UX', 'what should we fix first', 'usability review', 'heuristic
   evaluation', 'is this accessible', 'score this app', 'does this look AI-generated', 'de-slop',
-  'anti-slop review', 'check for fake social proof', or as the sense step of a UI improvement loop.
+  'anti-slop review', 'check for fake social proof', 'keyhole review', or as the sense step of a UI improvement loop.
   Not for: copy rewrites (write-well) or code structure. An expert review, not a usability study;
   slop tells are signs, not proof of AI use.
 user-invocable: true
@@ -18,7 +18,7 @@ argument-hint: "<url|route list|screenshot dir> [--task '<primary task>'] [--pre
 license: MIT
 metadata:
   owner: ngmeyer
-  version: 1.0.0
+  version: 1.1.0
 ---
 
 # ux-review: grade a UI and rank what to fix first
@@ -51,11 +51,12 @@ It is an expert heuristic review with evidence, and it says so in its output. Re
    - **Proof.** Look up every testimonial, customer logo, stat, rating, or "trusted by" claim in `proof.json`, ask the caller for a missing source, and check the code or data behind it when you can; tier T14-T16 with the unsourced-claim guard (Ranking). Submit each email or contact form once, only on a preview or staging deploy with a test address the caller supplied (never production or a real person's address; no preview means skip and say so). Success shown with nothing stored or sent is T21, P0.
    - **Craft credit.** Before tiering, check each tell's false-positive guard. A documented brand color used with restraint, a deliberate type scale, custom illustration, real product screenshots, and real hover and focus states earn it: keep the finding with `severity: 0`, `tell_weight: 0`, and the reason in `craft_credit`, so the run shows the guard fired.
    - **File once.** A tell that is also a WCAG failure (T19 missing focus, T22 contrast) is filed under the SC (`2.4.7`, `1.4.3`) with the T-id in `also`. Every other tell is its own finding with the T-id as `rule` and its catalog weight in `tell_weight`, in the same list with the same id recipe.
-7. **Refute P0s before scoring.** For each would-be P0 (severity 4 or a P0 override in Ranking), and each craft credit, a fresh-context agent that sees only the screenshots, the brand doc, and the finding tries to refute it. Drop or demote a refuted P0, and remove a refuted credit, before either moves a score or reaches a loop.
-8. **Score** (below). Per screen first, then roll up to the target.
-9. **Rank** (below) and write each fix: the element, the change, the expected effect, and the laws it serves. Copy problems get a structural fix plus `delegate_to: "write-well"` (or the caller's product-copy skill, e.g. `product-writing`). Never rewrite copy here.
-10. **Diff** against `--previous` if given. Without one, every finding is `new`, and `previous_run_id` and `loop` are null.
-11. **Emit** the human summary and the JSON (below).
+7. **Keyhole pass** with [keyhole.md](references/keyhole.md) (K01-K04), on the same capture: limits that make users see or enter the world through a smaller opening than their screen or data need. Fixed-width editors in wide viewports, panes that cannot be resized, truncation with no way to see the full value, and input limits stricter than real data. A keyhole is never a new scored section and a K-id is never a `rule`: the item keyhole.md names (H7, H3, H6, `postels-law`) is the `rule` and the K-id goes in `also`, unless a WCAG SC also fails, in which case the SC is the `rule`. K04 reads client-side validity and never submits. A K04 limit that rejects a valid value on the primary task is P0.
+8. **Refute P0s before scoring.** For each would-be P0 (severity 4 or a P0 override in Ranking), and each craft credit, a fresh-context agent that sees only the screenshots, the brand doc, and the finding tries to refute it. Drop or demote a refuted P0, and remove a refuted credit, before either moves a score or reaches a loop.
+9. **Score** (below). Per screen first, then roll up to the target.
+10. **Rank** (below) and write each fix: the element, the change, the expected effect, and the laws it serves. Copy problems get a structural fix plus `delegate_to: "write-well"` (or the caller's product-copy skill, e.g. `product-writing`). Never rewrite copy here.
+11. **Diff** against `--previous` if given. Without one, every finding is `new`, and `previous_run_id` and `loop` are null.
+12. **Emit** the human summary and the JSON (below).
 
 ## Scoring
 
@@ -147,6 +148,7 @@ For auto-improve loops. Where the loop runs is the caller's choice: **default is
 - **One id per rule, element, screen.** Two problems with the same rule on the same element are one finding; merge the evidence. A shared component that fails on every screen is filed on its highest-reach screen, with the others named in `evidence`.
 - **Purple is not slop; unconsidered purple is.** T01 and T03 fire on well-crafted brands. Run craft credit before tiering, never after, and T11 alone is nothing.
 - **Do not swap one template for another.** Slop fixes point at the product's own tokens, content, and screenshots. The usual replacements (cream with a serif and terracotta, near-black with acid green, broadsheet hairlines) are T23.
+- **A keyhole is a chosen limit, not any small thing.** A reading measure on prose, a fixed-format ID field, and a mobile sheet are not keyholes. Ask what real screen or real data the limit fails; if you cannot name one, there is no finding.
 - **Artifacts leak.** Signed-in screenshots can hold real user data, and preview URLs can carry tokens. Redact both before an artifact leaves the machine, and keep eval targets for private products in a private note.
 
 ## References
@@ -155,6 +157,7 @@ For auto-improve loops. Where the loop runs is the caller's choice: **default is
 - [heuristics.md](references/heuristics.md): H1-H10, the overlap rule, the severity scale
 - [platform-targets.md](references/platform-targets.md): WCAG items, platform items, capture defaults
 - [slop-tells.md](references/slop-tells.md): T01-T23 with weights, detection, craft-credit guards, and their sources
+- [keyhole.md](references/keyhole.md): K01-K04, where each is filed, detection, fixes, and the source
 - [findings-schema.json](references/findings-schema.json): the artifact schema
 - [example-page.json](references/example-page.json): a worked single-page run
 - [sources.md](references/sources.md): attribution and licenses
