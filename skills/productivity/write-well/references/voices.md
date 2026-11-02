@@ -71,6 +71,29 @@ Study anchors for people who recognize the author. Most users want the register 
 
 *Use a library voice as a center of gravity — not a costume. The goal is "recognizably in that voice," not "indistinguishable parody."* Note: the **Ogilvy** voice is the ad-man's *prose* — distinct from applying his 10 rules (those live in the business registers above + the canon's cooling-off pass).
 
+## House voice — PithyByte / Neal Meyer
+
+Default for **The Pithy Byte**, LinkedIn long-form, and Neal’s tech-leadership essays. Prefer `--persona pithybyte` (or `--voice neal-meyer`) and always few-shot from the live corpus (2–4 short passages), never the whole vault.
+
+**Canonical corpus** (published LinkedIn finals, vault-synced 2026-09-05 — LinkedIn/Beehiiv beat local drafts when they diverge):
+
+| Path | Piece |
+|------|-------|
+| `/Users/nealme/vaults/The Labyrinth/PithyByte/snake-game-vs-the-spec-framework.md` | Specs Are Premature Optimization |
+| `/Users/nealme/vaults/The Labyrinth/PithyByte/agentic-spec-driven-development.md` | I Built a Working App Overnight… |
+| `/Users/nealme/vaults/The Labyrinth/PithyByte/linkedin-inventor-not-best-judge-draft.md` | The Conversation Is the Work |
+| `/Users/nealme/vaults/The Labyrinth/PithyByte/Anthropic just killed my OpenClaw assistant.md` | Anthropic just killed my OpenClaw assistant |
+| `/Users/nealme/vaults/The Labyrinth/PithyByte/why-single-agent-orchestration-wins.md` | I Became a People Manager of AI Agents… |
+
+Index: `/Users/nealme/vaults/The Labyrinth/PithyByte/linkedin-articles-index.md`. Full fingerprint + exemplar lines: [pithybyte-voice.md](pithybyte-voice.md).
+
+| Voice / persona | Diction | Syntax | Rhythm | Stance | Hard-constraint tell |
+|-----------------|---------|--------|--------|--------|----------------------|
+| **neal-meyer** (`--voice`) | plain, concrete, first-person; real numbers ($K, token counts, %, study names); pop-culture sparingly | mostly short–medium; occasional long hypotactic steelman; questions to the reader | high variance — punchy shorts next to long build sentences; near-zero em-dash | — | **show the math**; never vague “AI is changing everything” claims without a number or named source |
+| **pithybyte** (`--persona`) | same as neal-meyer | same | same | practitioner peer who builds at night; steelmans the other side before arguing; admits cost, failure, and ambivalence; taste + verification over ceremony | **story first, principle last**; open in a lived moment (a Saturday night, a Word doc, a snake on screen); close on a usable rule or honest unresolved tension — not a sermon or zinger fragment |
+
+**How to invoke for PithyByte work:** `--persona pithybyte --like <2–4 short excerpts from the corpus paths above>`. If only a voice flag is available, `--voice neal-meyer` plus the same `--like` excerpts. Do **not** use Threshold/novel authoring voices for this lane.
+
 ## Sources
 - Voice anatomy: Roy Peter Clark / Don Fry; craft glossaries on diction/syntax/tone/rhythm/POV.
 - Persona ≠ ethos ≠ author: rhetoric scholarship (the persona as theatrical mask / implied author).

@@ -56,3 +56,28 @@ Shakespeare, *Romeo and Juliet*, Prologue (the content, stripped to prose): two 
 - **Voice overrides the house defaults.** write-well keeps em-dashes near-zero by default — but the DFW voice restores them because they're load-bearing to *that* fingerprint. The default is a default, not a law.
 - **Center of gravity, not a costume.** Each piece varies its own signature (Hemingway's one longer line, McCarthy's one short one). Maxing the trait on every sentence would be the caricature failure mode.
 - **`ogilvy` the voice ≠ Ogilvy the rules.** The `ogilvy` voice sells; his *rules* (≤2 pages, clear action, no jargon) live in the business registers and the canon's cooling-off pass.
+
+---
+
+## House voice — pithybyte / neal-meyer
+
+Not a Romeo rewrite — real published lines. Use these as `--like` seeds; pull fuller excerpts from [pithybyte-voice.md](pithybyte-voice.md) corpus paths.
+
+### `--persona pithybyte` (fingerprint check)
+
+*Story-first open, show-the-math, steelman-capable, rule-shaped close. Near-zero em-dash.*
+
+> It was a Saturday night, and I was looking at a Word document older than my youngest kid.
+>
+> For years I've helped run a large swim meet. Hundreds of kids, heat sheets, ribbons sorted into little labeled envelopes, and at the end of it a team trophy that comes down to a points calculation nobody fully remembers how to do.
+>
+> So that night I opened Claude Code and started talking.
+>
+> I didn't write a spec. … By the time I went to bed I had a working app … It ran overnight. It worked.
+>
+> Here's the uncomfortable part. Almost everything I just did is what an entire emerging discipline, "spec-driven development," is now built to prevent.
+
+> I write exactly as much of it as I can't test, and not one page more.
+
+> Generation is nearly free now, and getting freer. When the machine will build whatever you describe, the scarce thing isn't the description and it isn't the code. It's the person who looks at what came out and knows.
+

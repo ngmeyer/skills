@@ -194,6 +194,7 @@ Merged `human-writing` (drafting craft) plus `humanizer` (29-pattern edit catalo
 ## References
 - [references/craft-canon.md](references/craft-canon.md) — the deduped positive ruleset from the ten authorities, with sources
 - [references/voices.md](references/voices.md) — the 6-axis fingerprint model plus named voice/persona library
+- [references/pithybyte-voice.md](references/pithybyte-voice.md) — house voice for The Pithy Byte / Neal Meyer (corpus-backed)
 - [references/voice-examples.md](references/voice-examples.md) — one passage rewritten across voices (Hemingway, McCarthy, DFW, Didion, Ogilvy, executive-brief)
 - [references/prose-craft.md](references/prose-craft.md) — fiction prose craft plus anti-AI rules
 - [references/edit-catalog.md](references/edit-catalog.md) — the 29 AI-tell patterns, before/after
