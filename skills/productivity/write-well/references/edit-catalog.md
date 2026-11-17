@@ -23,10 +23,10 @@ If the user provides a writing sample (their own previous writing), analyze it b
    - Word choice level (casual? academic? somewhere between?)
    - How they start paragraphs (jump right in? Set context first?)
    - Punctuation habits (lots of dashes? Parenthetical asides? Semicolons?)
-   - Any recurring phrases or verbal tics
+   - Any recurring phrases or verbal tics, *and how often they actually appear* (once per piece is not once per paragraph)
    - How they handle transitions (explicit connectors? Just start the next point?)
 
-2. **Match their voice in the rewrite.** Don't just remove AI patterns - replace them with patterns from the sample. If they write short sentences, don't produce long ones. If they use "stuff" and "things," don't upgrade to "elements" and "components."
+2. **Match their voice in the rewrite.** Don't just remove AI patterns - replace them with patterns from the sample. If they write short sentences, don't produce long ones. If they use "stuff" and "things," don't upgrade to "elements" and "components." Keep tics at the sample's own rate: a signature phrase is permitted, never required, and overusing it is caricature.
 
 3. **When no sample is provided,** fall back to the default behavior (natural, varied, opinionated voice from the PERSONALITY AND SOUL section below).
 
@@ -48,6 +48,8 @@ Avoiding AI patterns is only half the job. Sterile, voiceless writing is just as
 - Reads like a Wikipedia article or press release
 
 ### How to add voice:
+
+**The voice is the author's, so the material must be too.** Look for the opinion, the mixed feeling, the specific detail already in the text or the brief, or ask for it. Don't invent a view, a feeling, or an anecdote for a real author. (The example below is illustrative; in real nonfiction editing, the reactions it adds would have to come from the author.)
 
 **Have opinions.** Don't just report facts - react to them. "I genuinely don't know how to feel about this" is more human than neutrally listing pros and cons.
 
