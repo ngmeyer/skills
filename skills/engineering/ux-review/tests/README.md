@@ -1,6 +1,6 @@
 # ux-review — Eval harness
 
-**Level:** Contract + arithmetic. The review is model-written, so this pins what a model will not hold on its own: the contract in `SKILL.md`, catalog completeness (30 laws, H1-H10, every WCAG and platform key the example uses, T01-T23 with style weights summing to 99 and the four proof tells), the schema, and the scoring math. It recomputes every derived number in `references/example-page.json` (ids, priority scores, tiers, item scores, section %, overall %, grade cap, the unsourced-claim markers, tell weights and craft credit, slop score and band, summary, order) and fails if the example and the rules disagree.
+**Level:** Contract + arithmetic. The review is model-written, so this pins what a model will not hold on its own: the contract in `SKILL.md`, catalog completeness (30 laws, H1-H10, every WCAG and platform key the example uses, T01-T23 with style weights summing to 99 and the four proof tells, K01-K04 each filed under a law or heuristic that already exists), the schema, and the scoring math. It recomputes every derived number in `references/example-page.json` (ids, priority scores, tiers, item scores, section %, overall %, grade cap, the unsourced-claim markers, tell weights and craft credit, slop score and band, summary, order) and fails if the example and the rules disagree.
 
 Run `bash tests/eval.sh` (set `PYTHON=` to an interpreter with `jsonschema` for full schema validation). Exit 0 = contract intact. `SKIP` is not a pass.
 

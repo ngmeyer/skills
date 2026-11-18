@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Structural + arithmetic eval for ux-review (1.0), including the slop pass.
+# Structural + arithmetic eval for ux-review (1.1), including the slop and keyhole passes.
 #
 # The skill's runtime output is model-written, so this eval pins two things a model cannot
 # be trusted to hold by itself: the design contract in SKILL.md and references/, and the
@@ -28,7 +28,7 @@ grep -qE '^  owner: ' <<<"$fm" && pass "metadata.owner" || fail "metadata.owner"
 dlen=$(awk '/^description:/{f=1;next} f&&/^[a-z-]+:/{exit} f{printf "%s ", $0}' <<<"$fm" | wc -c)
 [ "$dlen" -gt 100 ] && [ "$dlen" -le 1024 ] && pass "description $dlen chars (<=1024)" || fail "description $dlen chars"
 grep -qi 'use when' <<<"$fm" && pass "description has triggers" || fail "description has triggers"
-for t in 'does this look' 'AI-generated' 'de-slop' 'anti-slop review'; do grep -qF -- "$t" <<<"$fm" && pass "trigger: $t" || fail "trigger: $t"; done
+for t in 'does this look' 'AI-generated' 'de-slop' 'anti-slop review' 'keyhole review'; do grep -qF -- "$t" <<<"$fm" && pass "trigger: $t" || fail "trigger: $t"; done
 n=$(wc -l < SKILL.md); [ "$n" -le 250 ] && pass "SKILL.md $n lines (<=250)" || fail "SKILL.md $n lines (>250)"
 
 echo "== Contract in SKILL.md =="
@@ -57,8 +57,12 @@ chk "slop: regression rule" '`slop_score` rising 10 or more'
 chk "slop: craft credit before tiering" 'Run craft credit before tiering'
 chk "slop: token tell key" 'key `token|<token name>`'
 chk "1.3.5 autocomplete is a WCAG item" '| 1.3.5 | Identify input purpose' references/platform-targets.md
+chk "keyhole: not a scored section" 'A keyhole is never a new scored section'
+chk "keyhole: K-id is never a rule" 'a K-id is never a `rule`'
+chk "keyhole: K04 never submits" 'K04 reads client-side validity and never submits'
+chk "keyhole: primary-task rejection is P0" 'rejects a valid value on the primary task is P0'
 chk "Gotchas section" '## Gotchas'
-for r in laws.md heuristics.md platform-targets.md slop-tells.md findings-schema.json example-page.json sources.md; do
+for r in laws.md heuristics.md platform-targets.md slop-tells.md keyhole.md findings-schema.json example-page.json sources.md; do
   grep -qF "references/$r" SKILL.md && [ -f "references/$r" ] && pass "reference $r linked and present" || fail "reference $r"
 done
 
@@ -73,6 +77,14 @@ c=0; for i in $(seq -w 1 23); do grep -qE "^\| T$i \|" references/slop-tells.md 
 [ "$c" -eq 23 ] && pass "T01-T23 in slop-tells.md" || fail "slop-tells.md has $c/23"
 chk "slop weights labelled uncalibrated" 'Weights are a starting point, calibrate.' references/slop-tells.md
 for s in 'Han Kim / IOV Labs' 'Gesso Build, Inc.' 'Hallmark contributors' 'Feranmi' 'Miqdad Badjuber' 'cited, not copied'; do chk "slop attribution: $s" "$s" references/slop-tells.md; done
+
+c=0; for i in 1 2 3 4; do grep -qE "^\| K0$i \|" references/keyhole.md && c=$((c+1)) || echo "  missing K0$i"; done
+[ "$c" -eq 4 ] && pass "K01-K04 in keyhole.md" || fail "keyhole.md has $c/4"
+# Every K-id must file under an item the scorer already knows, so a keyhole never adds a section.
+homes=$(awk -F'|' '/^\| K0[1-4] \|/ && NF>=7 {split($5,a,","); k=a[1]; gsub(/ /,"",k); print (k=="" ? "<empty>" : k)}' references/keyhole.md)
+bad=$(for it in $homes; do grep -qE "^\| $it \|" references/heuristics.md references/laws.md || echo "$it"; done)
+[ "$(wc -w <<<"$homes")" -eq 4 ] && [ -z "$bad" ] && pass "every K-id files under a known law or heuristic" || fail "K-id files under unknown item: $bad"
+chk "keyhole attribution: Scott Meyers" 'Scott Meyers, *The Keyhole Problem*' references/keyhole.md
 
 echo "== Schema and worked example =="
 LAWS="$LAWS" "$PY" - <<'PYEOF'
@@ -121,6 +133,7 @@ for f in F:
     res(L["screen"] == norm_screen(L["screen"]) and (k.startswith("region:") or k == norm_key(*k.split("|", 1))), f"{f['id']}: screen and element_key are normalized")
     want = "uxr_" + hashlib.sha1(f"ux-review|{f['rule']}|{L['screen']}|{k}".encode()).hexdigest()[:10]
     res(f["id"] == want, f"{f['id']}: id recomputes from skill|rule|screen|element_key")
+    res(not re.fullmatch(r"K\d\d", f["rule"]), f"{f['id']}: rule is not a keyhole id (K-ids go in also)")
     ev = f["evidence"]; mk = [m for m in ("source checked, none found", "source not checked", "source found") if m in ev]
     if f["rule"] in ("T14", "T15", "T16") or re.search(r"unsourced|fabricat", ev, re.I):
         res(len(mk) == 1 and {"source checked, none found": True, "source not checked": f["tier"] != "P0" and f["severity"] <= 3 and f["confidence"] <= 0.5, "source found": f["severity"] == 1}.get(mk[0], False), f"{f['id']}: claim guard: one marker {mk} and its cap")
