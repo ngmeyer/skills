@@ -135,7 +135,7 @@ Decide with `/council-review`, stress-test one artifact with `/adversarial-revie
 
 **The Fix** is to add the voice, not just scrub the tells. A draft with every tell removed but no one home still reads as a machine:
 
-- [`/write-well`](./skills/productivity/write-well/SKILL.md) drafts or edits prose with a real voice, working from a deduped craft canon (Strunk, Zinsser, Orwell, Ogilvy, White, and six more) and the full AI-tell catalog. Adopt any voice with `--voice`, `--persona`, or `--like` a sample of your own writing. It even holds its own em-dash budget, and its tests fail if the skill's prose breaks the rule it teaches.
+- [`/write-well`](./skills/productivity/write-well/SKILL.md) drafts or edits prose with a real voice, working from a deduped craft canon (Strunk, Zinsser, Orwell, Ogilvy, White, and six more) and the full AI-tell catalog. Adopt any voice with `--voice`, `--persona`, or `--like` a sample of your own writing. It drafts from your brief and marks gaps instead of inventing your opinions or anecdotes, and it turns your edits into corrections for next time. It even holds its own em-dash budget, and its tests fail if the skill's prose breaks the rule it teaches.
 
 ### Summary
 
@@ -162,7 +162,7 @@ Thinking and process skills, not code-specific.
 - **[session-close](./skills/productivity/session-close/SKILL.md)** — Reconcile a work session into persistent project memory with section-aware merges, not a session dump.
 - **[weekly-setup-improvements](./skills/productivity/weekly-setup-improvements/SKILL.md)** — Audit a week of work and produce a forward-looking improvement report: closure check, zombie-action kills, auto-drafted skill scaffolds.
 - **[skillforge](./skills/productivity/skillforge/SKILL.md)** — Forge a new skill, or `optimize` an existing one to a measurably better V2 (quality audit + outcome research + train/validation A/B).
-- **[write-well](./skills/productivity/write-well/SKILL.md)** — Draft or edit prose with a real voice: `draft` from scratch or `edit` flat or AI-flavored text against a pattern catalog, in any `--voice`, `--persona`, or cloned `--like` a sample. Backed by a deduped craft canon (Strunk, Zinsser, Orwell, Ogilvy, White …).
+- **[write-well](./skills/productivity/write-well/SKILL.md)** — Draft or edit prose with a real voice: `draft` from scratch or `edit` flat or AI-flavored text against a pattern catalog, in any `--voice`, `--persona`, or cloned `--like` a sample. Works from your brief without inventing material, and learns from your edits. Backed by a deduped craft canon (Strunk, Zinsser, Orwell, Ogilvy, White …).
 
 ## Conventions
 

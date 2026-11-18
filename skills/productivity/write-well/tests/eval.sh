@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-# Structural eval for write-well (1.0).
+# Structural eval for write-well (1.1).
 #
 # Prompt-only skill; runtime output is non-deterministic. This eval locks in the
 # design contract: the five-part core, the Voices & Personas system (3 controls +
 # 6-axis fingerprint + the two failure-mode guards), the craft canon (the positive
 # rules + the rules-as-defaults meta-rule, and the explicit refusal to import the
 # grammar superstitions), self-containment (no personal-project coupling), and the
-# reference files. Writing quality is verified by a blind voice A/B, not here.
+# reference files. Writing quality is not tested here: the manual voice-fidelity protocol
+# is in tests/README.md and references/voice-fidelity.md.
 #
 # Usage: bash tests/eval.sh — exit 0 on pass, 1 on any failure.
 
@@ -78,6 +79,35 @@ grep -qiF "breezy manner" references/craft-canon.md && pass "canon: White anti-c
 chk "SKILL surfaces parallel construction (R19)" "coordinate ideas in similar form"
 [ -f references/voice-examples.md ] && pass "voice-examples.md exists" || fail "voice-examples.md missing"
 grep -qiF "voice ogilvy" references/voice-examples.md && pass "voice-examples covers the ogilvy voice" || fail "voice-examples missing ogilvy"
+
+echo "== 1.1: substance gate + tic-safe cloning + edit feedback loop + fidelity eval =="
+chk "substance-first section" "## Substance first"
+chk "never invent the author's life" "Never invent the author"
+chk "gap marker instead of fabrication" "[NEED:"
+chk "VAKS scoped to non-invention in nonfiction" "never from invention"
+chk "edit mode: don't invent the author's view" "don't invent a view"
+chk "hard constraint must be structural" "never a catchphrase"
+chk "tics permitted, never required" "never required"
+chk "sample guidance: same format" "same format"
+chk "edit feedback loop section" "learn from the diff"
+chk "corrections outrank the fingerprint" "corrections outrank the fingerprint"
+chk "never writes the voice file unasked" "never write to it unasked"
+chk "checklist: substance traces to the brief" "traces to the brief"
+chk "gotcha: described voice is a guess" "guess until tested"
+chk "gotcha: rules are tuned to a model" "tuned to a model"
+chk "voice-fidelity.md reference" "references/voice-fidelity.md"
+F=references/voice-fidelity.md
+[ -f "$F" ] && pass "voice-fidelity.md exists" || fail "voice-fidelity.md missing"
+grep -qiF "style-free brief" "$F" && pass "fidelity: style-free brief" || fail "fidelity missing brief extraction"
+grep -qiF "Swap the order" "$F" && pass "fidelity: order-swapped judging" || fail "fidelity missing order swap"
+grep -qiF "no-skill baseline" "$F" && pass "fidelity: no-skill baseline" || fail "fidelity missing no-skill baseline"
+grep -qiF "## Corrections" "$F" && pass "fidelity: voice file has a corrections list" || fail "fidelity missing corrections format"
+grep -qiF "never a catchphrase" references/voices.md && grep -qiF "never required" references/voices.md && pass "voices.md: structural constraint + tics never required" || fail "voices.md missing tic-safe cloning rules"
+grep -qiF "never required" references/edit-catalog.md && grep -qiF "Don't invent a view" references/edit-catalog.md && pass "edit-catalog: tics at sample rate + no invented views" || fail "edit-catalog missing tic/invention guards"
+[ -f tests/README.md ] && grep -qiF "voice-fidelity" tests/README.md && pass "tests/README.md documents both eval layers" || fail "tests/README.md missing or incomplete"
+vc=$(grep -o "—" "$F" | wc -l | tr -d ' '); vw=$(wc -w < "$F" | tr -d ' ')
+vok=$(awk -v c="$vc" -v w="$vw" 'BEGIN{print((w&&c*1000.0/w<=5)?1:0)}')
+[ "$vok" -eq 1 ] && pass "dogfood: voice-fidelity.md em-dash density (<=5/1000)" || fail "dogfood: voice-fidelity.md em-dash density >5/1000"
 
 echo "== Self-containment (no personal-project coupling) =="
 LEAK=0
