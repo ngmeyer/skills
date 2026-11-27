@@ -11,7 +11,7 @@ Judge every law against the screen's primary task. Record a finding with evidenc
 | chunking | Long content and forms are grouped into scannable chunks | H8 |
 | cognitive-bias | No manipulative defaults or dark patterns that exploit bias | H3 |
 | cognitive-load | Extraneous elements, jargon, and simultaneous demands on the task screen | H8 |
-| doherty-threshold | Feedback within about 400 ms: INP, Core Web Vitals, visible loading states | H1 |
+| doherty-threshold | Response-time limits: about 0.1 s feels instant, 1 s keeps the flow of thought, 10 s holds attention ([Nielsen](https://www.nngroup.com/articles/response-times-3-important-limits/), after Miller 1968 and Card et al. 1991). Check INP, Core Web Vitals, and visible loading states. **House heuristic:** visible feedback within about 400 ms; the 1982 IBM report behind the name compares 3 s with 0.3 s and states no 400 ms limit | H1 |
 | fittss-law | Primary action size and distance, thumb-zone placement, target sizes | touch-target-44 |
 | flow | Mid-task interruptions: modals, forced signups, context switches | H3 |
 | goal-gradient-effect | Progress indicators in multi-step flows | H1 |
