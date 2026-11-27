@@ -29,11 +29,22 @@ Both modes serve the same core. They just enter from different ends.
 
 ## The core — what good prose has (both modes)
 
-1. **Voice.** A real person reacting, not a neutral reporter. Opinions ("I genuinely don't know how to feel about this"), acknowledged complexity ("impressive but unsettling"), first person when it fits, a little mess (tangents, self-correction). Voiceless-but-clean is as obvious as slop.
-2. **Reliving, not reporting (VAKS).** Most weak writing *reports* ("I met her at a bar, did a trick, won her over"). Good writing *relives* it with sensory detail: **V**isual, **A**uditory, **K**inesthetic, **S**mell. Every scene or section needs ≥2 VAKS ingredients, at least one non-visual. Diagnostic: "am I watching a movie or reading a news summary?" Summary means add VAKS.
+1. **Voice.** A real person reacting, not a neutral reporter. Opinions ("I genuinely don't know how to feel about this"), acknowledged complexity ("impressive but unsettling"), first person when it fits, a little mess (tangents, self-correction). Voiceless-but-clean is as obvious as slop. The opinions have to be the author's own (see *Substance first*).
+2. **Reliving, not reporting (VAKS).** Most weak writing *reports* ("I met her at a bar, did a trick, won her over"). Good writing *relives* it with sensory detail: **V**isual, **A**uditory, **K**inesthetic, **S**mell. Every scene or section needs ≥2 VAKS ingredients, at least one non-visual. Diagnostic: "am I watching a movie or reading a news summary?" Summary means add VAKS. In nonfiction the detail comes from what the author lived, never from invention.
 3. **Rhythm — vary sentence length.** The single biggest lever for "music." Short sentences punch. Then a longer one builds and breathes and carries the reader somewhere before it sets them down. Then a fragment. If every sentence is the same length, the prose is a monotone (Provost). **Read it aloud.** Your ear catches what your eye skims.
 4. **Specific over abstract.** "I moved schools four times because I kept getting bullied" beats "I had a difficult childhood." Dense, concrete words carry more than vague ones. Name the thing.
 5. **Story-first structure.** Hook, Struggle, Breakthrough, Application. Drop into a moment, relive the difficulty, *show* the turn, link to the point **last**. The AI default inverts this (state the lesson, backfill with anecdotes), and the result reads like a sermon. Lead with life; arrive at the principle. *(Register-gated; see below. A performance review is not a personal essay.)*
+
+## Substance first: the brief
+
+Voice is how a thing is said. It cannot supply the thing. Before drafting nonfiction that speaks for a real author, collect the **brief**: the thesis, the facts and sources, the anecdotes, the exact quotes, and the author's actual opinion.
+
+- **Never invent the author's life.** Anything presented as their experience or view (opinions, jokes, anecdotes, feelings, sensory detail) comes from the brief. Handed a one-line prompt, a model fills the gaps with plausible content in a convincing voice. That is the worst of both worlds: it reads as theirs and it isn't.
+- **Thin brief: ask, or mark the gap.** Ask for the missing piece when it is load-bearing. Otherwise write `[NEED: the moment this went wrong]` in place and keep going. Don't paper over it.
+- **This scopes VAKS and "have opinions."** In fiction, invent freely. In nonfiction, relive what the author gave you. If they gave you a report, ask for the scene.
+- **Check the ratio.** A draft much longer than the material behind it is padded with filler or fabrication. Cut back to what the brief supports.
+
+General exposition that makes no first-person claim (an explainer, a product page) needs facts, not a life, so the gate there is accuracy: don't invent numbers, quotes, or sources either.
 
 ## Punctuation budget — a generation rule, not a cleanup
 
@@ -61,13 +72,13 @@ By default write-well calibrates a voice to the piece, audience, and **register*
 
 - `--voice <name>` adopts a named voice. **Two libraries:** pick a **register voice** by *what you're writing* (`plain-professional`, `warm-feedback`, `diplomatic`, `executive-brief`, `conversational`, `academic`, `punchy-marketing`, `storyteller`), no author knowledge needed, or an **author voice** if you know it (Hemingway, Didion, and so on).
 - `--persona <name|description>` is a voice **plus a stance/worldview** (the implied author, e.g. "skeptical engineer"). A persona writes *as someone*.
-- `--like <sample path or paste>` **clones** a voice: read the sample's fingerprint and write toward it. Use this to match *your* habits, including whether you use em-dashes at all.
+- `--like <sample path or paste>` **clones** a voice: read the sample's fingerprint and write toward it. Use this to match *your* habits, including whether you use em-dashes at all. Pick samples in the **same format** as the piece (long-form for long-form; tweets and emails clone badly), recent ones, or meeting transcripts if you have no writing. A sample can be a **voice file** that also carries your past corrections. See [references/voice-fidelity.md](references/voice-fidelity.md).
 
 Every voice is one **6-axis fingerprint**: diction · syntax (parataxis↔hypotaxis, clause-nesting) · rhythm (sentence-length *variance*) · POV/distance · tone/punctuation · stance (persona only). The first five are clonable from a sample; stance is the rhetorical layer you describe, not sample. Full model plus a starter library (Hemingway, McCarthy, DFW, Vonnegut, Morrison, Didion, Thompson, Faulkner, Ogilvy) with 2–4 exemplars each: [references/voices.md](references/voices.md).
 
 **Two failure modes — engineer against both** (a voice tuned away from one drifts into the other):
-- **Regression to generic** (the default gravity, where the LLM falls back to bland web-average). Guard: make the voice's *most distinctive* axis a **hard constraint** (e.g. Hemingway means no subordinating conjunctions) and pass 2–4 exemplars.
-- **Caricature** (maxing every axis into parody: "and…and…and" every line). Guard: treat the fingerprint as a **center of gravity *with variance***, not a rule applied to 100% of sentences. Real voices vary.
+- **Regression to generic** (the default gravity, where the LLM falls back to bland web-average). Guard: make the voice's *most distinctive structural* axis a **hard constraint** (syntax or rhythm, e.g. Hemingway means no subordinating conjunctions; never a catchphrase) and pass 2–4 exemplars.
+- **Caricature** (maxing every axis into parody: "and…and…and" every line). Guard: treat the fingerprint as a **center of gravity *with variance***, not a rule applied to 100% of sentences. Real voices vary. A list of someone's greatest hits, applied everywhere, is the classic way to get here: **signature phrases and tics are permitted at the sample's own rate, never required.**
 
 In `edit`/rewrite, **separate meaning from style**: re-skin the voice, keep the content, and watch for meaning drift.
 
@@ -101,7 +112,7 @@ Craft detail and examples: [references/prose-craft.md](references/prose-craft.md
 
 The text exists but it's flat or AI-flavored. Bring it alive:
 
-1. **Add voice first** (the positive half). Inject opinions, complexity, first-person where it fits, varied rhythm, specific feeling. This is what most "humanize" passes skip, and it's the half that matters.
+1. **Add voice first** (the positive half). Surface the author's opinions, complexity, first-person where it fits, varied rhythm, specific feeling. Find them in the text or ask for them; don't invent a view the author never gave you. This is what most "humanize" passes skip, and it's the half that matters.
 2. **Then fix the patterns.** Work the catalog of 29 recurring AI patterns (significance inflation, promotional language, superficial -ing phrases, vague attributions, rule-of-three, copula avoidance, em-dash overuse, inline-header lists, hedging, filler, sycophancy, and the rest) with before/after fixes: [references/edit-catalog.md](references/edit-catalog.md).
 3. **Run the Paramedic Method** on bloated sentences (see the craft canon) for a mechanical concision pass.
 4. **Match the target voice.** If `--voice`/`--like` is set, rewrite toward that fingerprint, not toward generic "natural."
@@ -116,13 +127,24 @@ Cheap, high-yield. After drafting or editing, run three prompts:
 
 This catches what the first pass missed.
 
+## After the author edits: learn from the diff
+
+The author's edits to a draft are the best voice data there is, better than any description. When they hand back an edited version (or edit the file), compare it with what you wrote:
+
+1. **Sort the changes.** Substance fixes are not voice data. Voice and style changes are.
+2. **Write each voice change as a correction**, not a trait: "draft bolded people's names; author removed it," "asides read as performed; author flattened them."
+3. **Offer to append them** to the author's voice file (create one if they want it; never write to it unasked). On the next `--like` run, corrections outrank the fingerprint.
+
+File format, pruning rule, and how to test whether the voice is working: [references/voice-fidelity.md](references/voice-fidelity.md).
+
 ## Banned words & phrases
 
 Hard-ban list (delve, tapestry, testament to, "It's not just X, it's Y", "at its core", bold-colon bullets, and so on): [references/banned-words.md](references/banned-words.md). Quick gut-check: if a sentence "says everything and means nothing," cut it.
 
 ## Self-review checklist
 
-- [ ] **Voice** — is there a person here? Opinions, complexity, a pulse? *(If a voice/persona was set: is its most distinctive axis actually present, and not caricatured?)*
+- [ ] **Voice** — is there a person here? Opinions, complexity, a pulse? *(If a voice/persona was set: is its most distinctive axis actually present, and not caricatured? Tics no more frequent than in the sample?)*
+- [ ] **Substance** — every opinion, anecdote, quote, and number traces to the brief or the source text; gaps marked `[NEED: …]`, not filled?
 - [ ] **VAKS** — every scene or section has ≥2 sensory ingredients, ≥1 non-visual?
 - [ ] **Rhythm** — sentence lengths vary? Read one paragraph aloud; does it have music?
 - [ ] **Clarity** — subjects name the characters, verbs name the actions? Nominalizations un-buried? Sentences open old, close new?
@@ -146,10 +168,22 @@ Generic domain notes (apply the core, weight differently): [references/domains.m
 - **A voice sits *between* generic and caricature.** Both are failures. Generic means no fingerprint; caricature means the fingerprint on every sentence. Aim for a center of gravity with variance.
 - **Rules are defaults, not commandments.** Don't apply the grammar superstitions robotically; that makes write-well the very rule-bot it warns against (Pinker).
 - **Add, don't just subtract.** Edit mode's first step is *add voice*. A draft scrubbed of every tell but still flat has not been fixed.
+- **A convincing voice makes invention more dangerous, not less.** An invented anecdote in the author's own cadence passes for theirs until someone asks them about it. Brief first; mark gaps.
+- **A described voice is a guess until tested.** In one published experiment a style guide written from a writer's samples lost to no skill at all on one model, because it turned their quirks into rules. Prefer corrections from real edits over descriptions, and check `--like` output against the fidelity eval before trusting it.
+- **The rules are tuned to a model.** The em-dash budget and the closer warning answer habits of the models this was built on. After a model change, rerun the fidelity eval; a rule that fixed one model's tic can be dead weight or harm on the next.
 - **Chat is not prose.** This is for long-form content. Don't apply it to quick replies.
 - **"Too much" is usually unfamiliar, not wrong.** The risk is rarely going too far; it's not going far enough.
 
 ## Changelog
+
+### 1.1 (2026-11-17) — substance gate, tic-safe cloning, edit feedback loop
+Prompted by Michael Taylor's write-up of a voice-cloning experiment ("How I Finally Got AI to Write Like Me," Every, 2026). His measured findings (one writer, small held-out sets, so treat as a strong hint and not a law) cut against three things 1.0 did:
+- **Substance first.** New section and checklist item. 1.0 told the model to "inject opinions" and hit a sensory-detail quota per section, which in nonfiction for a real author is an instruction to fabricate. Opinions, anecdotes, and detail now come from a brief; thin briefs get a question or a `[NEED: …]` marker.
+- **Tic-safe `--like`.** 1.0 harvested "recurring phrases or verbal tics" from a sample and allowed a catchphrase to become the hard constraint. That is the greatest-hits path to caricature. Tics are now permitted at the sample's rate and never required; the hard constraint must be structural. Added sample-selection guidance (same format, recent, transcripts as fallback).
+- **Edit feedback loop.** The author's edits become dated corrections in a user-owned voice file that outranks the described fingerprint.
+- **Fidelity eval, documented.** `tests/README.md` and [references/voice-fidelity.md](references/voice-fidelity.md) define the test the old "blind voice A/B" note only gestured at: style-free brief, drafts with and without the skill, pairwise judge against the real piece, order swapped. **Not yet run on write-well**; no outcome delta is claimed for 1.1.
+- Two gotchas: a described voice is a guess until tested, and the rules are model-specific.
+- Deliberately left out: the optimizer loop itself (GEPA and similar). It builds a per-author skill, which is a different product from a general craft skill.
 
 ### 1.0 (2026-06-10) — first release
 First real version of write-well. **Lightly tested in real prose so far** (a few passes), so expect iteration; the dated entries below are the pre-release development log, not a maturity claim. 1.0 ships the five-part core, the voices & personas system (6-axis fingerprint, register + author libraries, the two failure-mode guards), the deduped craft canon (Strunk, Zinsser, Orwell, Williams, Lanham, Clark, Pinker, Le Guin, McPhee, Provost, plus Ogilvy and Strunk & White 4th-ed), the 29-pattern AI-tell edit catalog, and a countable em-dash budget the skill dogfoods.
@@ -194,6 +228,7 @@ Merged `human-writing` (drafting craft) plus `humanizer` (29-pattern edit catalo
 ## References
 - [references/craft-canon.md](references/craft-canon.md) — the deduped positive ruleset from the ten authorities, with sources
 - [references/voices.md](references/voices.md) — the 6-axis fingerprint model plus named voice/persona library
+- [references/voice-fidelity.md](references/voice-fidelity.md) — cloning a real voice: sample choice, tics, the voice file and corrections, the fidelity eval
 - [references/voice-examples.md](references/voice-examples.md) — one passage rewritten across voices (Hemingway, McCarthy, DFW, Didion, Ogilvy, executive-brief)
 - [references/prose-craft.md](references/prose-craft.md) — fiction prose craft plus anti-AI rules
 - [references/edit-catalog.md](references/edit-catalog.md) — the 29 AI-tell patterns, before/after
