@@ -28,7 +28,7 @@ grep -qE '^  owner: ' <<<"$fm" && pass "metadata.owner" || fail "metadata.owner"
 dlen=$(awk '/^description:/{f=1;next} f&&/^[a-z-]+:/{exit} f{printf "%s ", $0}' <<<"$fm" | wc -c)
 [ "$dlen" -gt 100 ] && [ "$dlen" -le 1024 ] && pass "description $dlen chars (<=1024)" || fail "description $dlen chars"
 grep -qi 'use when' <<<"$fm" && pass "description has triggers" || fail "description has triggers"
-for t in 'does this look' 'AI-generated' 'de-slop' 'anti-slop review' 'motion review' 'micro-interactions'; do grep -qF -- "$t" <<<"$fm" && pass "trigger: $t" || fail "trigger: $t"; done
+for t in 'does this look' 'AI-generated' 'de-slop' 'anti-slop review' 'motion review' 'micro-interactions' 'keyhole review'; do grep -qF -- "$t" <<<"$fm" && pass "trigger: $t" || fail "trigger: $t"; done
 n=$(wc -l < SKILL.md); [ "$n" -le 250 ] && pass "SKILL.md $n lines (<=250)" || fail "SKILL.md $n lines (>250)"
 
 echo "== Contract in SKILL.md =="
@@ -63,8 +63,12 @@ chk "motion: not observable" 'not observable'
 chk "motion: never fabricate" 'Never fabricate a motion finding'
 chk "motion: 2.3.3 report-only" '2.3.3 note (AAA, report-only, no cap)'
 chk "motion: 2.3.1 seizure" '2.3.1 (Level A, P0)'
+chk "keyhole: always-run step" '**Keyhole pass (always run)**'
+chk "keyhole: K-id never rule" 'with the K-id in `also` (never as `rule`)'
+chk "keyhole: evidence prefix" 'start `evidence` with `keyhole:`'
+chk "keyhole: not-checked is reported" 'reported as not checked, never guessed'
 chk "Gotchas section" '## Gotchas'
-for r in laws.md heuristics.md platform-targets.md slop-tells.md motion.md findings-schema.json example-page.json sources.md; do
+for r in laws.md heuristics.md platform-targets.md slop-tells.md keyhole.md motion.md findings-schema.json example-page.json sources.md; do
   grep -qF "references/$r" SKILL.md && [ -f "references/$r" ] && pass "reference $r linked and present" || fail "reference $r"
 done
 
@@ -90,7 +94,7 @@ chk "motion: lens not scored" 'Animation principles lens (not scored' references
 chk "motion: M01 paint exemption" 'Exempt when the result paints within 400 ms' references/motion.md
 chk "motion: M09 floor" 'An exit of 200 ms or less is never a finding' references/motion.md
 chk "motion: M08 100-150 band" 'so 100-150 ms is fine' references/motion.md
-chk "loop: scored-item change is a baseline reset" 'or the set of scored items changed'
+chk "loop: scored-item or skill-version change is a baseline reset" 'or the skill version changed'
 chk "motion: M02 repeat guard" '**Repeat guard:**' references/motion.md
 chk "motion: pixels blocked on production" 'block ad and analytics requests' references/motion.md
 chk "motion: read after settle" '**MX2 Read after settle.**' references/motion.md
@@ -108,6 +112,15 @@ chk "motion: Material easing cited" 'm3.material.io/styles/motion/easing-and-dur
 chk "motion: WCAG 2.3.3 understanding cited" 'WAI/WCAG22/Understanding/animation-from-interactions' references/motion.md
 chk "motion: Fitts/Hick/Doherty not duplicated" 'already in [laws.md](laws.md)' references/motion.md
 chk "sources.md points at motion credits" 'motion.md' references/sources.md
+
+c=0; for i in 1 2 3 4; do grep -qE "^\| K0$i \|" references/keyhole.md && c=$((c+1)) || echo "  missing K0$i"; done
+[ "$c" -eq 4 ] && pass "K01-K04 in keyhole.md" || fail "keyhole.md has $c/4"
+homes=$(awk -F'|' '/^\| K0[1-4] \|/ {r=$5; sub(/,.*/,"",r); gsub(/ /,"",r); print r}' references/keyhole.md | sort -u | tr '\n' ' ')
+[ "$(echo $homes)" = "H3 H6 H7" ] && pass "every K-id files under H7, H3, or H6" || fail "K-id rule column: $homes"
+chk "keyhole: always-run standard" '**standard, always-run**' references/keyhole.md
+chk "keyhole: gratuitous test" '**gratuitous**' references/keyhole.md
+chk "keyhole attribution: Scott Meyers" "Scott Meyers, *The Keyhole Problem*" references/keyhole.md
+chk "sources.md points at keyhole credits" 'keyhole.md' references/sources.md
 
 echo "== Schema and worked example =="
 LAWS="$LAWS" "$PY" - <<'PYEOF'
@@ -156,6 +169,8 @@ for f in F:
     res(L["screen"] == norm_screen(L["screen"]) and (k.startswith("region:") or k == norm_key(*k.split("|", 1))), f"{f['id']}: screen and element_key are normalized")
     want = "uxr_" + hashlib.sha1(f"ux-review|{f['rule']}|{L['screen']}|{k}".encode()).hexdigest()[:10]
     res(f["id"] == want, f"{f['id']}: id recomputes from skill|rule|screen|element_key")
+    ks = [a for a in f["also"] if re.fullmatch(r"K0[1-4]", a)]
+    res(not re.fullmatch(r"K\d\d", f["rule"]) and (not ks or (f["evidence"].startswith("keyhole:") and (f["rule"] in ("H3", "H6", "H7") or f["rule"] in sc["wcag"]))), f"{f['id']}: keyhole filing (K-id only in also, keyhole: evidence, H7/H3/H6 or a WCAG SC)")
     ev = f["evidence"]; mk = [m for m in ("source checked, none found", "source not checked", "source found") if m in ev]
     if f["rule"] in ("T14", "T15", "T16") or re.search(r"unsourced|fabricat", ev, re.I):
         res(len(mk) == 1 and {"source checked, none found": True, "source not checked": f["tier"] != "P0" and f["severity"] <= 3 and f["confidence"] <= 0.5, "source found": f["severity"] == 1}.get(mk[0], False), f"{f['id']}: claim guard: one marker {mk} and its cap")
