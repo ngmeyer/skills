@@ -71,6 +71,14 @@
       "refs": ["https://www.nngroup.com/articles/ten-usability-heuristics/"], "delegate_to": "write-well", "status": "open", "diff": "persisting"
     },
     {
+      "id": "uxr_27d55ed3e5", "rule": "H6", "also": ["K03"], "category": "keyhole",
+      "location": {"screen": "/signup", "viewport": "375x812", "element_key": "textbox|workspace url", "selector": "#workspace-url", "region": null, "screenshot": "shots/signup-375.png", "bbox": [16, 412, 343, 44]},
+      "evidence": "keyhole: the workspace URL input shows 228 px of text before a fixed '.app.example' suffix; a 24-character name scrolls inside the box (scrollWidth 512 > clientWidth 228), and the full URL appears only on the next screen. Signup still completes, so this is not the primary task's content: severity 2.",
+      "severity": 2, "reach": 5, "reach_source": "funnel_weight", "effort": 1, "confidence": 0.8, "priority_score": 16.0, "tier": "P2", "tier_reason": null,
+      "fix": "Show the full URL as a live preview line under the input and let the field grow to the form width (H6).",
+      "refs": ["https://aristeia.com/TKP/"], "delegate_to": null, "status": "open", "diff": "new"
+    },
+    {
       "id": "uxr_0f3b1d1890", "rule": "hicks-law", "also": ["choice-overload", "von-restorff-effect"], "category": "layout",
       "location": {"screen": "/signup", "viewport": "1280x800", "element_key": "group|sign-up options", "selector": "main .auth-options", "region": null, "screenshot": "shots/signup-1280.png", "bbox": [480, 240, 320, 200]},
       "evidence": "Four equal-weight buttons (two providers, email, 'Book a demo') before the form; none is marked as recommended.",
@@ -127,6 +135,6 @@
       "refs": ["https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html"], "delegate_to": null, "status": "verified", "diff": "resolved"
     }
   ],
-  "summary": {"p0": 0, "p1": 4, "p2": 1, "p3": 5, "new": 8, "persisting": 2, "resolved": 1, "regressed": 0},
+  "summary": {"p0": 0, "p1": 4, "p2": 2, "p3": 5, "new": 9, "persisting": 2, "resolved": 1, "regressed": 0},
   "loop": {"iteration": 3, "decision": "continue", "reason": "3 live P1 remain; 1 resolved since last run"}
 }

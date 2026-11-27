@@ -14,7 +14,7 @@ Rules here are our own words. Where an idea came from another project, it is cre
 | [RICE prioritization (Intercom)](https://www.intercom.com/blog/rice-simple-prioritization-for-product-managers/) | cited | Effort as the divisor in `priority_score`. |
 | W3C WCAG 2.2, Apple HIG, Material 3, Android, Flutter docs | cited | Thresholds in [platform-targets.md](platform-targets.md). |
 
-The slop pass credits its own sources in [slop-tells.md](slop-tells.md#sources-and-attribution).
+The slop pass credits its own sources in [slop-tells.md](slop-tells.md#sources-and-attribution), and the keyhole pass in [keyhole.md](keyhole.md#sources).
 
 The motion pass credits its own sources in [motion.md](motion.md#sources-and-attribution): HCI research (Heer & Robertson, Bederson & Boltman, Tversky et al., Dessart et al., Harrison et al.), NN/g, Apple HIG, Material 3, the MIT-licensed [meta/astryx](https://github.com/meta/astryx) design docs, and the WCAG 2.2 Understanding docs. Each check carries an evidence-strength label.
 
