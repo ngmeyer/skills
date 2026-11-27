@@ -1,15 +1,16 @@
 ---
 name: ux-review
 description: >
-  Grades a website, a single page, a mobile web view, or a native or Flutter app (from screenshots)
-  against all 30 Laws of UX, Nielsen's 10 heuristics, WCAG 2.2 AA basics, and platform touch-target
-  rules, plus a slop pass for generic-AI tells (house indigo, Inter-only type, three-card rows) and
-  fabricated proof. Produces a % and letter grade plus a slop_score and band, ranks every finding by
+  Grades a website, a page, a mobile web view, or a native or Flutter app (from screenshots)
+  against all 30 Laws of UX, Nielsen's 10 heuristics, WCAG 2.2 AA, and platform touch-target
+  rules, plus a slop pass for generic-AI tells and fabricated proof, and a motion pass for
+  micro-interactions. Produces a % and letter grade plus a slop_score and band, ranks every finding by
   severity x reach x confidence / effort into P0-P3 with a concrete fix, and writes one diffable
   findings JSON with stable ids for loops. Use when: 'ux review', 'grade this page',
-  'audit the UX', 'what should we fix first on this screen', 'usability review', 'heuristic
+  'audit the UX', 'what should we fix first', 'usability review', 'heuristic
   evaluation', 'is this accessible', 'score this app', 'does this look AI-generated', 'de-slop',
-  'anti-slop review', 'check for fake social proof', or as the sense step of a UI improvement loop.
+  'anti-slop review', 'check for fake social proof', 'motion review', 'micro-interactions',
+  or as the sense step of a UI improvement loop.
   Not for: copy rewrites (write-well) or code structure. An expert review, not a usability study;
   slop tells are signs, not proof of AI use.
 user-invocable: true
@@ -26,6 +27,8 @@ metadata:
 **Why this exists:** "make the UI better" is not a loop anyone can win, because nobody can tell whether the last change helped. This skill turns a UI into a score that only moves when a specific, evidenced finding changes, plus a ranked fix list. A loop can then ship the top fixes, re-run, and see the diff.
 
 The slop pass catches what a heuristic review misses: a UI that works but reads as unedited template output, and proof nobody can source. A fake testimonial or stat is a trust failure and, in the US, a legal one (16 CFR Part 465). Tells are **signs, not proof**: never claim or imply that anyone used AI.
+
+The motion pass catches interaction craft a still screenshot misses: a tap with no feedback, a modal that pops in unconnected to its trigger, a confirm that bounces. Findings file under existing laws and heuristics; the pass does not have its own score.
 
 It is an expert heuristic review with evidence, and it says so in its output. Real session data (funnels, rage clicks, support tickets) outranks it whenever the two disagree.
 
@@ -51,11 +54,15 @@ It is an expert heuristic review with evidence, and it says so in its output. Re
    - **Proof.** Look up every testimonial, customer logo, stat, rating, or "trusted by" claim in `proof.json`, ask the caller for a missing source, and check the code or data behind it when you can; tier T14-T16 with the unsourced-claim guard (Ranking). Submit each email or contact form once, only on a preview or staging deploy with a test address the caller supplied (never production or a real person's address; no preview means skip and say so). Success shown with nothing stored or sent is T21, P0.
    - **Craft credit.** Before tiering, check each tell's false-positive guard. A documented brand color used with restraint, a deliberate type scale, custom illustration, real product screenshots, and real hover and focus states earn it: keep the finding with `severity: 0`, `tell_weight: 0`, and the reason in `craft_credit`, so the run shows the guard fired.
    - **File once.** A tell that is also a WCAG failure (T19 missing focus, T22 contrast) is filed under the SC (`2.4.7`, `1.4.3`) with the T-id in `also`. Every other tell is its own finding with the T-id as `rule` and its catalog weight in `tell_weight`, in the same list with the same id recipe.
-7. **Refute P0s before scoring.** For each would-be P0 (severity 4 or a P0 override in Ranking), and each craft credit, a fresh-context agent that sees only the screenshots, the brand doc, and the finding tries to refute it. Drop or demote a refuted P0, and remove a refuted credit, before either moves a score or reaches a loop.
-8. **Score** (below). Per screen first, then roll up to the target.
-9. **Rank** (below) and write each fix: the element, the change, the expected effect, and the laws it serves. Copy problems get a structural fix plus `delegate_to: "write-well"` (or the caller's product-copy skill, e.g. `product-writing`). Never rewrite copy here.
-10. **Diff** against `--previous` if given. Without one, every finding is `new`, and `previous_run_id` and `loop` are null.
-11. **Emit** the human summary and the JSON (below).
+7. **Motion pass** with [motion.md](references/motion.md) (M01-M16), on the same capture when interaction or video is available:
+   - Walk the checkable tips (feedback, continuity, timing, easing). File each miss under the existing law, heuristic, or SC the tip names, not as a new scored section. Never use an M-id as `rule`. Weights stay 35/25/25/15.
+   - Honor `prefers-reduced-motion` on every tip. If Reduce Motion is on (user or `target.capture.reduced_motion`), do not file missing decorative motion as a miss; file a 2.3.3 note (AAA, report-only, no cap) only if large motion still plays. Seizure-risk flashing is 2.3.1 (Level A, P0).
+   - No interaction or video: mark the tip `not observable` and do not lower a score. That applies to the tip, not automatically to the linked law (a visible spinner can still score `doherty-threshold`). Never fabricate a motion finding from a still. If the previous run was stills-only and this run has interaction or video, set `loop.decision: "baseline-reset"` and do not treat new motion findings as a regression.
+8. **Refute P0s before scoring.** For each would-be P0 (severity 4 or a P0 override in Ranking), and each craft credit, a fresh-context agent that sees only the screenshots, the brand doc, and the finding tries to refute it. For a motion or 2.3.1 P0, also give it the recording or interaction evidence; stills cannot show a flash rate or an easing curve. Drop or demote a refuted P0, and remove a refuted credit, before either moves a score or reaches a loop.
+9. **Score** (below). Per screen first, then roll up to the target.
+10. **Rank** (below) and write each fix: the element, the change, the expected effect, and the laws it serves. Copy problems get a structural fix plus `delegate_to: "write-well"` (or the caller's product-copy skill, e.g. `product-writing`). Never rewrite copy here.
+11. **Diff** against `--previous` if given. Without one, every finding is `new`, and `previous_run_id` and `loop` are null.
+12. **Emit** the human summary and the JSON (below).
 
 ## Scoring
 
@@ -148,6 +155,9 @@ For auto-improve loops. Where the loop runs is the caller's choice: **default is
 - **Purple is not slop; unconsidered purple is.** T01 and T03 fire on well-crafted brands. Run craft credit before tiering, never after, and T11 alone is nothing.
 - **Do not swap one template for another.** Slop fixes point at the product's own tokens, content, and screenshots. The usual replacements (cream with a serif and terracotta, near-black with acid green, broadsheet hairlines) are T23.
 - **Artifacts leak.** Signed-in screenshots can hold real user data, and preview URLs can carry tokens. Redact both before an artifact leaves the machine, and keep eval targets for private products in a private note.
+- **Don't invent motion.** A still screenshot cannot show a pulse, a stagger, or an easing curve. `not observable` is the honest result; a guessed miss lowers the grade for nothing. A stills-only previous run followed by a video run is a baseline reset, not a regression.
+- **Motion is not a fifth section.** File under the named law, heuristic, or SC. Never use an M-id as `rule`. A new `scores.motion` or a changed weight is a miss in the skill itself.
+- **Reduce Motion is not a fail.** If the capture or the user has Reduce Motion on, missing decorative motion is expected. File 2.3.3 only when large motion still plays.
 
 ## References
 
@@ -155,6 +165,7 @@ For auto-improve loops. Where the loop runs is the caller's choice: **default is
 - [heuristics.md](references/heuristics.md): H1-H10, the overlap rule, the severity scale
 - [platform-targets.md](references/platform-targets.md): WCAG items, platform items, capture defaults
 - [slop-tells.md](references/slop-tells.md): T01-T23 with weights, detection, craft-credit guards, and their sources
+- [motion.md](references/motion.md): M01-M16 micro-interaction checklist; findings file under existing laws and heuristics
 - [findings-schema.json](references/findings-schema.json): the artifact schema
 - [example-page.json](references/example-page.json): a worked single-page run
 - [sources.md](references/sources.md): attribution and licenses
