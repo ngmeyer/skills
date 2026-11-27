@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Structural + arithmetic eval for ux-review (1.0), including the slop pass.
+# Structural + arithmetic eval for ux-review (1.0), including the slop and motion passes.
 #
 # The skill's runtime output is model-written, so this eval pins two things a model cannot
 # be trusted to hold by itself: the design contract in SKILL.md and references/, and the
@@ -28,7 +28,7 @@ grep -qE '^  owner: ' <<<"$fm" && pass "metadata.owner" || fail "metadata.owner"
 dlen=$(awk '/^description:/{f=1;next} f&&/^[a-z-]+:/{exit} f{printf "%s ", $0}' <<<"$fm" | wc -c)
 [ "$dlen" -gt 100 ] && [ "$dlen" -le 1024 ] && pass "description $dlen chars (<=1024)" || fail "description $dlen chars"
 grep -qi 'use when' <<<"$fm" && pass "description has triggers" || fail "description has triggers"
-for t in 'does this look' 'AI-generated' 'de-slop' 'anti-slop review'; do grep -qF -- "$t" <<<"$fm" && pass "trigger: $t" || fail "trigger: $t"; done
+for t in 'does this look' 'AI-generated' 'de-slop' 'anti-slop review' 'motion review' 'micro-interactions'; do grep -qF -- "$t" <<<"$fm" && pass "trigger: $t" || fail "trigger: $t"; done
 n=$(wc -l < SKILL.md); [ "$n" -le 250 ] && pass "SKILL.md $n lines (<=250)" || fail "SKILL.md $n lines (>250)"
 
 echo "== Contract in SKILL.md =="
@@ -57,8 +57,14 @@ chk "slop: regression rule" '`slop_score` rising 10 or more'
 chk "slop: craft credit before tiering" 'Run craft credit before tiering'
 chk "slop: token tell key" 'key `token|<token name>`'
 chk "1.3.5 autocomplete is a WCAG item" '| 1.3.5 | Identify input purpose' references/platform-targets.md
+chk "motion: not a scored section" 'not as a new scored section'
+chk "motion: weights unchanged" 'Weights stay 35/25/25/15'
+chk "motion: not observable" 'not observable'
+chk "motion: never fabricate" 'Never fabricate a motion finding'
+chk "motion: 2.3.3 report-only" '2.3.3 note (AAA, report-only, no cap)'
+chk "motion: 2.3.1 seizure" '2.3.1 (Level A, P0)'
 chk "Gotchas section" '## Gotchas'
-for r in laws.md heuristics.md platform-targets.md slop-tells.md findings-schema.json example-page.json sources.md; do
+for r in laws.md heuristics.md platform-targets.md slop-tells.md motion.md findings-schema.json example-page.json sources.md; do
   grep -qF "references/$r" SKILL.md && [ -f "references/$r" ] && pass "reference $r linked and present" || fail "reference $r"
 done
 
@@ -73,6 +79,35 @@ c=0; for i in $(seq -w 1 23); do grep -qE "^\| T$i \|" references/slop-tells.md 
 [ "$c" -eq 23 ] && pass "T01-T23 in slop-tells.md" || fail "slop-tells.md has $c/23"
 chk "slop weights labelled uncalibrated" 'Weights are a starting point, calibrate.' references/slop-tells.md
 for s in 'Han Kim / IOV Labs' 'Gesso Build, Inc.' 'Hallmark contributors' 'Feranmi' 'Miqdad Badjuber' 'cited, not copied'; do chk "slop attribution: $s" "$s" references/slop-tells.md; done
+c=0; for i in 01 02 03 05 06 07 08 09 $(seq 15 26); do grep -qE "^### M$i " references/motion.md && c=$((c+1)) || echo "  missing M$i"; done
+[ "$c" -eq 20 ] && pass "20 active checks (M01-M26 minus lens ids) in motion.md" || fail "motion.md has $c/20 active checks"
+c=0; for i in 04 10 11 12 13 14; do grep -qE "^### M$i " references/motion.md && echo "  lens id M$i is still a check"; grep -qE "^\| M$i \|" references/motion.md && c=$((c+1)); done
+[ "$c" -eq 6 ] && ! grep -qE "^### M(04|10|1[1-4]) " references/motion.md && pass "M04, M10, M11-M14 are lens rows, not checks" || fail "lens ids ($c/6 rows)"
+n=$(grep -c '^\*\*Source:\*\*' references/motion.md); [ "$n" -eq 20 ] && pass "every active check has a Source line" || fail "Source lines: $n/20"
+for l in '**research**' '**standard**' '**platform**' '**practitioner**' '**house heuristic**'; do chk "motion: strength label $l" "$l" references/motion.md; done
+! grep -qi 'reel heuristic' references/motion.md && pass "motion: no reel-sourced thresholds" || fail "motion: reel heuristic still present"
+chk "motion: lens not scored" 'Animation principles lens (not scored' references/motion.md
+chk "motion: M01 paint exemption" 'Exempt when the result paints within 400 ms' references/motion.md
+chk "motion: M09 floor" 'An exit of 200 ms or less is never a finding' references/motion.md
+chk "motion: M08 100-150 band" 'so 100-150 ms is fine' references/motion.md
+chk "loop: scored-item change is a baseline reset" 'or the set of scored items changed'
+chk "motion: M02 repeat guard" '**Repeat guard:**' references/motion.md
+chk "motion: pixels blocked on production" 'block ad and analytics requests' references/motion.md
+chk "motion: read after settle" '**MX2 Read after settle.**' references/motion.md
+chk "motion: easing from keyframes" 'effect.getKeyframes()' references/motion.md
+chk "motion: Astryx credited (MIT)" 'Copyright (c) 2026 Meta Platforms, Inc.' references/motion.md
+chk "2.2.2 is a scored WCAG item" '| 2.2.2 | Pause, stop, hide' references/platform-targets.md
+chk "2.3.1 is a scored WCAG item" '| 2.3.1 | Three flashes' references/platform-targets.md
+chk "Doherty: Nielsen limits cited" 'about 0.1 s feels instant, 1 s keeps the flow of thought, 10 s holds attention' references/laws.md
+chk "Doherty: 400 ms is a house heuristic" '**House heuristic:** visible feedback within about 400 ms' references/laws.md
+chk "motion: prefers-reduced-motion" 'prefers-reduced-motion' references/motion.md
+chk "motion: 2.3.3 AAA report-only" 'Level AAA: report-only, no grade cap' references/motion.md
+chk "motion: 2.3.1 Level A" '2.3.1' references/motion.md
+chk "motion: Apple HIG cited" 'developer.apple.com/design/human-interface-guidelines/motion' references/motion.md
+chk "motion: Material easing cited" 'm3.material.io/styles/motion/easing-and-duration/applying-easing-and-duration' references/motion.md
+chk "motion: WCAG 2.3.3 understanding cited" 'WAI/WCAG22/Understanding/animation-from-interactions' references/motion.md
+chk "motion: Fitts/Hick/Doherty not duplicated" 'already in [laws.md](laws.md)' references/motion.md
+chk "sources.md points at motion credits" 'motion.md' references/sources.md
 
 echo "== Schema and worked example =="
 LAWS="$LAWS" "$PY" - <<'PYEOF'

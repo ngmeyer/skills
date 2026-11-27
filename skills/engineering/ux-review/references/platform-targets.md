@@ -15,8 +15,10 @@ Deterministic tools supply most of these: an axe-core scan per route via `@axe-c
 | 1.4.10 | Reflow at 320 CSS px with no two-way scroll | Capture a 320 wide shot |
 | 1.4.11 | Non-text contrast 3:1 for controls and focus rings | |
 | 2.1.1 | Everything works from the keyboard | Needs DOM; n/a on screenshot-only runs |
+| 2.2.2 | Pause, stop, hide: auto-playing motion over 5 s, or auto-updating content, shown alongside other content has a control | Level A. Needs interaction or video; n/a on screenshot-only runs. [Understanding 2.2.2](https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide.html); motion.md M23 |
+| 2.3.1 | Three flashes or below threshold | Level A. A failure is also P0 (safety). Needs video; n/a on screenshot-only runs. [Understanding 2.3.1](https://www.w3.org/WAI/WCAG22/Understanding/three-flashes-or-below-threshold) |
 | 2.4.7 | Focus visible | |
-| 2.4.11 | Focus not fully hidden by sticky headers or cookie bars | [Understanding 2.4.11](https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html) |
+| 2.4.11 | Focus not fully hidden by sticky headers or cookie bars | Tab through after sticky bars settle (motion.md M25). [Understanding 2.4.11](https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html) |
 | 2.5.8 | Target size at least 24x24 CSS px, or the spacing exception | [Understanding 2.5.8](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html) |
 | 3.3.1 | Errors identified in text | |
 | 4.1.2 | Name, role, value for custom controls | |

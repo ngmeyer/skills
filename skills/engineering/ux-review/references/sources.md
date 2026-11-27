@@ -16,4 +16,6 @@ Rules here are our own words. Where an idea came from another project, it is cre
 
 The slop pass credits its own sources in [slop-tells.md](slop-tells.md#sources-and-attribution).
 
+The motion pass credits its own sources in [motion.md](motion.md#sources-and-attribution): HCI research (Heer & Robertson, Bederson & Boltman, Tversky et al., Dessart et al., Harrison et al.), NN/g, Apple HIG, Material 3, the MIT-licensed [meta/astryx](https://github.com/meta/astryx) design docs, and the WCAG 2.2 Understanding docs. Each check carries an evidence-strength label.
+
 impeccable's Apache-2.0 license asks that a NOTICE travel with copied text. Nothing is copied, so no NOTICE is shipped; if you later quote it, add one.
